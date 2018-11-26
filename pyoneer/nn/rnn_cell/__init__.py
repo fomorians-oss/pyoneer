@@ -1,2 +1,3 @@
-from pyoneer.nn.rnn_cell.fast_weights_impl import (
-    FastWeightsStateTuple, FastWeightsRNNCell, FastWeightsLSTMCell)
+from pyoneer.nn.rnn_cell.fast_weights_impl import FastWeightsStateTuple
+from pyoneer.nn.rnn_cell.fast_weights_impl import FastWeightsRNNCell
+from pyoneer.nn.rnn_cell.fast_weights_impl import FastWeightsLSTMCell

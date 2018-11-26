@@ -29,3 +29,11 @@ def weighted_mask(x, true_x, weights):
                 gen_array_ops.broadcast_to(
                     weights, array_ops.shape(x)), 1.),
         true_x, x)
+
+
+def swap_time_major(x):
+    dims = list(range(x.ndims))
+    tmp = dims[0]
+    dims[0] = dims[1]
+    dims[1] = tmp
+    return array_ops.transpose(x, dims)
