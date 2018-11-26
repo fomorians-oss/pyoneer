@@ -8,3 +8,4 @@ __pycache__
 /.vscode
 .python-version
 /pyoneer/rl/baselines
+Pipfile.lock

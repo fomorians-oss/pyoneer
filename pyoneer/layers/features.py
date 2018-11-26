@@ -4,6 +4,7 @@ import tensorflow.contrib.eager as tfe
 from collections import OrderedDict
 
 from pyoneer.math import angle_ops
+from pyoneer.features import normalization_ops
 
 
 class Normalizer(tf.keras.layers.Layer):
@@ -32,8 +33,7 @@ class Normalizer(tf.keras.layers.Layer):
             The normalized input tensor.
         """
         inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
-        outputs = (inputs - self.loc) / self.scale
-        outputs = tf.check_numerics(outputs, 'outputs')
+        outputs = normalization_ops.normalize(inputs, self.loc, self.scale)
         return outputs
 
 
