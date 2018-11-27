@@ -6,5 +6,6 @@ __pycache__
 .ipynb_checkpoints
 .DS_Store
 /.vscode
-
+.python-version
 /pyoneer/rl/baselines
+Pipfile.lock
