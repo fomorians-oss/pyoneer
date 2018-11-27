@@ -1,3 +1,3 @@
-from pyoneer.layers.linear_baseline import LinearBaseline
-
-from pyoneer.layers.rnn import RNN
+from pyoneer.layers.linear_baseline_impl import LinearBaseline
+from pyoneer.layers.noisy_dense_impl import NoisyDense
+from pyoneer.layers.rnn_impl import RNN

@@ -6,7 +6,8 @@ from tensorflow.python.ops.resource_variable_ops import ResourceVariable as Vari
 from tensorflow_probability.python import distributions
 
 from pyoneer.rl import policy_impl
-from pyoneer.rl import init_ops
+
+from pyoneer.initializers import init_ops
 
 
 class DiagonalGaussianPolicy(policy_impl.Policy):

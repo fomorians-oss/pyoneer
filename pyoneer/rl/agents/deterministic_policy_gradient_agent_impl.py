@@ -30,14 +30,13 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
     Computes the deterministic policy gradient estimation:
     """
 
-    def __init__(self, policy, target_policy, value, target_value, optimizer):
+    def __init__(self, policy, behavioral_policy, value, optimizer):
         assert isinstance(optimizer, tuple)
         super(DeterministicPolicyGradientAgent, self).__init__(optimizer)
 
         self.policy = policy
-        self.target_policy = target_policy
+        self.behavioral_policy = behavioral_policy
         self.value = value
-        self.target_value = target_value
 
         self.policy_gradient_loss = array_ops.constant(0.)
         self.policy_gradient_entropy_loss = array_ops.constant(0.)
@@ -64,16 +63,16 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
             dtype=dtypes.float32)
 
         policy = self.policy(rollouts.states, training=True)
-        target_policy = self.target_policy(rollouts.states)
+        behavioral_policy = self.behavioral_policy(rollouts.next_states)
 
         bootstrap_state = array_ops.expand_dims(
-            array_ops.gather(rollouts.states, sequence_length), 
+            array_ops.gather(rollouts.next_states, sequence_length), 
             axis=1)
         bootstrap_action = array_ops.expand_dims(
-            array_ops.gather(target_policy.mode(), sequence_length), 
+            array_ops.gather(behavioral_policy.mode(), sequence_length), 
             axis=1)
         bootstrap_value = array_ops.squeeze(
-            self.target_value(bootstrap_state, bootstrap_action), 
+            self.value(bootstrap_state, bootstrap_action), 
             axis=1)
 
         action_values = self.value(rollouts.states, policy.mode(), training=True) * mask

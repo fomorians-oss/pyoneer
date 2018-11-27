@@ -7,7 +7,7 @@ from tensorflow.python.ops import math_ops
 
 
 class SoftplusScale(init_ops.Initializer):
-  """Initializer that generates tensors initialized to 1."""
+  """Initializer that generates tensors initialized to `inverse_softplus(scale)`."""
 
   def __init__(self, scale=1., dtype=dtypes.float32):
     self.dtype = dtypes.as_dtype(dtype)

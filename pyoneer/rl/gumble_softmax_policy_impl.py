@@ -4,12 +4,12 @@ from tensorflow.python.ops import gen_nn_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops.resource_variable_ops import ResourceVariable as Variable
 
-from tensorflow_probability.python import distributions
+from pyoneer.distributions import gumble_softmax_impl
 
 from pyoneer.rl import policy_impl
 
 
-class RelaxedCategoricalPolicy(policy_impl.Policy):
+class GumbleSoftmaxPolicy(policy_impl.Policy):
 
     def __init__(self, 
                  units=None,
@@ -19,7 +19,7 @@ class RelaxedCategoricalPolicy(policy_impl.Policy):
                  kernel_initializer=None,
                  bias_initializer=None,
                  temperature_initializer=init_ops.RandomUniform(.25, .75)):
-        super(RelaxedCategoricalPolicy, self).__init__()
+        super(GumbleSoftmaxPolicy, self).__init__()
         if isinstance(logits, ops.Tensor) and isinstance(temperature, ops.Tensor):
             self.logits = logits
             self.temperature = temperature
@@ -37,8 +37,8 @@ class RelaxedCategoricalPolicy(policy_impl.Policy):
 
     def call(self, inputs):
         logits = self.logits(inputs)
-        return distributions.RelaxedOneHotCategorical(self.temperature, logits=logits)
+        return gumble_softmax_impl.GumbleSoftmax(self.temperature, logits=logits)
 
     @staticmethod
     def from_parameters(logits, temperature):
-        return RelaxedCategoricalPolicy(logits=logits, temperature=temperature)
+        return GumbleSoftmaxPolicy(logits=logits, temperature=temperature)

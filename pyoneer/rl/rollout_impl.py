@@ -11,7 +11,9 @@ from trfl import sequence_ops
 from pyoneer.features import array_ops as parray_ops
 
 
-class TensorTuple(object):
+# TODO(wenkesj): combine this with collections.namedtuple as a factory.
+def tensortuple(*args, **kwargs):
+    tcls = collections.namedtuple(*args, **kwargs)
 
     def concat(self, other_rollout, axis=0):
         return self.__class__(
@@ -19,17 +21,21 @@ class TensorTuple(object):
                     getattr(self, field), 
                     getattr(other_rollout, field)], 
                     axis=axis) 
-               for field in self._fields])
+            for field in self._fields])
 
     def pad_or_truncate(self, size):
         return self.__class__(
             *[parray_ops.pad_or_truncate(getattr(self, field), size, axis=1, pad_value=0) 
-               for field in self._fields])
+            for field in self._fields])
+    
+    tcls.concat = concat
+    tcls.pad_or_truncate = pad_or_truncate
+    return tcls
 
 
-class Rollout(TensorTuple, collections.namedtuple(
-        'Rollout', ['states', 'actions', 'rewards', 'weights'])):
-    """Holder for states, actions, rewards, and weights."""
+# TODO(wenkesj): implement next_states
+class Rollout(tensortuple('Rollout', ['states', 'actions', 'rewards', 'weights'])):
+    """Tuple of Tensors containing [states, actions, rewards, and weights]."""
 
     def __len__(self):
         return array_ops.shape(self.states)[0]
