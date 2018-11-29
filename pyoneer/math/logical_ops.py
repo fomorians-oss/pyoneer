@@ -1,9 +1,17 @@
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import math_ops
+import tensorflow as tf
 
 
-def isclose(x, y, epsilon=1e-7):
-    x = ops.convert_to_tensor(x)
-    y = ops.convert_to_tensor(y)
-    epsilon = ops.convert_to_tensor(epsilon)
-    return math_ops.abs(x - y) <= (epsilon + epsilon * 2e-7)
+def isclose(a, b, rtol=1e-5, atol=1e-8):
+    """
+    Returns a boolean tensor where two arrays are element-wise equal within a
+    tolerance.
+
+    The relative difference (rtol * abs(b)) and the absolute difference atol
+    are added together to compare against the absolute difference between a
+    and b.
+    """
+    a = tf.convert_to_tensor(a)
+    b = tf.convert_to_tensor(b)
+    rtol = tf.convert_to_tensor(rtol)
+    atol = tf.convert_to_tensor(atol)
+    return tf.abs(a - b) <= (atol + rtol * tf.abs(b))
