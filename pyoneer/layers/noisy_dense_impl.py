@@ -87,11 +87,11 @@ class NoisyDense(base.Layer):
 
     def build(self, input_shape):
         input_shape = tensor_shape.TensorShape(input_shape)
-        if input_shape[-1] is None:
+        if input_shape[-1].value is None:
             raise ValueError('The last dimension of the inputs to `Dense` '
                             'should be defined. Found `None`.')
-        input_dim = input_shape[-1]
-        stddev = 1. / math.sqrt(input_dim) * self.sigma0
+        input_dim = input_shape[-1].value
+        stddev = 1. / math_ops.sqrt(math_ops.cast(input_dim, dtypes.float32)) * self.sigma0
 
         self.input_spec = base.InputSpec(min_ndim=2,
                                          axes={-1: input_dim})
@@ -139,7 +139,7 @@ class NoisyDense(base.Layer):
         inputs = ops.convert_to_tensor(inputs, dtype=self.dtype)
         shape = inputs.get_shape().as_list()
         kernel = gen_math_ops.add(
-            self.kernel_loc, gen_math_ops.multiply(self.kernel_scale * self.kernel_epsilon))
+            self.kernel_loc, self.kernel_scale * self.kernel_epsilon)
 
         if len(shape) > 2:
             # Broadcasting is required for the inputs.
@@ -152,7 +152,7 @@ class NoisyDense(base.Layer):
             outputs = math_ops.matmul(inputs, kernel)
         if self.use_bias:
             bias = gen_math_ops.add(
-                self.bias_loc, gen_math_ops.multiply(self.bias_scale * self.bias_epsilon))
+                self.bias_loc, self.bias_scale * self.bias_epsilon)
             outputs = nn.bias_add(outputs, bias)
 
         if self.activation is not None:

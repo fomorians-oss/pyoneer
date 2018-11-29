@@ -43,7 +43,7 @@ def sequential_rollout(env,
         if done_on_max_steps:
             inner_dones[-1] = True
 
-        return rollout_impl.Rollout(
+        return rollout_impl.ContiguousRollout(
             states=array_ops.expand_dims(
                 array_ops.stack(inner_states, axis=0), axis=0), 
             actions=array_ops.expand_dims(

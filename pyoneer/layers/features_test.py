@@ -6,9 +6,9 @@ from collections import OrderedDict
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
-from pyoneer.layers.features import (Normalizer, OneHotEncoder, AngleEncoder,
-                                     DictFeaturizer, ListFeaturizer,
-                                     VecFeaturizer)
+from pyoneer.layers.features_impl import (Normalizer, OneHotEncoder, AngleEncoder,
+                                          DictFeaturizer, ListFeaturizer,
+                                          VecFeaturizer)
 
 
 class FeatureLayersTest(test.TestCase):

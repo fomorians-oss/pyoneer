@@ -7,5 +7,8 @@ __pycache__
 .DS_Store
 /.vscode
 .python-version
-/pyoneer/rl/baselines
 Pipfile.lock
+
+/pyoneer/rl/baselines
+/pyoneer/training/conjugate_gradient_solver_impl.py
+/pyoneer/training/linesearch_solver_impl.py

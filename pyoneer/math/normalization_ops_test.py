@@ -5,7 +5,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.platform import test
 
-from pyoneer.features import normalization_ops
+from pyoneer.math import normalization_ops
 
 
 class NormalizationOpsTest(test.TestCase):

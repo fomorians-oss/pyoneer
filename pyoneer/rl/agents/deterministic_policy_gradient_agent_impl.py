@@ -19,7 +19,7 @@ from trfl import value_ops
 
 
 class DeterministicPolicyGradientLoss(collections.namedtuple(
-    'DeterministicPolicyGradient', [
+    'DeterministicPolicyGradientLoss', [
         'policy_gradient_loss', 'policy_gradient_entropy_loss', 'value_loss', 'total_loss'])):
     pass
 
@@ -30,13 +30,13 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
     Computes the deterministic policy gradient estimation:
     """
 
-    def __init__(self, policy, behavioral_policy, value, optimizer):
-        assert isinstance(optimizer, tuple)
-        super(DeterministicPolicyGradientAgent, self).__init__(optimizer)
+    def __init__(self, policy, target_policy, value, target_value, policy_optimizer, value_optimizer):
+        super(DeterministicPolicyGradientAgent, self).__init__((policy_optimizer, value_optimizer))
 
         self.policy = policy
-        self.behavioral_policy = behavioral_policy
+        self.target_policy = target_policy
         self.value = value
+        self.target_value = target_value
 
         self.policy_gradient_loss = array_ops.constant(0.)
         self.policy_gradient_entropy_loss = array_ops.constant(0.)
@@ -63,16 +63,16 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
             dtype=dtypes.float32)
 
         policy = self.policy(rollouts.states, training=True)
-        behavioral_policy = self.behavioral_policy(rollouts.next_states)
+        target_policy = self.target_policy(rollouts.next_states)
 
         bootstrap_state = array_ops.expand_dims(
             array_ops.gather(rollouts.next_states, sequence_length), 
             axis=1)
         bootstrap_action = array_ops.expand_dims(
-            array_ops.gather(behavioral_policy.mode(), sequence_length), 
+            array_ops.gather(target_policy.mode(), sequence_length), 
             axis=1)
         bootstrap_value = array_ops.squeeze(
-            self.value(bootstrap_state, bootstrap_action), 
+            self.target_value(bootstrap_state, bootstrap_action), 
             axis=1)
 
         action_values = self.value(rollouts.states, policy.mode(), training=True) * mask
@@ -86,14 +86,16 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
         self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
             policy_gradient_entropy_loss_output.loss, weights=rollouts.weights)
 
-        pcontinues = parray_ops.swap_time_major(delay * rollouts.weights)
+        lambda_ = lambda_ * rollouts.weights
+        pcontinues = delay * rollouts.weights
+
         self.value_loss = math_ops.reduce_mean(
             value_ops.td_lambda(
-                action_values, 
-                rollouts.rewards,
-                pcontinues,
+                parray_ops.swap_time_major(action_values), 
+                parray_ops.swap_time_major(rollouts.rewards),
+                parray_ops.swap_time_major(pcontinues),
                 gen_array_ops.stop_gradient(bootstrap_value),
-                lambda_=lambda_).loss,
+                parray_ops.swap_time_major(lambda_)).loss,
             axis=0)
 
         self.total_loss = math_ops.add_n([
@@ -108,4 +110,13 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
             _ = self.compute_loss(rollouts, **kwargs)
         policy_gradients = tape.gradient(self.total_loss, self.policy.trainable_variables)
         value_gradients = tape.gradient(self.total_loss, self.value.trainable_variables)
-        return policy_gradients, value_gradients
+        return (
+            zip(policy_gradients, self.policy.trainable_variables),
+            zip(value_gradients, self.value.trainable_variables))
+
+    def fit(self, rollouts, **kwargs):
+        policy_optimizer, value_optimizer = self.optimizer
+        policy_grads_and_vars, value_grads_and_vars = self.estimate_gradients(rollouts, **kwargs)
+        return control_flow_ops.group(
+            policy_optimizer.apply_gradients(policy_grads_and_vars), 
+            value_optimizer.apply_gradients(value_grads_and_vars))

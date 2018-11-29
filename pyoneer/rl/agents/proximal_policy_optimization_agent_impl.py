@@ -1,7 +1,10 @@
+import collections
+
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import gen_array_ops
 from tensorflow.python.eager import backprop
 from tensorflow.python.ops.losses import losses_impl
 
@@ -52,14 +55,15 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
         behavioral_policy = self.behavioral_policy(rollouts.states)
         baseline_values = self.value(rollouts.states, training=True)
 
-        pcontinues = parray_ops.swap_time_major(decay * rollouts.weights)
+        pcontinues = decay * rollouts.weights
+        lambda_ = lambda_ * rollouts.weights
         bootstrap_values = array_ops.zeros_like(baseline_values[:, 0])
         baseline_loss, td_lambda = value_ops.td_lambda(
             parray_ops.swap_time_major(baseline_values), 
             parray_ops.swap_time_major(rollouts.rewards), 
-            pcontinues, 
+            parray_ops.swap_time_major(pcontinues), 
             bootstrap_values, 
-            lambda_)
+            parray_ops.swap_time_major(lambda_))
 
         advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
 
@@ -78,7 +82,7 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
             axis=0)
 
         self.value_loss = math_ops.reduce_mean(
-            math_ops.multiply(parray_ops.swap_time_major(baseline_loss), baseline_scale), 
+            math_ops.multiply(baseline_loss, baseline_scale), 
             axis=0)
 
         self.total_loss = math_ops.add_n([

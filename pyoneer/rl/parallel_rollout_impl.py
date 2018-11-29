@@ -96,7 +96,8 @@ def parallel_rollout(env,
     dones = dones_ta.stack()
     dones = array_ops.transpose(dones, [1, 0])
 
-    return rollout_impl.Rollout(states=states, 
-                                actions=actions, 
-                                rewards=rewards, 
-                                weights=1. - math_ops.cast(dones, dtypes.float32))
+    return rollout_impl.ContiguousRollout(
+        states=states, 
+        actions=actions, 
+        rewards=rewards, 
+        weights=1. - math_ops.cast(dones, dtypes.float32))

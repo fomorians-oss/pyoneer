@@ -55,12 +55,12 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
         policy = self.policy(parray_ops.swap_time_major(rollouts.states), training=True)
         baseline_values = self.value(rollouts.states, training=True)
 
-        pcontinues = parray_ops.swap_time_major(decay * rollouts.weights)
+        pcontinues = decay * rollouts.weights
         bootstrap_values = array_ops.zeros_like(baseline_values[:, 0])
-        baseline_loss_td, td_lambda = value_ops.td_lambda(
+        baseline_loss, td_lambda = value_ops.td_lambda(
             parray_ops.swap_time_major(baseline_values), 
             parray_ops.swap_time_major(rollouts.rewards), 
-            pcontinues, 
+            parray_ops.swap_time_major(pcontinues), 
             bootstrap_values, 
             lambda_)
 
@@ -82,8 +82,7 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
             axis=0)
 
         self.value_loss = math_ops.reduce_mean(
-            math_ops.multiply(
-                parray_ops.swap_time_major(baseline_loss_td.loss), baseline_scale),
+            math_ops.multiply(baseline_loss, baseline_scale),
             axis=0)
 
         self.total_loss = math_ops.add_n([

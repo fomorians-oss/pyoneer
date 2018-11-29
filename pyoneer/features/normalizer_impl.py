@@ -8,8 +8,9 @@ from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops.resource_variable_ops import ResourceVariable as Variable
 
 from pyoneer.math import logical_ops
-from pyoneer.features import normalization_ops
-from pyoneer.features import array_ops as parray_ops
+from pyoneer.math import normalization_ops
+
+from pyoneer.manip import array_ops as parray_ops
 
 
 class StatelessNormalizer(keras.Model):

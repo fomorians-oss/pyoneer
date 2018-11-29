@@ -6,6 +6,8 @@ from tensorflow.python.eager import backprop
 
 from pyoneer.rl.agents import agent_impl
 
+from pyoneer.features import array_ops as parray_ops
+
 from trfl import policy_gradient_ops
 
 
@@ -53,13 +55,13 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
         self.value.fit(rollouts.states, returns)
 
         action_values = (returns - self.value(rollouts.states, training=True)) * rollouts.weights
-        policy = self.policy(rollouts.states, training=True)
+        policy = self.policy(parray_ops.swap_time_major(rollouts.states), training=True)
 
         self.policy_gradient_loss = math_ops.reduce_mean(
             policy_gradient_ops.policy_gradient_loss(
                 policy, 
-                rollouts.actions, 
-                action_values, 
+                parray_ops.swap_time_major(rollouts.actions), 
+                parray_ops.swap_time_major(action_values), 
                 policy_vars=self.policy.trainable_variables),
             axis=0)
 

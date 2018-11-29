@@ -7,7 +7,7 @@ from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import nn_impl
 
 from pyoneer.math import logical_ops
-from pyoneer.features import array_ops as parray_ops
+from pyoneer.manip import array_ops as parray_ops
 
 
 def high_low_mean_and_stddev(high, low):

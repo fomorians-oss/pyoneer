@@ -5,7 +5,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.platform import test
 
-from pyoneer.features import array_ops as parray_ops
+from pyoneer.manip import array_ops as parray_ops
 
 
 class ArrayOpsTest(test.TestCase):
