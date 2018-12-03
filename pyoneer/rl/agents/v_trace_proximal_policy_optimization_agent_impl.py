@@ -7,6 +7,8 @@ import collections
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
+from tensorflow.python.ops import gen_math_ops
+from tensorflow.python.ops import clip_ops
 from tensorflow.python.eager import backprop
 from tensorflow.python.ops.losses import losses_impl
 
@@ -18,8 +20,8 @@ from trfl import policy_gradient_ops
 from trfl import vtrace_ops
 
 
-class VTraceAdvantageActorCriticLoss(collections.namedtuple(
-    'VTraceAdvantageActorCriticLoss', [
+class VTraceProximalPolicyOptimizationLoss(collections.namedtuple(
+    'VTraceProximalPolicyOptimizationLoss', [
         'policy_gradient_loss', 
         'policy_gradient_entropy_loss', 
         'value_loss', 
@@ -27,14 +29,14 @@ class VTraceAdvantageActorCriticLoss(collections.namedtuple(
     pass
 
 
-class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
+class VTraceProximalPolicyOptimizationAgent(agent_impl.Agent):
     """A2C with V-trace (IMPALA) algorithm implementation.
 
     Computes the A2C with V-trace return targets (IMPALA) gradient estimation:
     """
 
     def __init__(self, policy, behavioral_policy, value, optimizer):
-        super(VTraceAdvantageActorCriticAgent, self).__init__(optimizer)
+        super(VTraceProximalPolicyOptimizationAgent, self).__init__(optimizer)
 
         self.policy = policy
         self.behavioral_policy = behavioral_policy
@@ -51,13 +53,13 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
 
     @property
     def loss(self):
-        return VTraceAdvantageActorCriticLoss(
+        return VTraceProximalPolicyOptimizationLoss(
             policy_gradient_loss=self.policy_gradient_loss,
             policy_gradient_entropy_loss=self.policy_gradient_entropy_loss,
             value_loss=self.value_loss,
             total_loss=self.total_loss)
 
-    def compute_loss(self, rollouts, decay=.999, lambda_=1., entropy_scale=.2, baseline_scale=1.):
+    def compute_loss(self, rollouts, decay=.999, lambda_=1., entropy_scale=.2, baseline_scale=1., ratio_epsilon=.2):
         policy = self.policy(rollouts.states, training=True)
         behavioral_policy = self.behavioral_policy(rollouts.states)
         baseline_values = parray_ops.swap_time_major(
@@ -67,8 +69,8 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
         bootstrap_values = baseline_values[-1, :]
 
         log_prob = policy.log_prob(rollouts.actions)
-        log_rhos = parray_ops.swap_time_major(log_prob) - parray_ops.swap_time_major(
-            behavioral_policy.log_prob(rollouts.actions))
+        behavioral_log_prob = behavioral_policy.log_prob(rollouts.actions)
+        log_rhos = parray_ops.swap_time_major(log_prob - gen_array_ops.stop_gradient(behavioral_log_prob))
         vtrace_returns = vtrace_ops.vtrace_from_importance_weights(
             log_rhos,
             pcontinues,
@@ -80,10 +82,11 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
         advantages = normalization_ops.weighted_moments_normalize(advantages, rollouts.weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
-        log_prob = parray_ops.expand_to(log_prob, ndims=3)
-        policy_gradient_loss = advantages * -math_ops.reduce_sum(log_prob, axis=-1)
-        self.policy_gradient_loss = losses_impl.compute_weighted_loss(
-            policy_gradient_loss,
+        ratio = parray_ops.swap_time_major(gen_math_ops.exp(log_rhos))
+        clipped_ratio = clip_ops.clip_by_value(ratio, 1. - ratio_epsilon, 1. + ratio_epsilon)
+
+        self.policy_gradient_loss = -losses_impl.compute_weighted_loss(
+            gen_math_ops.minimum(advantages * ratio, advantages * clipped_ratio), 
             weights=rollouts.weights)
 
         entropy_loss = policy_gradient_ops.policy_entropy_loss(
