@@ -161,8 +161,9 @@ class PolicyValueTestCase(test.TestCase):
                 mean_episodic_exploit_returns = tf.reduce_mean(
                     tf.reduce_sum(exploit_rollouts.rewards, axis=-1))
                 print(mean_episodic_exploit_returns)
-                if mean_episodic_exploit_returns.numpy() == max_returns:
-                    break
+                if mean_episodic_exploit_returns.numpy() >= max_returns:
+                    self.assertAllGreaterEqual(mean_episodic_exploit_returns, tf.constant(max_returns))
+                    return
             after_iteration(agent)
 
-        self.assertAllEqual(mean_episodic_exploit_returns, tf.constant(max_returns))
+        self.assertAllGreaterEqual(mean_episodic_exploit_returns, tf.constant(max_returns))

@@ -13,7 +13,7 @@ from pyoneer.rl.agents.test import action_value_test_case_impl
 
 class QAgentTest(action_value_test_case_impl.ActionValueTestCase):
 
-    # @test_util.skip_if(True)
+    @test_util.skip_if(True)
     def testConvergenceDiscrete(self):
         with context.eager_mode():
             self.setUpEnv(
