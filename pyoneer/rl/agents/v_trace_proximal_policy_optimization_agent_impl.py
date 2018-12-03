@@ -30,9 +30,9 @@ class VTraceProximalPolicyOptimizationLoss(collections.namedtuple(
 
 
 class VTraceProximalPolicyOptimizationAgent(agent_impl.Agent):
-    """A2C with V-trace (IMPALA) algorithm implementation.
+    """PPO with V-trace (IMPALA) algorithm implementation.
 
-    Computes the A2C with V-trace return targets (IMPALA) gradient estimation:
+    Computes the PPO with V-trace return targets (IMPALA) gradient estimation:
     """
 
     def __init__(self, policy, behavioral_policy, value, optimizer):
