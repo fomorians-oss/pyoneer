@@ -7,12 +7,11 @@ RL algorithms in a simplified Keras-like API.
 - [x] Proximal Policy Optimization (PPO)
 - [x] Vanilla Policy Gradient (VPG)
 - [x] V-Trace Actor-Critic (IMPALA)
+- [x] V-Trace Proximal Policy Optimization (IMPALA)
 - [ ] Trust Region Policy Optimization (TRPO) - _Proposed_
 - [ ] Deterministic Policy Gradient (DPG) - *WIP*
-- [ ] Q - *WIP*
-- [ ] Double Q (DQ) - *WIP*
-- [ ] Q(lambda) - *WIP*
-- [ ] Double Q(lambda) - *WIP*
+- [x] Q(lambda)
+- [x] Double Q(lambda)
 
 # TODO:
 + Clean interface for action-value algorithms that are not temporally compatible, such as Q and original DDPG.

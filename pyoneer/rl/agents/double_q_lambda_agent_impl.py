@@ -17,7 +17,7 @@ from tensorflow.python.training import optimizer
 
 from pyoneer.rl.agents import agent_impl
 from pyoneer.rl.agents import q_agent_impl
-from pyoneer.features import array_ops as parray_ops
+from pyoneer.manip import array_ops as parray_ops
 
 from trfl import action_value_ops
 
@@ -59,10 +59,12 @@ class DoubleQLambdaAgent(agent_impl.Agent):
         batch_size = len(rollouts)
         actions = gen_array_ops.reshape(rollouts.actions, [batch_size, -1])
         sequence_length = math_ops.reduce_sum(rollouts.weights, axis=1)
-        mask = array_ops.sequence_mask(
-            gen_math_ops.maximum(sequence_length - 1, 0), 
-            maxlen=rollouts.states.shape[1], 
-            dtype=dtypes.float32)
+        mask = array_ops.expand_dims(
+            array_ops.sequence_mask(
+                gen_math_ops.maximum(sequence_length - 1, 0), 
+                maxlen=rollouts.states.shape[1], 
+                dtype=dtypes.float32),
+            axis=-1)
 
         pcontinues = delay * rollouts.weights
         action_values = self.value(rollouts.states, training=True) * mask

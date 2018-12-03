@@ -56,6 +56,11 @@ class ActionValueTestCase(test.TestCase):
         self.value = non_linear_value_impl.NonLinearStateValue(
             self.state_normalizer, units=self.explore_env.action_space.n)
 
+    def setUpTargetNonLinearStateValue(self):
+        self.assertTrue(isinstance(self.explore_env.action_space, discrete.Discrete))
+        self.target_value = non_linear_value_impl.NonLinearStateValue(
+            self.state_normalizer, units=self.explore_env.action_space.n)
+
     def setUpOptimizer(self, learning_rate=1e-3):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
@@ -103,8 +108,9 @@ class ActionValueTestCase(test.TestCase):
                     mean_episodic_exploit_returns = tf.reduce_mean(
                         tf.reduce_sum(exploit_rollouts.rewards, axis=-1))
                     print(mean_episodic_exploit_returns)
-                    if mean_episodic_exploit_returns.numpy() == max_returns:
-                        break
+                    if mean_episodic_exploit_returns.numpy() >= max_returns:
+                        self.assertAllGreaterEqual(mean_episodic_exploit_returns, tf.constant(max_returns))
+                        return
             after_iteration(agent)
 
-        self.assertAllEqual(mean_episodic_exploit_returns, tf.constant(max_returns))
+        self.assertAllGreaterEqual(mean_episodic_exploit_returns, tf.constant(max_returns))

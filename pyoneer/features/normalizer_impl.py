@@ -18,6 +18,17 @@ from pyoneer.manip import array_ops as parray_ops
 
 
 class StatelessNormalizer(keras.Model):
+    """
+    Normalizes the inputs by subtracting a mean and dividing by a standard deviation. 
+
+    `StatelessNormalizer` treats the `loc` and `scale` as constant parameters.
+
+    Args:
+        loc: The mean to use for normalization.
+        scale_: The standard deviation to use for normalization.
+        center: Center using the mean with this flag.
+        scale: Scale using the standard deviation with this flag.
+    """
 
     def __init__(self, loc, scale_, center=True, scale=True):
         super(StatelessNormalizer, self).__init__()
@@ -30,16 +41,27 @@ class StatelessNormalizer(keras.Model):
     def shape(self):
         return self.loc.shape
 
-    def call(self, inputs, weights=1.):
+    def call(self, inputs, weights=1., training=False):
         return normalization_ops.select_weighted_normalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
-    def inverse(self, inputs, weights=1.):
+    def inverse(self, inputs, weights=1., training=False):
         return normalization_ops.select_weighted_denormalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
 
 class StatefulNormalizer(keras.Model):
+    """
+    Normalizes the inputs by subtracting a mean and dividing by a standard deviation. 
+
+    `StatefulNormalizer` treats the `loc` and `scale` as variable parameters. 
+    A subclass must implement the property getter `scale` and method `update_loc`.
+
+    Args:
+        shape: The shape of the mean/standard deviation to use for normalization.
+        center: Center using the mean with this flag.
+        scale: Scale using the standard deviation with this flag.
+    """
 
     def __init__(self, shape, center=True, scale=True):
         super(StatefulNormalizer, self).__init__()
