@@ -27,11 +27,10 @@ def cyclic_lr_scheduler(lr_min, lr_max, step_size, global_step, name=None):
 
 
 class CyclicSchedule:
-    def __init__(self, vmin, vmax, step_size, half=False, global_step=None):
+    def __init__(self, vmin, vmax, step_size, global_step=None):
         self.vmin = vmin
         self.vmax = vmax
         self.step_size = step_size
-        self.half = half  # What is this supposed to do??
         if global_step is None:
             global_step = tf.train.get_or_create_global_step()
         self.global_step = global_step
