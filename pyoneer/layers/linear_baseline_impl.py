@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python import layers
@@ -8,6 +12,8 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import state_ops
 from tensorflow.python.ops import linalg_ops
 from tensorflow.python.ops import control_flow_ops
+
+from pyoneer.manip import array_ops as parray_ops
 
 
 class LinearBaseline(layers.Layer):
@@ -32,8 +38,12 @@ class LinearBaseline(layers.Layer):
             initializer=init_ops.Zeros(), 
             dtype=dtypes.float32,
             trainable=False)
+        self.built = True
 
     def fit(self, inputs, outputs):
+        if not self.built:
+            self.build(inputs.shape)
+        inputs = parray_ops.flatten(inputs)
         outputs = gen_array_ops.reshape(outputs, [-1, self.units])
         outputs = linalg_ops.matrix_solve_ls(inputs, outputs, l2_regularizer=self.l2_regularizer)
         with ops.control_dependencies([state_ops.assign(self.linear, outputs)]):
@@ -41,6 +51,6 @@ class LinearBaseline(layers.Layer):
 
     def call(self, inputs, training=False):
         k = inputs.shape[0]
-        inputs = gen_array_ops.reshape(inputs, [-1, inputs.shape[-1]])
+        inputs = parray_ops.flatten(inputs)
         baseline = inputs @ self.linear
         return gen_array_ops.reshape(baseline, [k, -1])

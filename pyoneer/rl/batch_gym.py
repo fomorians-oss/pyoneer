@@ -1,5 +1,9 @@
-import gym
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
+import itertools
+import gym
 import numpy as np
 
 
@@ -64,7 +68,7 @@ class BatchEnv(gym.Env):
         self.observation_space = env.observation_space
         self.action_space = env.action_space
 
-        self.__seed__ = None
+        self.__seed__ = itertools.count(0)
         self.__cache__ = _Cache([env])
 
     @property
@@ -86,7 +90,7 @@ class BatchEnv(gym.Env):
         assert episodes > 0
         if episodes != len(self.__cache__.items):
             self.__cache__.fix(
-                lambda: self._make_and_seed(self.__seed__),
+                lambda: self._make_and_seed(next(self.__seed__)),
                 lambda item: item.close(),
                 episodes)
         return np.stack([env.reset() for env in self.__cache__.items], 0)
@@ -125,9 +129,9 @@ class BatchEnv(gym.Env):
         Args:
           seed: random seed.
         """
-        self.__seed__ = seed
+        self.__seed__ = itertools.count(seed or 0)
         for item in self.__cache__.items:
-            item.seed(self.__seed__)
+            item.seed(next(self.__seed__))
 
     def close(self):
         """Close the cached envs"""

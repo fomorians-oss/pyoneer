@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
@@ -28,11 +32,18 @@ def weighted_mask(x, true_x, weights):
 
 
 def swap_time_major(x):
-    dims = list(range(len(x.shape)))
-    tmp = dims[0]
-    dims[0] = dims[1]
-    dims[1] = tmp
-    return array_ops.transpose(x, dims)
+    return array_ops.transpose(x, [1, 0] + list(range(x.shape.ndims))[2:])
+
+
+def expand_to(x, ndims):
+    x_ndims = x.shape.ndims
+    diff = x_ndims - ndims
+    if diff > 0:
+        raise ValueError('`x.shape.ndims` must be at most `ndims`.')
+    diff = abs(diff)
+    if x_ndims == ndims:
+        return x
+    return gen_array_ops.reshape(x, x.shape.as_list() + [1] * diff)
 
 
 def shift(x, axis=1, rotations=1, pad_value=None):

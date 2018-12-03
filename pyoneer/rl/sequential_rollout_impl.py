@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
@@ -13,7 +17,10 @@ def sequential_rollout(env,
                        initial_done=None,
                        episodes=1,
                        max_steps=100,
-                       done_on_max_steps=False):
+                       done_on_max_steps=False,
+                       contiguous=True):
+    """Collect rollouts sequentially.
+    """
     max_steps_fn = lambda s: s >= max_steps
 
     def episode_fn(env):
@@ -39,19 +46,26 @@ def sequential_rollout(env,
             inner_states.append(state)
             action = next_action_fn(step, state, action, reward, done, False)
             inner_actions.append(action)
-        
+
         if done_on_max_steps:
             inner_dones[-1] = True
 
-        return rollout_impl.ContiguousRollout(
-            states=array_ops.expand_dims(
-                array_ops.stack(inner_states, axis=0), axis=0), 
-            actions=array_ops.expand_dims(
-                array_ops.stack(inner_actions, axis=0), axis=0),
-            rewards=array_ops.expand_dims(
-                array_ops.stack(inner_rewards, axis=0), axis=0),
-            weights=array_ops.expand_dims(
-                array_ops.stack(1. - math_ops.cast(inner_dones, dtypes.float32), axis=0), axis=0))
+        states = array_ops.stack(inner_states, axis=0)
+        actions = array_ops.stack(inner_actions, axis=0)
+        rewards = array_ops.stack(inner_rewards, axis=0)
+        weights = array_ops.stack(1. - math_ops.cast(inner_dones, dtypes.float32), axis=0)
+
+        if contiguous:
+            states = array_ops.expand_dims(states, axis=0)
+            actions = array_ops.expand_dims(actions, axis=0)
+            rewards = array_ops.expand_dims(rewards, axis=0)
+            weights = array_ops.expand_dims(weights, axis=0)
+
+        return rollout_impl.Rollout(
+            states=states, 
+            actions=actions,
+            rewards=rewards,
+            weights=weights)
 
     rollouts = episode_fn(env)
     for _ in range(episodes - 1):

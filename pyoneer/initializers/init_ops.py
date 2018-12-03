@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import init_ops
@@ -6,7 +10,7 @@ from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import math_ops
 
 
-class SoftplusScale(init_ops.Initializer):
+class InverseSoftplusScale(init_ops.Initializer):
   """Initializer that generates tensors initialized to `inverse_softplus(scale)`."""
 
   def __init__(self, scale=1., dtype=dtypes.float32):

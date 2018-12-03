@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 
 from tensorflow.python.framework import dtypes
@@ -12,7 +16,7 @@ from tensorflow.python.ops.losses import losses_impl
 from tensorflow.python.training import optimizer
 
 from pyoneer.rl.agents import agent_impl
-from pyoneer.features import array_ops as parray_ops
+from pyoneer.manip import array_ops as parray_ops
 
 from trfl import policy_gradient_ops
 from trfl import value_ops
@@ -20,7 +24,7 @@ from trfl import value_ops
 
 class DeterministicPolicyGradientLoss(collections.namedtuple(
     'DeterministicPolicyGradientLoss', [
-        'policy_gradient_loss', 'policy_gradient_entropy_loss', 'value_loss', 'total_loss'])):
+        'policy_gradient_loss', 'value_loss', 'total_loss'])):
     pass
 
 
@@ -51,12 +55,14 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
     def loss(self):
         return DeterministicPolicyGradientLoss(
             policy_gradient_loss=self.policy_gradient_loss,
-            policy_gradient_entropy_loss=self.policy_gradient_entropy_loss,
             value_loss=self.value_loss,
             total_loss=self.total_loss)
 
     def compute_loss(self, rollouts, delay=.999, lambda_=1., entropy_scale=.2):
-        sequence_length = math_ops.reduce_sum(rollouts.weights, axis=1)
+        sequence_length = math_ops.cast(
+            math_ops.reduce_sum(rollouts.weights, axis=-1), 
+            dtypes.int32)
+
         mask = array_ops.sequence_mask(
             gen_math_ops.maximum(sequence_length - 1, 0), 
             maxlen=rollouts.states.shape[1], 
@@ -65,26 +71,13 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
         policy = self.policy(rollouts.states, training=True)
         target_policy = self.target_policy(rollouts.next_states)
 
-        bootstrap_state = array_ops.expand_dims(
-            array_ops.gather(rollouts.next_states, sequence_length), 
-            axis=1)
-        bootstrap_action = array_ops.expand_dims(
-            array_ops.gather(target_policy.mode(), sequence_length), 
-            axis=1)
-        bootstrap_value = array_ops.squeeze(
-            self.target_value(bootstrap_state, bootstrap_action), 
-            axis=1)
+        bootstrap_state = rollouts.next_states[:, -1:]
+        bootstrap_action = target_policy.mode()[:, -1:]
+        bootstrap_value = array_ops.squeeze(self.target_value(bootstrap_state, bootstrap_action))
 
-        action_values = self.value(rollouts.states, policy.mode(), training=True) * mask
+        action_values = array_ops.squeeze(self.value(rollouts.states, policy, training=True), axis=-1) * mask
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(
             -action_values, weights=rollouts.weights)
-
-        policy_gradient_entropy_loss_output = policy_gradient_ops.policy_entropy_loss(
-            policy, 
-            self.policy.trainable_variables,
-            entropy_scale)
-        self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
-            policy_gradient_entropy_loss_output.loss, weights=rollouts.weights)
 
         lambda_ = lambda_ * rollouts.weights
         pcontinues = delay * rollouts.weights
@@ -100,8 +93,7 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
 
         self.total_loss = math_ops.add_n([
             self.value_loss,
-            self.policy_gradient_loss, 
-            self.policy_gradient_entropy_loss])
+            self.policy_gradient_loss])
 
         return self.total_loss
 
@@ -111,8 +103,8 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
         policy_gradients = tape.gradient(self.total_loss, self.policy.trainable_variables)
         value_gradients = tape.gradient(self.total_loss, self.value.trainable_variables)
         return (
-            zip(policy_gradients, self.policy.trainable_variables),
-            zip(value_gradients, self.value.trainable_variables))
+            list(zip(policy_gradients, self.policy.trainable_variables)),
+            list(zip(value_gradients, self.value.trainable_variables)))
 
     def fit(self, rollouts, **kwargs):
         policy_optimizer, value_optimizer = self.optimizer
