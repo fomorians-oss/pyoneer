@@ -3,3 +3,4 @@ from __future__ import division
 from __future__ import print_function
 
 from pyoneer.training.global_norm_clipping_optimizer_impl import GlobalNormClippingOptimizer
+from pyoneer.training.learning_rate_decay import cyclic_lr_scheduler, CyclicSchedule
