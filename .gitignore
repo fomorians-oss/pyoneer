@@ -8,7 +8,3 @@ __pycache__
 /.vscode
 .python-version
 Pipfile.lock
-
-/pyoneer/rl/baselines
-/pyoneer/training/conjugate_gradient_solver_impl.py
-/pyoneer/training/linesearch_solver_impl.py

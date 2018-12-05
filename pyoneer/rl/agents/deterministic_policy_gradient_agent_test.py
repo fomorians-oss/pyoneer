@@ -10,49 +10,96 @@ from tensorflow.python.framework import test_util
 import trfl
 
 from pyoneer.rl.agents import deterministic_policy_gradient_agent_impl
-from pyoneer.rl.agents.test import action_value_test_case_impl
 
 
-class DeterministicPolicyGradientAgentTest(action_value_test_case_impl.ActionValueTestCase):
+class _TestPolicy(tf.keras.Model):
 
-    # @test_util.skip_if(True)
-    def testConvergenceContinuous(self):
+    def __init__(self, action_size):
+        super(_TestPolicy, self).__init__()
+        self.linear = tf.layers.Dense(action_size)
+
+    def call(self, inputs, training=False, reset_state=True):
+        return self.linear(inputs)
+
+
+class _TestValue(tf.keras.Model):
+
+    def __init__(self):
+        super(_TestValue, self).__init__()
+        self.linear = tf.layers.Dense(1)
+
+    def call(self, states, actions, training=False, reset_state=True):
+        return self.linear(tf.concat([states, actions], axis=-1))
+
+
+class DeterministicPolicyGradientAgentTest(test.TestCase):
+
+    def testComputeLoss(self):
         with context.eager_mode():
-            self.setUpEnv(
-                'Pendulum-v0',
-                seed=42,
-                clip_inf=40.)
-            self.setUpScalePolicy()
-            self.setUpTargetScalePolicy()
-            self.setUpNonLinearActionValue()
-            self.setUpTargetNonLinearActionValue()
-            self.setUpPolicyOptimizer()
-            self.setUpValueOptimizer()
-
-            def after_iteration(agent):
-                trfl.update_target_variables(
-                    agent.target_value.trainable_variables + agent.target_policy.trainable_variables,
-                    agent.value.trainable_variables + agent.policy.trainable_variables)
-
             agent = deterministic_policy_gradient_agent_impl.DeterministicPolicyGradientAgent(
-                policy=self.policy,
-                target_policy=self.target_policy,
-                value=self.value, 
-                target_value=self.target_value,
-                policy_optimizer=self.policy_optimizer,
-                value_optimizer=self.value_optimizer)
-            self.assertNaiveScalePolicyStrategyConvergedAfter(
-                agent,
-                iterations=100,
-                epochs=10,
-                batch_size=128,
-                replay_size=128*16,
-                explore_episodes=128,
-                explore_max_steps=250,
-                exploit_episodes=10,
-                exploit_max_steps=250,
-                max_returns=-200.,
-                after_iteration=after_iteration)
+                policy=_TestPolicy(5),
+                target_policy=_TestPolicy(5),
+                value=_TestValue(),
+                target_value=_TestValue(),
+                policy_optimizer=tf.train.GradientDescentOptimizer(1.),
+                value_optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            total_loss = agent.compute_loss(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                next_states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2,], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertShapeEqual(tf.zeros([]).numpy(), total_loss)
+            self.assertEqual(3, len(agent.loss))
+
+    def testEstimateGradients(self):
+        with context.eager_mode():
+            agent = deterministic_policy_gradient_agent_impl.DeterministicPolicyGradientAgent(
+                policy=_TestPolicy(5),
+                target_policy=_TestPolicy(5),
+                value=_TestValue(),
+                target_value=_TestValue(),
+                policy_optimizer=tf.train.GradientDescentOptimizer(1.),
+                value_optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            policy_grads_and_vars, value_grads_and_vars = agent.estimate_gradients(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                next_states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+
+            grads, _ = zip(*policy_grads_and_vars)
+            variables = agent.policy.trainable_variables
+            for grad, var in zip(grads, variables):
+                self.assertShapeEqual(tf.shape(grad).numpy(), tf.shape(var))
+            
+            grads, _ = zip(*value_grads_and_vars)
+            variables = agent.value.trainable_variables
+            for grad, var in zip(grads, variables):
+                self.assertShapeEqual(tf.shape(grad).numpy(), tf.shape(var))
+
+            self.assertEqual(3, len(agent.loss))
+
+    def testFit(self):
+        with context.eager_mode():
+            agent = deterministic_policy_gradient_agent_impl.DeterministicPolicyGradientAgent(
+                policy=_TestPolicy(5),
+                target_policy=_TestPolicy(5),
+                value=_TestValue(),
+                target_value=_TestValue(),
+                policy_optimizer=tf.train.GradientDescentOptimizer(1.),
+                value_optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            _ = agent.fit(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                next_states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertEqual(3, len(agent.loss))
+
 
 
 if __name__ == "__main__":

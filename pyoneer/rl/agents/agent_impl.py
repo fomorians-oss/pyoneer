@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorflow.python import keras
+from tensorflow.python.eager import backprop
 
 
 class Agent(keras.Model):
@@ -29,8 +30,8 @@ class Agent(keras.Model):
         """Access recent losses computed after `compute_loss(...)` is called.
 
         Returns:
-            namedtuple associated with the loss, must _atleast_ implement 
-                the `total_loss` property.
+            tuple associated with the loss, must _atleast_ supply 
+                the `total_loss` as the last element.
         """
         raise NotImplementedError()
 
@@ -64,10 +65,11 @@ class Agent(keras.Model):
         Returns:
             list of tuples: `[(grads, variable), ...]`
         """
-        grads_and_vars = self.optimizer.compute_gradients(
-            lambda: self.compute_loss(*args, **kwargs), 
-            self.trainable_variables)
-        return grads_and_vars
+        with backprop.GradientTape(persistent=True) as tape:
+            _ = self.compute_loss(*args, **kwargs)
+        vars_ = self.trainable_variables
+        grads = tape.gradient(self.total_loss, vars_)
+        return list(zip(grads, vars_))
 
     def fit(self, *args, **kwargs):
         """Short cut for calling optimizing w.r.t estimated gradients.

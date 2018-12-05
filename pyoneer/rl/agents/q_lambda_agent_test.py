@@ -8,34 +8,67 @@ from tensorflow.python.platform import test
 from tensorflow.python.framework import test_util
 
 from pyoneer.rl.agents import q_lambda_agent_impl
-from pyoneer.rl.agents.test import action_value_test_case_impl
 
 
-class QLambdaAgentTest(action_value_test_case_impl.ActionValueTestCase):
+class _TestValue(tf.keras.Model):
 
-    # @test_util.skip_if(True)
-    def testConvergenceDiscrete(self):
+    def __init__(self, output_size):
+        super(_TestValue, self).__init__()
+        self.linear = tf.layers.Dense(output_size)
+
+    def call(self, inputs, training=False, reset_state=True):
+        return self.linear(inputs)
+
+
+class QLambdaAgentTest(test.TestCase):
+
+    def testComputeLoss(self):
         with context.eager_mode():
-            self.setUpEnv(
-                'CartPole-v0',
-                seed=42,
-                clip_inf=40.)
-            self.setUpNonLinearStateValue()
-            self.setUpOptimizer()
             agent = q_lambda_agent_impl.QLambdaAgent(
-                value=self.value, 
-                optimizer=self.optimizer)
-            self.assertNaiveStrategyConvergedAfter(
-                agent,
-                iterations=100,
-                epochs=10,
-                batch_size=128,
-                replay_size=128*8,
-                explore_episodes=32,
-                explore_max_steps=200,
-                exploit_episodes=10,
-                exploit_max_steps=200,
-                max_returns=200.)
+                value=_TestValue(5),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            total_loss = agent.compute_loss(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                next_states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2], tf.int32),
+                rewards=tf.ones([4, 2,], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertShapeEqual(tf.zeros([]).numpy(), total_loss)
+            self.assertEqual(2, len(agent.loss))
+
+    def testEstimateGradients(self):
+        with context.eager_mode():
+            agent = q_lambda_agent_impl.QLambdaAgent(
+                value=_TestValue(5),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            grads_and_vars = agent.estimate_gradients(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                next_states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2], tf.int32),
+                rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+
+            grads, _ = zip(*grads_and_vars)
+            variables = agent.trainable_variables
+            for grad, var in zip(grads, variables):
+                self.assertShapeEqual(tf.shape(grad).numpy(), tf.shape(var))
+            self.assertEqual(2, len(agent.loss))
+
+    def testFit(self):
+        with context.eager_mode():
+            agent = q_lambda_agent_impl.QLambdaAgent(
+                value=_TestValue(5),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            _ = agent.fit(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                next_states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2], tf.int32),
+                rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertEqual(2, len(agent.loss))
 
 
 if __name__ == "__main__":

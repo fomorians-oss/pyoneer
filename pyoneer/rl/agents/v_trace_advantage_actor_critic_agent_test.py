@@ -7,149 +7,86 @@ from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 from tensorflow.python.framework import test_util
 
+import tensorflow_probability as tfp
+
 import trfl
 
 from pyoneer.rl.agents import v_trace_advantage_actor_critic_agent_impl
-from pyoneer.rl.agents.test import policy_value_test_case_impl
 
 
-class VTraceAdvantageActorCriticAgentTest(policy_value_test_case_impl.PolicyValueTestCase):
+class _TestPolicy(tf.keras.Model):
 
-    @test_util.skip_if(True)
-    def testConvergenceDiscrete(self):
+    def __init__(self, action_size):
+        super(_TestPolicy, self).__init__()
+        self.linear = tf.layers.Dense(action_size)
+
+    def call(self, inputs, training=False, reset_state=True):
+        return tfp.distributions.MultivariateNormalDiag(self.linear(inputs))
+
+
+class _TestValue(tf.keras.Model):
+
+    def __init__(self):
+        super(_TestValue, self).__init__()
+        self.linear = tf.layers.Dense(1)
+
+    def call(self, inputs, training=False, reset_state=True):
+        return self.linear(inputs)
+
+
+class VTraceAdvantageActorCriticAgentTest(test.TestCase):
+
+    def testComputeLoss(self):
         with context.eager_mode():
-            self.setUpEnv(
-                'CartPole-v0',
-                seed=42,
-                clip_inf=40.)
-            self.setUpDiscretePolicy()
-            self.setUpDiscreteBehavioralPolicy()
-            self.setUpNonLinearStateValue()
-            self.assignBehavioralPolicy()
-            self.setUpOptimizer()
-
-            def after_iteration(agent):
-                trfl.update_target_variables(
-                    agent.behavioral_policy.trainable_variables,
-                    agent.policy.trainable_variables)
-
             agent = v_trace_advantage_actor_critic_agent_impl.VTraceAdvantageActorCriticAgent(
-                policy=self.policy, 
-                behavioral_policy=self.behavioral_policy,
-                value=self.value,
-                optimizer=self.optimizer)
-            self.assertNaiveStrategyConvergedAfter(
-                agent,
-                iterations=150,
-                epochs=5,
-                explore_episodes=128,
-                explore_max_steps=200,
-                exploit_episodes=10,
-                exploit_max_steps=200,
-                max_returns=200.,
-                after_iteration=after_iteration)
+                policy=_TestPolicy(5),
+                behavioral_policy=_TestPolicy(5),
+                value=_TestValue(),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
 
-    @test_util.skip_if(True)
-    def testConvergenceRecurrentDiscrete(self):
+            total_loss = agent.compute_loss(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2,], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertShapeEqual(tf.zeros([]).numpy(), total_loss)
+            self.assertEqual(4, len(agent.loss))
+
+    def testEstimateGradients(self):
         with context.eager_mode():
-            self.setUpEnv(
-                'CartPole-v0',
-                seed=42,
-                clip_inf=40.)
-            self.setUpRecurrentDiscretePolicy()
-            self.setUpRecurrentDiscreteBehavioralPolicy()
-            self.setUpNonLinearStateValue()
-            self.assignBehavioralPolicy()
-            self.setUpOptimizer()
-
-            def after_iteration(agent):
-                trfl.update_target_variables(
-                    agent.behavioral_policy.trainable_variables,
-                    agent.policy.trainable_variables)
-
             agent = v_trace_advantage_actor_critic_agent_impl.VTraceAdvantageActorCriticAgent(
-                policy=self.policy, 
-                behavioral_policy=self.behavioral_policy,
-                value=self.value,
-                optimizer=self.optimizer)
-            self.assertNaiveStrategyConvergedAfter(
-                agent,
-                iterations=150,
-                epochs=5,
-                explore_episodes=128,
-                explore_max_steps=200,
-                exploit_episodes=10,
-                exploit_max_steps=200,
-                max_returns=200.,
-                after_iteration=after_iteration)
+                policy=_TestPolicy(5),
+                behavioral_policy=_TestPolicy(5),
+                value=_TestValue(),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
 
-    @test_util.skip_if(True)
-    def testConvergenceContinuous(self):
+            grads_and_vars = agent.estimate_gradients(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+
+            grads, _ = zip(*grads_and_vars)
+            variables = agent.trainable_variables
+            for grad, var in zip(grads, variables):
+                self.assertShapeEqual(tf.shape(grad).numpy(), tf.shape(var))
+            self.assertEqual(4, len(agent.loss))
+
+    def testFit(self):
         with context.eager_mode():
-            self.setUpEnv(
-                'Pendulum-v0',
-                seed=42,
-                clip_inf=40.)
-            self.setUpContinuousPolicy(scale=2.)
-            self.setUpContinuousBehavioralPolicy(scale=2.)
-            self.setUpNonLinearStateValue()
-            self.assignBehavioralPolicy()
-            self.setUpOptimizer()
-
-            def after_iteration(agent):
-                trfl.update_target_variables(
-                    agent.behavioral_policy.trainable_variables,
-                    agent.policy.trainable_variables)
-
             agent = v_trace_advantage_actor_critic_agent_impl.VTraceAdvantageActorCriticAgent(
-                policy=self.policy, 
-                behavioral_policy=self.behavioral_policy,
-                value=self.value,
-                optimizer=self.optimizer)
-            self.assertNaiveStrategyConvergedAfter(
-                agent,
-                iterations=150,
-                epochs=5,
-                explore_episodes=128,
-                explore_max_steps=200,
-                exploit_episodes=10,
-                exploit_max_steps=200,
-                max_returns=200.,
-                after_iteration=after_iteration)
+                policy=_TestPolicy(5),
+                behavioral_policy=_TestPolicy(5),
+                value=_TestValue(),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
 
-    @test_util.skip_if(True)
-    def testConvergenceRecurrentContinuous(self):
-        with context.eager_mode():
-            self.setUpEnv(
-                'Pendulum-v0',
-                seed=42,
-                clip_inf=40.)
-            self.setUpRecurrentContinuousPolicy(scale=2.)
-            self.setUpRecurrentContinuousBehavioralPolicy(scale=2.)
-            self.setUpNonLinearStateValue()
-            self.assignBehavioralPolicy()
-            self.setUpOptimizer()
+            _ = agent.fit(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertEqual(4, len(agent.loss))
 
-            def after_iteration(agent):
-                trfl.update_target_variables(
-                    agent.behavioral_policy.trainable_variables,
-                    agent.policy.trainable_variables)
-
-            agent = v_trace_advantage_actor_critic_agent_impl.VTraceAdvantageActorCriticAgent(
-                policy=self.policy, 
-                behavioral_policy=self.behavioral_policy,
-                value=self.value,
-                optimizer=self.optimizer)
-            self.assertNaiveStrategyConvergedAfter(
-                agent,
-                iterations=150,
-                epochs=5,
-                explore_episodes=128,
-                explore_max_steps=200,
-                exploit_episodes=10,
-                exploit_max_steps=200,
-                max_returns=200.,
-                after_iteration=after_iteration)
 
 
 if __name__ == "__main__":
