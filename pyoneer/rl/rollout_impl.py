@@ -42,7 +42,12 @@ def tensortuple(*args, **kwargs):
             *[parray_ops.pad_or_truncate(getattr(self, field), size, axis=axis, pad_value=pad_value) 
             for field in self._fields])
 
+    def tensor_slice(self, key):
+        return self.__class__(
+            *[getattr(self, field)[key] for field in self._fields])
+
     tcls.__len__ = tensor_size
+    tcls.slice = tensor_slice
     tcls.concat = concat
     tcls.pad_or_truncate = pad_or_truncate
     return tcls

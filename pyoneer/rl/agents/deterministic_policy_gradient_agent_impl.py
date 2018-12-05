@@ -17,6 +17,7 @@ from tensorflow.python.training import optimizer
 
 from pyoneer.rl.agents import agent_impl
 from pyoneer.manip import array_ops as parray_ops
+from pyoneer.math import normalization_ops
 
 from trfl import policy_gradient_ops
 from trfl import value_ops
@@ -71,21 +72,27 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
         policy = self.policy(rollouts.states, training=True)
         target_policy = self.target_policy(rollouts.next_states)
 
-        bootstrap_state = rollouts.next_states[:, -1:]
-        bootstrap_action = target_policy.mode()[:, -1:]
-        bootstrap_value = array_ops.squeeze(self.target_value(bootstrap_state, bootstrap_action))
+        bootstrap_value = gen_array_ops.reshape(
+            self.target_value(rollouts.next_states[:, -1:], target_policy[:, -1:]), 
+            [-1])
 
-        action_values = array_ops.squeeze(self.value(rollouts.states, policy, training=True), axis=-1) * mask
+        action_values = array_ops.squeeze(
+            self.value(rollouts.states, policy, training=True), 
+            axis=-1) * mask
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(
             -action_values, weights=rollouts.weights)
 
         lambda_ = lambda_ * rollouts.weights
         pcontinues = delay * rollouts.weights
 
+        rewards = rollouts.rewards
+        rewards = normalization_ops.weighted_moments_normalize(rewards, rollouts.weights)
+        rewards = gen_array_ops.stop_gradient(rewards)
+
         self.value_loss = math_ops.reduce_mean(
             value_ops.td_lambda(
                 parray_ops.swap_time_major(action_values), 
-                parray_ops.swap_time_major(rollouts.rewards),
+                parray_ops.swap_time_major(rewards),
                 parray_ops.swap_time_major(pcontinues),
                 gen_array_ops.stop_gradient(bootstrap_value),
                 parray_ops.swap_time_major(lambda_)).loss,

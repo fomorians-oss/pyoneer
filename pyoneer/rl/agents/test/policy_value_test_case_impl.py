@@ -14,6 +14,8 @@ import tensorflow as tf
 from tensorflow.python.platform import test
 from tensorflow.python.eager import context
 
+import trfl
+
 from pyoneer.rl import batch_gym
 from pyoneer.rl import parallel_rollout_impl
 from pyoneer.rl.agents.test import gym_test_utils
@@ -131,6 +133,15 @@ class PolicyValueTestCase(test.TestCase):
 
     def setUpValueOptimizer(self, learning_rate=1e-3):
         self.value_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+    def assignBehavioralPolicy(self):
+        state = tf.zeros([1, 1] + list(self.explore_env.observation_space.sample().shape), 
+                         dtype=tf.as_dtype(self.explore_env.observation_space.dtype))
+        self.behavioral_policy(state)
+        self.policy(state)
+        trfl.update_target_variables(
+            self.behavioral_policy.trainable_variables, 
+            self.policy.trainable_variables)
 
     def assertNaiveStrategyConvergedAfter(self, 
                                           agent,

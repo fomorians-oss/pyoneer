@@ -15,7 +15,7 @@ from pyoneer.rl.agents.test import action_value_test_case_impl
 
 class DoubleQLambdaAgentTest(action_value_test_case_impl.ActionValueTestCase):
 
-    @test_util.skip_if(True)
+    # @test_util.skip_if(True)
     def testConvergenceDiscrete(self):
         with context.eager_mode():
             self.setUpEnv(
@@ -25,12 +25,11 @@ class DoubleQLambdaAgentTest(action_value_test_case_impl.ActionValueTestCase):
             self.setUpNonLinearStateValue()
             self.setUpTargetNonLinearStateValue()
             self.setUpOptimizer()
-            
+
             def after_iteration(agent):
-                trfl.periodic_target_update(
+                trfl.update_target_variables(
                     agent.target_value.trainable_variables,
-                    agent.value.trainable_variables,
-                    5)
+                    agent.value.trainable_variables)
 
             agent = double_q_lambda_agent_impl.DoubleQLambdaAgent(
                 value=self.value, 
@@ -39,8 +38,9 @@ class DoubleQLambdaAgentTest(action_value_test_case_impl.ActionValueTestCase):
             self.assertNaiveStrategyConvergedAfter(
                 agent,
                 iterations=100,
-                epochs=2,
+                epochs=10,
                 batch_size=128,
+                replay_size=128*8,
                 explore_episodes=32,
                 explore_max_steps=200,
                 exploit_episodes=10,

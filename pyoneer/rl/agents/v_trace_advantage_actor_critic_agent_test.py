@@ -25,6 +25,7 @@ class VTraceAdvantageActorCriticAgentTest(policy_value_test_case_impl.PolicyValu
             self.setUpDiscretePolicy()
             self.setUpDiscreteBehavioralPolicy()
             self.setUpNonLinearStateValue()
+            self.assignBehavioralPolicy()
             self.setUpOptimizer()
 
             def after_iteration(agent):
@@ -58,6 +59,7 @@ class VTraceAdvantageActorCriticAgentTest(policy_value_test_case_impl.PolicyValu
             self.setUpRecurrentDiscretePolicy()
             self.setUpRecurrentDiscreteBehavioralPolicy()
             self.setUpNonLinearStateValue()
+            self.assignBehavioralPolicy()
             self.setUpOptimizer()
 
             def after_iteration(agent):
@@ -91,6 +93,7 @@ class VTraceAdvantageActorCriticAgentTest(policy_value_test_case_impl.PolicyValu
             self.setUpContinuousPolicy(scale=2.)
             self.setUpContinuousBehavioralPolicy(scale=2.)
             self.setUpNonLinearStateValue()
+            self.assignBehavioralPolicy()
             self.setUpOptimizer()
 
             def after_iteration(agent):
@@ -124,6 +127,7 @@ class VTraceAdvantageActorCriticAgentTest(policy_value_test_case_impl.PolicyValu
             self.setUpRecurrentContinuousPolicy(scale=2.)
             self.setUpRecurrentContinuousBehavioralPolicy(scale=2.)
             self.setUpNonLinearStateValue()
+            self.assignBehavioralPolicy()
             self.setUpOptimizer()
 
             def after_iteration(agent):

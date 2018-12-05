@@ -11,6 +11,29 @@ from pyoneer.nn import activation_ops
 from pyoneer.initializers import init_ops
 
 
+class ContinuousScalePolicy(tf.keras.Model):
+
+    def __init__(self, state_normalizer, output_size):
+        super(ContinuousScalePolicy, self).__init__()
+        self.state_normalizer = state_normalizer
+        kernel_initializer = tf.initializers.variance_scaling(scale=2.0)
+        output_initializer = tf.initializers.random_uniform(minval=-3e-3, maxval=3e-3)
+
+        self.hidden = tf.layers.Dense(
+            64, 
+            activation=None,
+            kernel_initializer=kernel_initializer)
+        self.outputs = tf.layers.Dense(
+            output_size, 
+            activation=tf.nn.tanh,
+            kernel_initializer=output_initializer)
+
+    def call(self, inputs, training=False, reset_state=False):
+        inputs_norm = self.state_normalizer(inputs)
+        hidden = self.hidden(inputs_norm)
+        return self.outputs(hidden)
+
+
 class ContinuousPolicy(tf.keras.Model):
 
     def __init__(self, state_normalizer, output_size, scale=1., activation=None):

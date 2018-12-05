@@ -16,10 +16,15 @@ from tensorflow.python.ops.losses import losses_impl
 from tensorflow.python.training import optimizer
 
 from pyoneer.rl.agents import agent_impl
-from pyoneer.rl.agents import q_agent_impl
 from pyoneer.manip import array_ops as parray_ops
 
 from trfl import action_value_ops
+
+
+class DoubleQLambdaLoss(collections.namedtuple(
+    'DoubleQLambdaLoss', [
+        'value_loss', 'total_loss'])):
+    pass
 
 
 class DoubleQLambdaAgent(agent_impl.Agent):
@@ -43,7 +48,7 @@ class DoubleQLambdaAgent(agent_impl.Agent):
 
     @property
     def loss(self):
-        return q_agent_impl.QLoss(
+        return DoubleQLambdaLoss(
             value_loss=self.value_loss,
             total_loss=self.total_loss)
 
@@ -68,7 +73,8 @@ class DoubleQLambdaAgent(agent_impl.Agent):
 
         pcontinues = delay * rollouts.weights
         action_values = self.value(rollouts.states, training=True) * mask
-        next_action_values = self.target_value(rollouts.next_states, training=True)
+        next_action_values = gen_array_ops.stop_gradient(
+            self.target_value(rollouts.next_states, training=True))
 
         lambda_ = gen_array_ops.broadcast_to(lambda_, array_ops.shape(rollouts.rewards))
 
