@@ -22,15 +22,17 @@ class StatelessNormalizer(keras.Model):
     Normalizes the inputs by subtracting a mean and dividing by a standard deviation. 
 
     `StatelessNormalizer` treats the `loc` and `scale` as constant parameters.
-
-    Args:
-        loc: The mean to use for normalization.
-        scale_: The standard deviation to use for normalization.
-        center: Center using the mean with this flag.
-        scale: Scale using the standard deviation with this flag.
     """
 
     def __init__(self, loc, scale_, center=True, scale=True):
+        """Creates a new StatelessNormalizer model.
+
+        Args:
+            loc: The mean to use for normalization.
+            scale_: The standard deviation to use for normalization.
+            center: Center using the mean with this flag.
+            scale: Scale using the standard deviation with this flag.
+        """
         super(StatelessNormalizer, self).__init__()
         self.loc = loc
         self.scale = scale_
@@ -39,13 +41,40 @@ class StatelessNormalizer(keras.Model):
 
     @property
     def shape(self):
+        """Returns the event shape of the normalizer.
+        
+        Returns:
+            the TensorShape of the `loc`.
+        """
         return self.loc.shape
 
-    def call(self, inputs, weights=1., training=False):
+    def call(self, inputs, weights=1., **kwargs):
+        """Normalizes an input.
+        
+        Args:
+            inputs: a possibly un-normalized Tensor no less than 2-D.
+            weights: mask to apply the operation.
+            **kwargs: unused keyword arguments.
+
+        Returns:
+            A normalized Tensor.
+        """
+        del kwargs  # unused
         return normalization_ops.select_weighted_normalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
-    def inverse(self, inputs, weights=1., training=False):
+    def inverse(self, inputs, weights=1., **kwargs):
+        """Un-normalizes an input.
+        
+        Args:
+            inputs: a possibly normalized Tensor no less than 2-D.
+            weights: mask to apply the operation.
+            **kwargs: unused keyword arguments.
+
+        Returns:
+            An un-normalized Tensor.
+        """
+        del kwargs  # unused
         return normalization_ops.select_weighted_denormalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
@@ -56,14 +85,16 @@ class StatefulNormalizer(keras.Model):
 
     `StatefulNormalizer` treats the `loc` and `scale` as variable parameters. 
     A subclass must implement the property getter `scale` and method `update_loc`.
-
-    Args:
-        shape: The shape of the mean/standard deviation to use for normalization.
-        center: Center using the mean with this flag.
-        scale: Scale using the standard deviation with this flag.
     """
 
     def __init__(self, shape, center=True, scale=True):
+        """Creates a new StatefulNormalizer.
+
+        Args:
+            shape: The shape of the mean/standard deviation to use for normalization.
+            center: Center using the mean with this flag.
+            scale: Scale using the standard deviation with this flag.
+        """
         super(StatefulNormalizer, self).__init__()
 
         self.center = center
@@ -77,6 +108,11 @@ class StatefulNormalizer(keras.Model):
 
     @property
     def shape(self):
+        """Returns the event shape of the normalizer.
+        
+        Returns:
+            the TensorShape of the `loc`.
+        """
         return self.loc.shape
 
     @property
@@ -84,18 +120,32 @@ class StatefulNormalizer(keras.Model):
         raise NotImplementedError()
 
     def update_loc(self, loc_deltas, inputs, weights=1.):
-        raise NotImplementedError()
-
-    def call(self, inputs, weights=1., training=False):
-        """Compute the normalization of the inputs.
-
+        """Updates the `loc` variable.
+        
         Args:
-            inputs: inversely normalized input `Tensor`.
-            training: bool if the loc and scale should be updated.
+            loc_deltas: the change in `loc`.
+            inputs: a possibly un-normalized Tensor no less than 2-D.
+            weights: mask to apply the operation.
 
         Returns:
-            normalized inputs.
+            A new `loc`.
         """
+        raise NotImplementedError()
+
+    def call(self, inputs, weights=1., training=False, **kwargs):
+        """Normalizes an input.
+        
+        Args:
+            inputs: a possibly un-normalized Tensor no less than 2-D.
+            weights: mask to apply the operation.
+            training: bool used for determining if the loc and scale should 
+                be updated.
+            **kwargs: unused keyword arguments.
+
+        Returns:
+            A normalized Tensor.
+        """
+        del kwargs
         inputs = ops.convert_to_tensor(inputs)
 
         if training:
@@ -127,29 +177,42 @@ class StatefulNormalizer(keras.Model):
         return normalization_ops.select_weighted_normalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
-    def inverse(self, inputs, weights=1.):
-        """Compute the inverse normalization of the inputs.
-
+    def inverse(self, inputs, weights=1., **kwargs):
+        """Un-normalizes an input.
+        
         Args:
-        inputs: normalized input `Tensor`.
+            inputs: a possibly normalized Tensor no less than 2-D.
+            weights: mask to apply the operation.
+            **kwargs: unused keyword arguments.
 
         Returns:
-        inversely normalized inputs.
+            An un-normalized Tensor.
         """
+        del kwargs
         inputs = ops.convert_to_tensor(inputs)
         return normalization_ops.select_weighted_denormalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
 
 class HighLowNormalizer(StatelessNormalizer):
+    """Infers `loc` and `scale` from `high` and `low` parameters."""
 
     def __init__(self, high, low, center=True, scale=True):
+        """Creates a new HighLowNormalizer.
+
+        Args:
+            high: the high parameter.
+            low: the low parameter.
+            center: Center using the mean with this flag.
+            scale: Scale using the standard deviation with this flag.
+        """
         loc, scale_ = normalization_ops.high_low_loc_and_scale(
             ops.convert_to_tensor(high), ops.convert_to_tensor(low))
         super(HighLowNormalizer, self).__init__(loc, scale_, center=center, scale=scale)
         
 
 class SampleAverageNormalizer(StatefulNormalizer):
+    """Compute the moving loc and scale according to the input sample count."""
 
     @property
     def scale(self):
@@ -166,8 +229,17 @@ class SampleAverageNormalizer(StatefulNormalizer):
 
 
 class WeightedAverageNormalizer(StatefulNormalizer):
+    """Compute the moving loc and scale according to the supplied alpha scalar."""
 
     def __init__(self, shape, alpha, center=True, scale=True):
+        """Creates a new WeightedAverageNormalizer.
+
+        Args:
+            shape: The shape of the mean/standard deviation to use for normalization.
+            alpha: the scalar used to scale the mean updates instead of a sample average.
+            center: Center using the mean with this flag.
+            scale: Scale using the standard deviation with this flag.
+        """
         super(WeightedAverageNormalizer, self).__init__(
             shape, center=center, scale=scale)
         self.alpha = alpha

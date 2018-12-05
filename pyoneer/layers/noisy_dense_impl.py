@@ -25,36 +25,6 @@ class NoisyDense(base.Layer):
     Reference:
         Fortunato et al., "Noisy Networks for Exploration". 
             https://arxiv.org/abs/1706.10295
-
-    Arguments:
-        num_units: The number of outputs.
-        sigma0: The standard deviation for the weight noise.
-        activation: Activation function (callable). Set it to None to maintain a
-            linear activation.
-        use_bias: Boolean, whether the layer uses a bias.
-        kernel_initializer: Initializer function for the weight matrix.
-            If `None` (default), weights are initialized using the default
-            initializer used by `tf.get_variable`.
-        bias_initializer: Initializer function for the bias.
-        kernel_regularizer: Regularizer function for the weight matrix.
-        bias_regularizer: Regularizer function for the bias.
-        activity_regularizer: Regularizer function for the output.
-        kernel_constraint: An optional projection function to be applied to the
-            kernel after being updated by an `Optimizer` (e.g. used to implement
-            norm constraints or value constraints for layer weights). The function
-            must take as input the unprojected variable and must return the
-            projected variable (which must have the same shape). Constraints are
-            not safe to use when doing asynchronous distributed training.
-        bias_constraint: An optional projection function to be applied to the
-            bias after being updated by an `Optimizer`.
-        kernel_trainable: Boolean, kernel should be added to the graph collection
-            `GraphKeys.TRAINABLE_VARIABLES` (see `tf.Variable`).
-        trainable: Boolean, if `True` also add variables to the graph collection
-            `GraphKeys.TRAINABLE_VARIABLES` (see `tf.Variable`).
-        name: String, the name of the layer. Layers with the same name will
-            share weights, but to avoid mistakes we require reuse=True in such cases.
-        reuse: Boolean, whether to reuse the weights of a previous layer
-            by the same name.
     """
 
     def __init__(self,
@@ -73,6 +43,38 @@ class NoisyDense(base.Layer):
                 trainable=True,
                 name=None,
                 **kwargs):
+        """Creates a new NoisyDense layer.
+
+        Args:
+            num_units: The number of outputs.
+            sigma0: The standard deviation for the weight noise.
+            activation: Activation function (callable). Set it to None to maintain a
+                linear activation.
+            use_bias: Boolean, whether the layer uses a bias.
+            kernel_initializer: Initializer function for the weight matrix.
+                If `None` (default), weights are initialized using the default
+                initializer used by `tf.get_variable`.
+            bias_initializer: Initializer function for the bias.
+            kernel_regularizer: Regularizer function for the weight matrix.
+            bias_regularizer: Regularizer function for the bias.
+            activity_regularizer: Regularizer function for the output.
+            kernel_constraint: An optional projection function to be applied to the
+                kernel after being updated by an `Optimizer` (e.g. used to implement
+                norm constraints or value constraints for layer weights). The function
+                must take as input the unprojected variable and must return the
+                projected variable (which must have the same shape). Constraints are
+                not safe to use when doing asynchronous distributed training.
+            bias_constraint: An optional projection function to be applied to the
+                bias after being updated by an `Optimizer`.
+            kernel_trainable: Boolean, kernel should be added to the graph collection
+                `GraphKeys.TRAINABLE_VARIABLES` (see `tf.Variable`).
+            trainable: Boolean, if `True` also add variables to the graph collection
+                `GraphKeys.TRAINABLE_VARIABLES` (see `tf.Variable`).
+            name: String, the name of the layer. Layers with the same name will
+                share weights, but to avoid mistakes we require reuse=True in such cases.
+            reuse: Boolean, whether to reuse the weights of a previous layer
+                by the same name.
+        """
         super(NoisyDense, self).__init__(trainable=trainable, name=name,
                                         activity_regularizer=activity_regularizer,
                                         **kwargs)

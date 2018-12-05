@@ -17,16 +17,20 @@ from pyoneer.manip import array_ops as parray_ops
 
 
 class LinearBaseline(layers.Layer):
-
     """An unbiased linear approximator.
-    
-    Notes:
-        The intention is to be used as a baseline to reduce variance without introducing bias.
-            >>> A(s, a) = Q(S, a) - b(S)
-            >>> b(s) = S@W, where ~= |R - b(s)|^2
+
+    The intention is to be used as a baseline to reduce variance without introducing bias.
+        >>> A(S, a) = Q(S, a) - b(S)
+        >>> b(S) = S@W, where ~= |R - b(s)|^2
     """
 
     def __init__(self, units, l2_regularizer=1e-5):
+        """Creates a new LinearBaseline.
+
+        Args:
+            units: the number of outputs.
+            l2_regularizer: the coeffecient of regularization.
+        """
         super(LinearBaseline, self).__init__()
         self.l2_regularizer = l2_regularizer
         self.units = units
@@ -41,13 +45,21 @@ class LinearBaseline(layers.Layer):
         self.built = True
 
     def fit(self, inputs, outputs):
+        """Solves a regularized least-squares problem given inputs and outputs.
+
+        Args:
+            inputs: the input Tensor.
+            outputs: the desired output Tensor.
+        
+        Returns:
+            Op that assigns the new linear transformation with the result.
+        """
         if not self.built:
             self.build(inputs.shape)
         inputs = parray_ops.flatten(inputs)
         outputs = gen_array_ops.reshape(outputs, [-1, self.units])
         outputs = linalg_ops.matrix_solve_ls(inputs, outputs, l2_regularizer=self.l2_regularizer)
-        with ops.control_dependencies([state_ops.assign(self.linear, outputs)]):
-            return array_ops.constant(0.)
+        return state_ops.assign(self.linear, outputs)
 
     def call(self, inputs, training=False):
         k = inputs.shape[0]
