@@ -7,5 +7,4 @@ __pycache__
 .DS_Store
 /.vscode
 .python-version
-/pyoneer/rl/baselines
 Pipfile.lock

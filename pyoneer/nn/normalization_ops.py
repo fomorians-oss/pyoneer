@@ -1,7 +1,21 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
 
 
 def layer_norm(inputs, beta, gamma):
+    """Compute the layer normalization operation.
+
+    Args:
+        inputs: Tensor no less than 2-D.
+        beta: Tensor size 1-D
+        gamma: Tensor size 1-D
+    
+    Returns:
+        A layer normalized Tensor the same dimension as `inputs`.
+    """
     inputs = tf.convert_to_tensor(inputs)
     inputs_shape = inputs.shape
     inputs_rank = inputs_shape.ndims

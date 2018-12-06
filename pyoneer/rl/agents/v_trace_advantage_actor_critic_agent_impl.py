@@ -4,9 +4,7 @@ from __future__ import print_function
 
 import collections
 
-from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
 from tensorflow.python.eager import backprop
@@ -18,11 +16,11 @@ from pyoneer.math import normalization_ops
 from pyoneer.math import math_ops as pmath_ops
 
 from trfl import policy_gradient_ops
-from trfl import value_ops
+from trfl import vtrace_ops
 
 
-class ProximalPolicyOptimizationLoss(collections.namedtuple(
-    'ProximalPolicyOptimizationLoss', [
+class VTraceAdvantageActorCriticLoss(collections.namedtuple(
+    'VTraceAdvantageActorCriticLoss', [
         'policy_gradient_loss', 
         'policy_gradient_entropy_loss', 
         'value_loss', 
@@ -30,26 +28,19 @@ class ProximalPolicyOptimizationLoss(collections.namedtuple(
     pass
 
 
-class ProximalPolicyOptimizationAgent(agent_impl.Agent):
-    """Proximal Policy Optimization (PPO) algorithm implementation.
+class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
+    """A2C with V-trace (IMPALA) algorithm implementation.
 
-    Computes the proximal policy optimization surrogate loss for the gradient estimation.
+    Computes A2C with V-trace return targets (IMPALA) gradient estimation.
 
     Reference:
-        J Schulman, et al., "Proximal Policy Optimization Algorithms".
-            https://arxiv.org/abs/1707.06347
+        L. Espeholt, et al. "IMPALA: Scalable Distributed Deep-RL with Importance Weighted 
+            Actor-Learner Architectures". https://arxiv.org/abs/1802.01561
     """
 
     def __init__(self, policy, behavioral_policy, value, optimizer):
-        """Creates a new ProximalPolicyOptimizationAgent.
+        super(VTraceAdvantageActorCriticAgent, self).__init__(optimizer)
 
-        Args:
-            policy: the target policy to optimize.
-            behavioral_policy: the policy used to infer actions.
-            value: the target value to optimize.
-            optimizer: Instance of `tf.train.Optimizer`.
-        """
-        super(ProximalPolicyOptimizationAgent, self).__init__(optimizer)
         self.policy = policy
         self.behavioral_policy = behavioral_policy
         self.value = value
@@ -71,7 +62,7 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
             a tuple containing `(policy_gradient_loss, policy_gradient_entropy_loss, 
                 value_loss, total_loss)`
         """
-        return ProximalPolicyOptimizationLoss(
+        return VTraceAdvantageActorCriticLoss(
             policy_gradient_loss=self.policy_gradient_loss,
             policy_gradient_entropy_loss=self.policy_gradient_entropy_loss,
             value_loss=self.value_loss,
@@ -85,10 +76,9 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
                      decay=.999, 
                      lambda_=1., 
                      entropy_scale=.2, 
-                     baseline_scale=1., 
-                     ratio_epsilon=.2, 
+                     baseline_scale=1.,
                      **kwargs):
-        """Computes the PPO loss.
+        """Computes the A2C with V-trace return targets (IMPALA) loss.
 
         Args:
             states: Tensor of `[B, T, ...]` containing states.
@@ -99,7 +89,6 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
             lambda_: scalar or Tensor of shape `[B, T]` containing generalized lambda parameter.
             entropy_scale: scalar or Tensor of shape `[B, T]` containing the entropy loss scale.
             baseline_scale: scalar or Tensor of shape `[B, T]` containing the baseline loss scale.
-            ratio_epsilon: scalar or Tensor of shape `[B, T]` containing the epsilon clipping ratio.
             **kwargs: positional arguments (unused)
 
         Returns:
@@ -109,42 +98,47 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
         sequence_length = math_ops.reduce_sum(weights, axis=1)
         policy = self.policy(states, training=True)
         behavioral_policy = self.behavioral_policy(states)
-        baseline_values = array_ops.squeeze(self.value(states, training=True), axis=-1)
+        baseline_values = parray_ops.swap_time_major(
+            array_ops.squeeze(self.value(states, training=True), axis=-1))
 
-        pcontinues = decay * weights
-        lambda_ = lambda_ * weights
-        bootstrap_values = baseline_values[:, -1]
-        baseline_loss, td_lambda = value_ops.td_lambda(
-            parray_ops.swap_time_major(baseline_values), 
-            parray_ops.swap_time_major(rewards), 
-            parray_ops.swap_time_major(pcontinues), 
-            bootstrap_values, 
-            parray_ops.swap_time_major(lambda_))
+        pcontinues = parray_ops.swap_time_major(decay * weights)
+        bootstrap_values = baseline_values[-1, :]
 
-        advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
+        log_prob = policy.log_prob(actions)
+        log_rhos = parray_ops.swap_time_major(log_prob) - parray_ops.swap_time_major(
+            behavioral_policy.log_prob(actions))
+        vtrace_returns = vtrace_ops.vtrace_from_importance_weights(
+            log_rhos,
+            pcontinues,
+            parray_ops.swap_time_major(rewards),
+            baseline_values,
+            bootstrap_values)
+
+        advantages = parray_ops.swap_time_major(vtrace_returns.pg_advantages)
         advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
-        ratio = gen_math_ops.exp(
-            policy.log_prob(actions) - gen_array_ops.stop_gradient(
-                behavioral_policy.log_prob(actions)))
-        clipped_ratio = clip_ops.clip_by_value(ratio, 1. - ratio_epsilon, 1. + ratio_epsilon)
-
-        self.policy_gradient_loss = -losses_impl.compute_weighted_loss(
-            gen_math_ops.minimum(advantages * ratio, advantages * clipped_ratio), 
+        log_prob = parray_ops.expand_to(log_prob, ndims=3)
+        policy_gradient_loss = advantages * -math_ops.reduce_sum(log_prob, axis=-1)
+        self.policy_gradient_loss = losses_impl.compute_weighted_loss(
+            policy_gradient_loss,
             weights=weights)
 
         entropy_loss = policy_gradient_ops.policy_entropy_loss(
             policy, 
             self.policy.trainable_variables,
             lambda policies: entropy_scale).loss
-        entropy_loss = math_ops.reduce_sum(parray_ops.expand_to(entropy_loss, ndims=3), axis=-1)
+        entropy_loss = parray_ops.expand_to(entropy_loss, ndims=3)
+        entropy_loss = math_ops.reduce_sum(entropy_loss, axis=-1)
         self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
             entropy_loss,
             weights=weights)
 
+        baseline_loss = math_ops.reduce_sum(
+            math_ops.square(vtrace_returns.vs - baseline_values), axis=0)
+
         self.value_loss = math_ops.reduce_mean(
-            baseline_loss * baseline_scale * pmath_ops.safe_divide(1., sequence_length), 
+            baseline_loss * .5 * baseline_scale * pmath_ops.safe_divide(1., sequence_length),
             axis=0)
 
         self.total_loss = math_ops.add_n([

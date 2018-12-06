@@ -12,19 +12,16 @@ from tensorflow.python.ops import variables
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.platform import test
 
-from pyoneer.nn.rnn_cell import fast_weights_impl
+from pyoneer.layers import noisy_dense_impl
 
 
-class FastWeightsTest(test.TestCase):
+class NoisyDenseTest(test.TestCase):
 
-    def test_FastWeightsRNNCell(self):
+    def test_NoisyDense(self):
         with context.eager_mode():
             inputs = array_ops.zeros([1, 2])
-            initial_states = (array_ops.zeros([1, 2]), array_ops.zeros([1, 2, 2]))
-            with variable_scope.variable_scope(
-                    'test_fast_weights_cell', initializer=init_ops.constant_initializer(0.5)):
-                cell = fast_weights_impl.FastWeightsRNNCell(2)
-                outputs, states = cell(inputs, initial_states)
+            layer = noisy_dense_impl.NoisyDense(2, use_bias=False)
+            outputs = layer(inputs)
             self.assertAllClose(outputs, array_ops.constant([[0., 0.]]))
 
 
