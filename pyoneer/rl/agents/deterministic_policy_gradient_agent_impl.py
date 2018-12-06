@@ -34,7 +34,11 @@ class DeterministicPolicyGradientLoss(collections.namedtuple(
 class DeterministicPolicyGradientAgent(agent_impl.Agent):
     """Deterministic Policy Gradient (DPG) algorithm implementation.
 
-    Computes the deterministic policy gradient estimation:
+    Computes the deterministic policy gradient estimation.
+
+    Reference:
+        T. P. Lillicrap, et al. "Continuous control with deep reinforcement learning".
+            https://arxiv.org/abs/1509.02971
     """
 
     def __init__(self, policy, target_policy, value, target_value, policy_optimizer, value_optimizer):

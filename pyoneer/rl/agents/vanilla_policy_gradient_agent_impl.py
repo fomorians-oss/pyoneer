@@ -40,12 +40,10 @@ class VanillaPolicyGradientLoss(collections.namedtuple(
 class VanillaPolicyGradientAgent(agent_impl.Agent):
     """Vanilla Policy Gradient algorithm implementation.
 
-    Computes the policy gradient estimation:
+    Computes the policy gradient estimation.
 
-        VPG ~= 𝔼[A(s, a)▽log(π(a|s))]
-        A(s, a) ~= 𝔼[R - b(s)] 
-        b(s) ~= |R - b(s)|^2
-
+    See this presentation by David Silver:
+        http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/pg.pdf
     """
 
     def __init__(self, policy, value, optimizer):

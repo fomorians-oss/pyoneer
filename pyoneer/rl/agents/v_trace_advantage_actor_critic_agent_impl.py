@@ -31,7 +31,11 @@ class VTraceAdvantageActorCriticLoss(collections.namedtuple(
 class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
     """A2C with V-trace (IMPALA) algorithm implementation.
 
-    Computes A2C with V-trace return targets (IMPALA) gradient estimation:
+    Computes A2C with V-trace return targets (IMPALA) gradient estimation.
+
+    Reference:
+        L. Espeholt, et al. "IMPALA: Scalable Distributed Deep-RL with Importance Weighted 
+            Actor-Learner Architectures". https://arxiv.org/abs/1802.01561
     """
 
     def __init__(self, policy, behavioral_policy, value, optimizer):

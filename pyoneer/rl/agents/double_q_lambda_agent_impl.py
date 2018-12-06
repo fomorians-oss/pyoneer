@@ -32,7 +32,12 @@ class DoubleQLambdaLoss(collections.namedtuple(
 class DoubleQLambdaAgent(agent_impl.Agent):
     """Double Q(λ) algorithm implementation.
 
-    Computes the Double Q(λ) estimation:
+    Computes the Double Q(λ) estimation.
+
+    Reference:
+        See "Reinforcement Learning: An Introduction" by Sutton and Barto.
+            (http://incompleteideas.net/book/ebook/node78.html).
+        and https://github.com/deepmind/trfl
     """
 
     def __init__(self, value, target_value, optimizer):

@@ -31,7 +31,10 @@ class AdvantageActorCriticLoss(collections.namedtuple(
 class AdvantageActorCriticAgent(agent_impl.Agent):
     """Advantage Actor-Critic (A2C) algorithm implementation.
 
-    Computes the actor-critic gradient estimation:
+    Computes the actor-critic gradient estimation.
+
+    See this presentation by David Silver:
+        http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/pg.pdf
     """
 
     def __init__(self, policy, value, optimizer):

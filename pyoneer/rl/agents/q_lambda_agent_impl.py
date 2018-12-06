@@ -31,7 +31,12 @@ class QLambdaLoss(collections.namedtuple(
 class QLambdaAgent(agent_impl.Agent):
     """Q(λ) algorithm implementation.
 
-    Computes the Q(λ) estimation:
+    Computes the Q(λ) estimation.
+
+    Reference:
+        See "Reinforcement Learning: An Introduction" by Sutton and Barto.
+            (http://incompleteideas.net/book/ebook/node78.html).
+        and https://github.com/deepmind/trfl
     """
 
     def __init__(self, value, optimizer):

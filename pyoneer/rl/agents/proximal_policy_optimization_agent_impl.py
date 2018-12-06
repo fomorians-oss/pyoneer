@@ -33,7 +33,11 @@ class ProximalPolicyOptimizationLoss(collections.namedtuple(
 class ProximalPolicyOptimizationAgent(agent_impl.Agent):
     """Proximal Policy Optimization (PPO) algorithm implementation.
 
-    Computes the proximal policy optimization surrogate loss for the gradient estimation:
+    Computes the proximal policy optimization surrogate loss for the gradient estimation.
+
+    Reference:
+        J Schulman, et al., "Proximal Policy Optimization Algorithms".
+            https://arxiv.org/abs/1707.06347
     """
 
     def __init__(self, policy, behavioral_policy, value, optimizer):
