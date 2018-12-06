@@ -1,3 +1,10 @@
+/pip_test
+/_python_build
+*.pyc
+__pycache__
+*.swp
+.ipynb_checkpoints
 .DS_Store
-/jobs
 /.vscode
+.python-version
+Pipfile.lock
