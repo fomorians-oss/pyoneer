@@ -39,6 +39,49 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
     Reference:
         T. P. Lillicrap, et al. "Continuous control with deep reinforcement learning".
             https://arxiv.org/abs/1509.02971
+    
+    Example:
+        ```
+        class Policy(tf.keras.Model):
+            def __init__(self, action_size):
+                super(Policy, self).__init__()
+                self.linear = tf.layers.Dense(action_size, activation=tf.nn.tanh)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        target_policy = Policy(num_actions)
+        strategy = pyrl.strategies.OrnsteinUhlenbeckStrategy(target_policy)
+        agent = pyrl.agents.DeterministicPolicyGradientAgent(
+            policy=Policy(num_actions), 
+            target_policy=target_policy,
+            value=Value(1),
+            target_value=Value(1),
+            policy_optimizer=tf.train.GradientDescentOptimizer(1e-3),
+            value_optimizer=tf.train.GradientDescentOptimizer(1e-3))
+        states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            baseline_scale=1.)
+        trfl.update_target_variables(
+            agent.target_policy.trainable_variables,
+            agent.policy.trainable_variables)
+        trfl.update_target_variables(
+            agent.target_value.trainable_variables,
+            agent.value.trainable_variables)
+        ```
     """
 
     def __init__(self, policy, target_policy, value, target_value, policy_optimizer, value_optimizer):

@@ -38,6 +38,38 @@ class DoubleQLambdaAgent(agent_impl.Agent):
         See "Reinforcement Learning: An Introduction" by Sutton and Barto.
             (http://incompleteideas.net/book/ebook/node78.html).
         and https://github.com/deepmind/trfl
+    
+    Example:
+        ```
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        target_value = Value(num_actions)
+        strategy = pyrl.strategies.SampleStrategy(
+            lambda states: tfp.distributions.Categorical(logits=target_value(states)))
+        agent = pyrl.agents.DoubleQLambdaAgent(
+            value=Value(num_actions),
+            target_value=target_value,
+            optimizer=tf.train.GradientDescentOptimizer(1.))
+        states, next_states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            next_states,
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            baseline_scale=1.)
+        trfl.update_target_variables(
+            agent.target_value.trainable_variables,
+            agent.value.trainable_variables)
+        ```
     """
 
     def __init__(self, value, target_value, optimizer):
@@ -92,7 +124,7 @@ class DoubleQLambdaAgent(agent_impl.Agent):
         Args:
             states: Tensor of `[B, T, ...]` containing states.
             next_states: Tensor of `[B, T, ...]` containing states[t+1].
-            actions: Tensor of `[B, T, ...]` containing actions.
+            actions: Tensor of `[B, T]` containing actions.
             rewards: Tensor of `[B, T]` containing rewards.
             weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
             decay: scalar or Tensor of shape `[B, T]` containing decays/discounts.

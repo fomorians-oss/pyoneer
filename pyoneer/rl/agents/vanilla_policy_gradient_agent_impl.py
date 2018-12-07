@@ -44,6 +44,32 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
 
     See this presentation by David Silver:
         http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/pg.pdf
+
+    Example:
+        ```
+        class Policy(tf.keras.Model):
+            def __init__(self, action_size):
+                super(Policy, self).__init__()
+                self.linear = tf.layers.Dense(action_size)
+            def call(self, inputs):
+                return tfp.distributions.MultivariateNormalDiag(self.linear(inputs))
+
+        num_actions = 2
+        policy = Policy(num_actions)
+        strategy = pyrl.strategies.SampleStrategy(policy)
+        agent = pyrl.agents.VanillaPolicyGradientAgent(
+            policy=policy, 
+            value=pynr.layers.LinearBaseline(1),
+            optimizer=tf.train.GradientDescentOptimizer(1e-3))
+        states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            entropy_scale=.2)
+        ```
     """
 
     def __init__(self, policy, value, optimizer):
@@ -106,8 +132,7 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
         policy = self.policy(states, training=True)
 
         log_prob = policy.log_prob(actions)
-        log_prob = parray_ops.expand_to(log_prob, ndims=3)
-        policy_gradient_loss = gen_array_ops.stop_gradient(action_values) * -math_ops.reduce_sum(log_prob, axis=-1)
+        policy_gradient_loss = gen_array_ops.stop_gradient(action_values) * -log_prob
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(
             policy_gradient_loss,
             weights=weights)
@@ -116,7 +141,6 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
             policy, 
             self.policy.trainable_variables,
             lambda policies: entropy_scale).loss
-        entropy_loss = math_ops.reduce_sum(parray_ops.expand_to(entropy_loss, ndims=3), axis=-1)
         self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
             entropy_loss,
             weights=weights)

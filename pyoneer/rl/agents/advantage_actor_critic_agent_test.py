@@ -24,9 +24,9 @@ class _TestPolicy(tf.keras.Model):
 
 class _TestValue(tf.keras.Model):
 
-    def __init__(self):
+    def __init__(self, num_units):
         super(_TestValue, self).__init__()
-        self.linear = tf.layers.Dense(1)
+        self.linear = tf.layers.Dense(num_units)
 
     def call(self, inputs, training=False, reset_state=True):
         return self.linear(inputs)
@@ -38,7 +38,7 @@ class AdvantageActorCriticAgentTest(test.TestCase):
         with context.eager_mode():
             agent = advantage_actor_critic_agent_impl.AdvantageActorCriticAgent(
                 policy=_TestPolicy(5),
-                value=_TestValue(),
+                value=_TestValue(1),
                 optimizer=tf.train.GradientDescentOptimizer(1.))
 
             total_loss = agent.compute_loss(
@@ -53,7 +53,7 @@ class AdvantageActorCriticAgentTest(test.TestCase):
         with context.eager_mode():
             agent = advantage_actor_critic_agent_impl.AdvantageActorCriticAgent(
                 policy=_TestPolicy(5),
-                value=_TestValue(),
+                value=_TestValue(1),
                 optimizer=tf.train.GradientDescentOptimizer(1.))
 
             grads_and_vars = agent.estimate_gradients(
@@ -72,13 +72,64 @@ class AdvantageActorCriticAgentTest(test.TestCase):
         with context.eager_mode():
             agent = advantage_actor_critic_agent_impl.AdvantageActorCriticAgent(
                 policy=_TestPolicy(5),
-                value=_TestValue(),
+                value=_TestValue(1),
                 optimizer=tf.train.GradientDescentOptimizer(1.))
 
             _ = agent.fit(
                 states=tf.zeros([4, 2, 5], tf.float32),
                 actions=tf.zeros([4, 2, 5], tf.float32),
                 rewards=tf.ones([4, 2], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertEqual(4, len(agent.loss))
+
+
+class MultiAdvantageActorCriticAgentTest(test.TestCase):
+
+    def testComputeLoss(self):
+        with context.eager_mode():
+            agent = advantage_actor_critic_agent_impl.MultiAdvantageActorCriticAgent(
+                policy=_TestPolicy(5),
+                value=_TestValue(3),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            total_loss = agent.compute_loss(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2, 3], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+            self.assertShapeEqual(tf.zeros([]).numpy(), total_loss)
+            self.assertEqual(4, len(agent.loss))
+
+    def testEstimateGradients(self):
+        with context.eager_mode():
+            agent = advantage_actor_critic_agent_impl.MultiAdvantageActorCriticAgent(
+                policy=_TestPolicy(5),
+                value=_TestValue(3),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            grads_and_vars = agent.estimate_gradients(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2, 3], tf.float32),
+                weights=tf.ones([4, 2], tf.float32))
+
+            grads, _ = zip(*grads_and_vars)
+            variables = agent.trainable_variables
+            for grad, var in zip(grads, variables):
+                self.assertShapeEqual(tf.shape(grad).numpy(), tf.shape(var))
+            self.assertEqual(4, len(agent.loss))
+
+    def testFit(self):
+        with context.eager_mode():
+            agent = advantage_actor_critic_agent_impl.MultiAdvantageActorCriticAgent(
+                policy=_TestPolicy(5),
+                value=_TestValue(3),
+                optimizer=tf.train.GradientDescentOptimizer(1.))
+
+            _ = agent.fit(
+                states=tf.zeros([4, 2, 5], tf.float32),
+                actions=tf.zeros([4, 2, 5], tf.float32),
+                rewards=tf.ones([4, 2, 3], tf.float32),
                 weights=tf.ones([4, 2], tf.float32))
             self.assertEqual(4, len(agent.loss))
 

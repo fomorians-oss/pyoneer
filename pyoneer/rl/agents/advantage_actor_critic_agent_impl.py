@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import collections
 
+from tensorflow.python.framework import ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
@@ -17,6 +18,7 @@ from pyoneer.math import math_ops as pmath_ops
 
 from trfl import policy_gradient_ops
 from trfl import value_ops
+from trfl import base_ops
 
 
 class AdvantageActorCriticLoss(collections.namedtuple(
@@ -35,6 +37,41 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
 
     See this presentation by David Silver:
         http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/pg.pdf
+    
+    Example:
+        ```
+        class Policy(tf.keras.Model):
+            def __init__(self, action_size):
+                super(Policy, self).__init__()
+                self.linear = tf.layers.Dense(action_size)
+            def call(self, inputs):
+                return tfp.distributions.MultivariateNormalDiag(self.linear(inputs))
+
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        policy = Policy(num_actions)
+        strategy = pyrl.strategies.SampleStrategy(policy)
+        agent = pyrl.agents.AdvantageActorCriticAgent(
+            policy=policy, 
+            value=Value(1),
+            optimizer=tf.train.GradientDescentOptimizer(1e-3))
+        states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            entropy_scale=.2, 
+            baseline_scale=1.)
+        ```
     """
 
     def __init__(self, policy, value, optimizer):
@@ -89,21 +126,31 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
             states: Tensor of `[B, T, ...]` containing states.
             actions: Tensor of `[B, T, ...]` containing actions.
             rewards: Tensor of `[B, T]` containing rewards.
-            weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
-            decay: scalar or Tensor of shape `[B, T]` containing decays/discounts.
-            lambda_: scalar or Tensor of shape `[B, T]` containing generalized lambda parameter.
-            entropy_scale: scalar or Tensor of shape `[B, T]` containing the entropy loss scale.
-            baseline_scale: scalar or Tensor of shape `[B, T]` containing the baseline loss scale.
+            weights: Tensor of shape `[B, T]` containing weights 
+                (1. or 0.).
+            decay: scalar or Tensor of shape `[B, T]` containing 
+                decays/discounts.
+            lambda_: scalar or Tensor of shape `[B, T]` containing 
+                generalized lambda parameter.
+            entropy_scale: scalar or Tensor of shape `[B, T]` containing 
+                the entropy loss scale.
+            baseline_scale: scalar or Tensor of shape `[B, T]` containing 
+                the baseline loss scale.
             **kwargs: positional arguments (unused)
 
         Returns:
             the total loss Tensor of shape [].
+
+        Raises:
+            ValueError: If tensors are empty or fail the rank and mutual
+                compatibility asserts.
         """
         del kwargs
+        base_ops.assert_rank_and_shape_compatibility([weights], 2)
         sequence_lengths = math_ops.reduce_sum(weights, axis=1)
 
-        policy = self.policy(states, training=True)
         baseline_values = array_ops.squeeze(self.value(states, training=True), axis=-1)
+        base_ops.assert_rank_and_shape_compatibility([rewards, baseline_values], 2)
 
         pcontinues = decay * weights
         bootstrap_values = baseline_values[:, -1]
@@ -118,9 +165,9 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
         advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
+        policy = self.policy(states, training=True)
         log_prob = policy.log_prob(actions)
-        log_prob = parray_ops.expand_to(log_prob, ndims=3)
-        policy_gradient_loss = advantages * -math_ops.reduce_sum(log_prob, axis=-1)
+        policy_gradient_loss = advantages * -log_prob
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(
             policy_gradient_loss,
             weights=weights)
@@ -129,8 +176,6 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
             policy, 
             self.policy.trainable_variables,
             lambda policies: entropy_scale).loss
-        entropy_loss = parray_ops.expand_to(entropy_loss, ndims=3)
-        entropy_loss = math_ops.reduce_sum(entropy_loss, axis=-1)
         self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
             entropy_loss,
             weights=weights)
@@ -141,6 +186,139 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
 
         self.total_loss = math_ops.add_n([
             self.value_loss,
+            self.policy_gradient_loss, 
+            self.policy_gradient_entropy_loss])
+
+        return self.total_loss
+
+
+class MultiAdvantageActorCriticAgent(AdvantageActorCriticAgent):
+    """Advantage Actor-Critic (A2C) with multiple-values implementation.
+
+    Computes the actor-critic gradient estimation.
+
+    Example:
+        ```
+        import tensorflow as tf
+        import tensorflow_probability as tfp
+        import pyoneer.rl as pyrl
+
+        class Policy(tf.keras.Model):
+            def __init__(self, action_size):
+                super(Policy, self).__init__()
+                self.linear = tf.layers.Dense(action_size)
+            def call(self, inputs):
+                return tfp.distributions.MultivariateNormalDiag(self.linear(inputs))
+
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        policy = Policy(num_actions)
+        strategy = pyrl.strategies.SampleStrategy(policy)
+        agent = pyrl.agents.MultiAdvantageActorCriticAgent(
+            policy=policy, 
+            value=Value(2),
+            optimizer=tf.train.GradientDescentOptimizer(1e-3))
+        states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            entropy_scale=.2, 
+            baseline_scale=1.)
+        ```
+    """
+
+    def compute_loss(self, 
+                     states, 
+                     actions, 
+                     rewards, 
+                     weights, 
+                     decay=.999, 
+                     lambda_=1., 
+                     entropy_scale=.2, 
+                     baseline_scale=1.,
+                     **kwargs):
+        """Computes the A2C loss with multiple values.
+
+        Args:
+            states: Tensor of `[B, T, ...]` containing states.
+            actions: Tensor of `[B, T, ...]` containing actions.
+            rewards: Tensor of `[B, T, V]` containing rewards.
+            weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
+            decay: scalar, 1-D Tensor of shape [V], or Tensor of shape 
+                `[B, T]` or `[B, T, V]` containing decays/discounts.
+            lambda_: scalar, 1-D Tensor of shape [V], or Tensor of shape 
+                `[B, T]` or `[B, T, V]` containing generalized lambda parameter.
+            entropy_scale: scalar or Tensor of shape `[B, T]` containing the entropy loss scale.
+            baseline_scale: scalar or Tensor of shape `[B, T]` containing the baseline loss scale.
+            **kwargs: positional arguments (unused)
+
+        Returns:
+            the total loss Tensor of shape [].
+        """
+        del kwargs
+        base_ops.assert_rank_and_shape_compatibility([weights], 2)
+        sequence_lengths = math_ops.reduce_sum(weights, axis=1)
+
+        multi_advantages = []
+        self.value_loss = []
+        multi_baseline_values = self.value(states, training=True)
+        base_ops.assert_rank_and_shape_compatibility(
+            [rewards, multi_baseline_values], 3)
+        multi_baseline_values = array_ops.unstack(multi_baseline_values, axis=-1)
+        num_values = len(multi_baseline_values)
+
+        base_shape = rewards.shape
+        decay = self._least_fit(decay, base_shape)
+        lambda_ = self._least_fit(lambda_, base_shape)
+        baseline_scale = self._least_fit(baseline_scale, base_shape)
+
+        for i in range(num_values):
+            pcontinues = decay[..., i] * weights
+            bootstrap_values = multi_baseline_values[i][:, -1]
+            baseline_loss, td_lambda = value_ops.td_lambda(
+                parray_ops.swap_time_major(multi_baseline_values[i]), 
+                parray_ops.swap_time_major(rewards[..., i]), 
+                parray_ops.swap_time_major(pcontinues), 
+                bootstrap_values, 
+                lambda_[..., i])
+            self.value_loss.append(
+                math_ops.reduce_mean(
+                    baseline_loss * baseline_scale[i] * pmath_ops.safe_divide(1., sequence_lengths),
+                    axis=0))
+            advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
+            multi_advantages.append(advantages)
+
+        advantages = math_ops.add_n(multi_advantages) # A = A[0] + A[1] + ...
+        advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+        advantages = gen_array_ops.stop_gradient(advantages)
+
+        policy = self.policy(states, training=True)
+        log_prob = policy.log_prob(actions)
+        policy_gradient_loss = advantages * -log_prob
+        self.policy_gradient_loss = losses_impl.compute_weighted_loss(
+            policy_gradient_loss,
+            weights=weights)
+
+        entropy_loss = policy_gradient_ops.policy_entropy_loss(
+            policy, 
+            self.policy.trainable_variables,
+            lambda policies: entropy_scale).loss
+        self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
+            entropy_loss,
+            weights=weights)
+
+        self.total_loss = math_ops.add_n([
+            math_ops.add_n(self.value_loss),
             self.policy_gradient_loss, 
             self.policy_gradient_entropy_loss])
 
