@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import collections
 
+from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import clip_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import gen_math_ops
@@ -18,6 +19,7 @@ from pyoneer.math import normalization_ops
 from pyoneer.math import math_ops as pmath_ops
 
 from trfl import policy_gradient_ops
+from trfl import indexing_ops
 from trfl import value_ops
 
 
@@ -38,6 +40,46 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
     Reference:
         J Schulman, et al., "Proximal Policy Optimization Algorithms".
             https://arxiv.org/abs/1707.06347
+    
+    Example:
+        ```
+        class Policy(tf.keras.Model):
+            def __init__(self, action_size):
+                super(Policy, self).__init__()
+                self.linear = tf.layers.Dense(action_size)
+            def call(self, inputs):
+                return tfp.distributions.MultivariateNormalDiag(self.linear(inputs))
+
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        behavioral_policy = Policy(num_actions)
+        strategy = pyrl.strategies.SampleStrategy(behavioral_policy)
+        agent = pyrl.agents.ProximalPolicyOptimizationAgent(
+            policy=Policy(num_actions), 
+            behavioral_policy=behavioral_policy, 
+            value=Value(1),
+            optimizer=tf.train.GradientDescentOptimizer(1e-3))
+        states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            entropy_scale=.2, 
+            baseline_scale=1., 
+            ratio_epsilon=.2)
+        trfl.update_target_variables(
+            agent.behavioral_policy.trainable_variables,
+            agent.policy.trainable_variables)
+        ```
     """
 
     def __init__(self, policy, behavioral_policy, value, optimizer):
@@ -107,13 +149,19 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
         """
         del kwargs
         sequence_length = math_ops.reduce_sum(weights, axis=1)
+        total_num = math_ops.reduce_sum(sequence_length)
+
         policy = self.policy(states, training=True)
         behavioral_policy = self.behavioral_policy(states)
-        baseline_values = array_ops.squeeze(self.value(states, training=True), axis=-1)
+        baseline_values = array_ops.squeeze(
+            self.value(states, training=True), 
+            axis=-1) * weights
 
         pcontinues = decay * weights
         lambda_ = lambda_ * weights
-        bootstrap_values = baseline_values[:, -1]
+
+        bootstrap_values = indexing_ops.batched_index(
+            baseline_values, math_ops.cast(sequence_length - 1, dtypes.int32))
         baseline_loss, td_lambda = value_ops.td_lambda(
             parray_ops.swap_time_major(baseline_values), 
             parray_ops.swap_time_major(rewards), 
@@ -138,14 +186,14 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
             policy, 
             self.policy.trainable_variables,
             lambda policies: entropy_scale).loss
-        entropy_loss = math_ops.reduce_sum(parray_ops.expand_to(entropy_loss, ndims=3), axis=-1)
         self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
             entropy_loss,
             weights=weights)
 
-        self.value_loss = math_ops.reduce_mean(
-            baseline_loss * baseline_scale * pmath_ops.safe_divide(1., sequence_length), 
-            axis=0)
+        self.value_loss = pmath_ops.safe_divide(
+            baseline_scale * math_ops.reduce_sum(baseline_loss), total_num)
+        self.value_loss = gen_array_ops.check_numerics(
+            self.value_loss, 'value_loss')
 
         self.total_loss = math_ops.add_n([
             self.value_loss,

@@ -3,6 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 from tensorflow.python import keras
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import gen_array_ops
 from tensorflow.python.eager import backprop
 
 
@@ -24,6 +27,24 @@ class Agent(keras.Model):
         """
         super(Agent, self).__init__()
         self.optimizer = optimizer
+
+    def _least_fit(self, tensor, base_shape):
+        """Broadcasts tensor into a least fitting tensor compatible with base_shape."""
+        tensor = ops.convert_to_tensor(tensor)
+        tensor_shape = tensor.shape
+        if tensor_shape.ndims == 0:
+            return gen_array_ops.tile(
+                array_ops.expand_dims(tensor, axis=-1), 
+                [base_shape[-1]])
+        if tensor_shape.ndims == 1:
+            tensor_shape.assert_is_compatible_with([base_shape[-1]])
+        if tensor_shape.ndims == 2:
+            return gen_array_ops.tile(
+                array_ops.expand_dims(tensor, axis=-1), 
+                [1, 1, base_shape[-1]])
+        if tensor_shape.ndims == 3:
+            tensor_shape.assert_is_compatible_with(base_shape)
+        raise ValueError('`tensor.shape.ndims` must be at most 3.')
 
     @property
     def loss(self):
@@ -71,7 +92,7 @@ class Agent(keras.Model):
         grads = tape.gradient(self.total_loss, vars_)
         return list(zip(grads, vars_))
 
-    def fit(self, *args, **kwargs):
+    def fit(self, *args, global_step=None, **kwargs):
         """Short cut for calling optimizing w.r.t estimated gradients.
         
         This method calls `estimate_gradients` and passes the result to 
@@ -85,4 +106,4 @@ class Agent(keras.Model):
             Op returned by `optimizer.apply_gradients(...)`
         """
         grads_and_vars = self.estimate_gradients(*args, **kwargs)
-        return self.optimizer.apply_gradients(grads_and_vars)
+        return self.optimizer.apply_gradients(grads_and_vars, global_step=global_step)
