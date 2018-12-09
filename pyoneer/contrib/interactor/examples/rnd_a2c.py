@@ -46,12 +46,22 @@ class Value(tf.keras.Model):
 
 class Model(tf.keras.Model):
 
-    def __init__(self, num_units):
+    def __init__(self, state_normalizer, num_units):
         super(Model, self).__init__()
-        self.linear = tf.layers.Dense(num_units)
+        self.state_normalizer = state_normalizer
+        kernel_initializer = tf.initializers.variance_scaling(scale=2.0)
+        self.hidden = tf.layers.Dense(
+            64, 
+            activation=pynr.nn.swish,
+            kernel_initializer=kernel_initializer)
+        self.outputs = tf.layers.Dense(
+            num_units, 
+            kernel_initializer=kernel_initializer)
 
-    def call(self, inputs):
-        return self.linear(inputs)
+    def call(self, states, **kwargs):
+        states_norm = self.state_normalizer(states)
+        hidden = self.hidden(states_norm)
+        return self.outputs(hidden)
 
 def actor(strategy, deterministic=False):
     def actor_fn(i, state, action, reward, done, is_initial_state):
@@ -79,8 +89,8 @@ state_normalizer = pynr.features.HighLowNormalizer(
 reward_normalizer = pynr.features.SampleAverageNormalizer([1], center=False)
 policy = Policy(state_normalizer, explore_env.action_space.n)
 value = Value(state_normalizer, 2)
-predictor_model = Model(32)
-target_model = Model(32)
+predictor_model = Model(state_normalizer, 32)
+target_model = Model(state_normalizer, 32)
 global_step = tfe.Variable(0, dtype=tf.int64)
 epsilon = tf.train.exponential_decay(
     .5, global_step, num_iterations, .99)
