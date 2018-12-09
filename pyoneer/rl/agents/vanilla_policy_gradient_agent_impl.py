@@ -5,6 +5,7 @@ from __future__ import print_function
 import collections
 
 from tensorflow.python.framework import ops
+from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
 from tensorflow.python.ops import math_ops
@@ -16,16 +17,21 @@ from pyoneer.manip import array_ops as parray_ops
 from pyoneer.math import normalization_ops
 
 from trfl import policy_gradient_ops
+from trfl import indexing_ops
 from trfl import sequence_ops
 
 
-def _discounted_returns(rewards, decay):
+def _discounted_returns(rewards, decay, weights):
     """Compute the discounted returns given the decay factor."""
-    decay = ops.convert_to_tensor(decay)
-    sequence = parray_ops.swap_time_major(rewards)
-    decay = gen_array_ops.broadcast_to(decay, array_ops.shape(sequence))
+    sequence_lengths = math_ops.reduce_sum(weights, axis=1)
+    bootstrap_values = indexing_ops.batched_index(
+        rewards, math_ops.cast(sequence_lengths - 1, dtypes.int32))
     multi_step_returns = sequence_ops.scan_discounted_sum(
-        sequence, decay, array_ops.zeros_like(sequence[0]), reverse=True, back_prop=False)
+        parray_ops.swap_time_major(rewards * weights), 
+        parray_ops.swap_time_major(decay * weights), 
+        bootstrap_values, 
+        reverse=True, 
+        back_prop=False)
     return parray_ops.swap_time_major(multi_step_returns)
 
 
@@ -107,6 +113,7 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
                      weights, 
                      decay=.999, 
                      entropy_scale=.2, 
+                     normalize_action_values=True,
                      **kwargs):
         """Computes the Vanilla PG loss.
 
@@ -123,14 +130,15 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
             the total loss Tensor of shape [].
         """
         del kwargs
-        returns = _discounted_returns(rewards, decay)
+        returns = _discounted_returns(rewards, decay, weights)
         self.value.fit(states, returns)
 
-        action_values = returns - array_ops.squeeze(self.value(states, training=True), axis=-1)
-        action_values = normalization_ops.weighted_moments_normalize(action_values, weights)
+        action_values = (returns - array_ops.squeeze(self.value(states, training=True), axis=-1))
+        action_values *= weights
+        if normalize_action_values:
+            action_values = normalization_ops.weighted_moments_normalize(action_values, weights)
 
         policy = self.policy(states, training=True)
-
         log_prob = policy.log_prob(actions)
         policy_gradient_loss = gen_array_ops.stop_gradient(action_values) * -log_prob
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(

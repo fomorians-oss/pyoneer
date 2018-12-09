@@ -92,7 +92,7 @@ class Agent(keras.Model):
         grads = tape.gradient(self.total_loss, vars_)
         return list(zip(grads, vars_))
 
-    def fit(self, *args, **kwargs):
+    def fit(self, *args, global_step=None, **kwargs):
         """Short cut for calling optimizing w.r.t estimated gradients.
         
         This method calls `estimate_gradients` and passes the result to 
@@ -106,4 +106,4 @@ class Agent(keras.Model):
             Op returned by `optimizer.apply_gradients(...)`
         """
         grads_and_vars = self.estimate_gradients(*args, **kwargs)
-        return self.optimizer.apply_gradients(grads_and_vars)
+        return self.optimizer.apply_gradients(grads_and_vars, global_step=global_step)

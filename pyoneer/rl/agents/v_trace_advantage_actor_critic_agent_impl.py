@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import collections
 
+from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
@@ -17,6 +18,7 @@ from pyoneer.math import math_ops as pmath_ops
 
 from trfl import policy_gradient_ops
 from trfl import vtrace_ops
+from trfl import indexing_ops
 
 
 class VTraceAdvantageActorCriticLoss(collections.namedtuple(
@@ -116,6 +118,7 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
                      lambda_=1., 
                      entropy_scale=.2, 
                      baseline_scale=1.,
+                     normalize_advantages=True,
                      **kwargs):
         """Computes the A2C with V-trace return targets (IMPALA) loss.
 
@@ -135,14 +138,18 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
         """
         del kwargs
         sequence_length = math_ops.reduce_sum(weights, axis=1)
+        total_num = math_ops.reduce_sum(sequence_length)
+
         policy = self.policy(states, training=True)
         behavioral_policy = self.behavioral_policy(states)
-        baseline_values = parray_ops.swap_time_major(
-            array_ops.squeeze(self.value(states, training=True), axis=-1))
+        baseline_values = array_ops.squeeze(
+            self.value(states, training=True), 
+            axis=-1) * weights
+        bootstrap_values = indexing_ops.batched_index(
+            baseline_values, math_ops.cast(sequence_length - 1, dtypes.int32))
+        baseline_values = parray_ops.swap_time_major(baseline_values)
 
         pcontinues = parray_ops.swap_time_major(decay * weights)
-        bootstrap_values = baseline_values[-1, :]
-
         log_prob = policy.log_prob(actions)
         log_rhos = parray_ops.swap_time_major(log_prob) - parray_ops.swap_time_major(
             behavioral_policy.log_prob(actions))
@@ -154,7 +161,8 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
             bootstrap_values)
 
         advantages = parray_ops.swap_time_major(vtrace_returns.pg_advantages)
-        advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+        if normalize_advantages:
+            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
         policy_gradient_loss = advantages * -log_prob
@@ -172,10 +180,10 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
 
         baseline_loss = math_ops.reduce_sum(
             math_ops.square(vtrace_returns.vs - baseline_values), axis=0)
-
-        self.value_loss = math_ops.reduce_mean(
-            baseline_loss * .5 * baseline_scale * pmath_ops.safe_divide(1., sequence_length),
-            axis=0)
+        self.value_loss = pmath_ops.safe_divide(
+            .5 * baseline_scale * math_ops.reduce_sum(baseline_loss), total_num)
+        self.value_loss = gen_array_ops.check_numerics(
+            self.value_loss, 'value_loss')
 
         self.total_loss = math_ops.add_n([
             self.value_loss,

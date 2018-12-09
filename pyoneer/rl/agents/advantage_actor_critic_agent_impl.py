@@ -5,6 +5,7 @@ from __future__ import print_function
 import collections
 
 from tensorflow.python.framework import ops
+from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import gen_array_ops
@@ -18,6 +19,7 @@ from pyoneer.math import math_ops as pmath_ops
 
 from trfl import policy_gradient_ops
 from trfl import value_ops
+from trfl import indexing_ops
 from trfl import base_ops
 
 
@@ -119,6 +121,7 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
                      lambda_=1., 
                      entropy_scale=.2, 
                      baseline_scale=1.,
+                     normalize_advantages=True,
                      **kwargs):
         """Computes the A2C loss.
 
@@ -148,29 +151,38 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
         del kwargs
         base_ops.assert_rank_and_shape_compatibility([weights], 2)
         sequence_lengths = math_ops.reduce_sum(weights, axis=1)
+        total_num = math_ops.reduce_sum(sequence_lengths)
 
-        baseline_values = array_ops.squeeze(self.value(states, training=True), axis=-1)
+        baseline_values = array_ops.squeeze(
+            self.value(states, training=True), 
+            axis=-1) * weights
         base_ops.assert_rank_and_shape_compatibility([rewards, baseline_values], 2)
 
         pcontinues = decay * weights
-        bootstrap_values = baseline_values[:, -1]
+        lambda_ = lambda_ * weights
+        bootstrap_values = indexing_ops.batched_index(
+            baseline_values, math_ops.cast(sequence_lengths - 1, dtypes.int32))
+
         baseline_loss, td_lambda = value_ops.td_lambda(
             parray_ops.swap_time_major(baseline_values), 
             parray_ops.swap_time_major(rewards), 
             parray_ops.swap_time_major(pcontinues), 
             bootstrap_values, 
-            lambda_)
+            parray_ops.swap_time_major(lambda_))
 
         advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
-        advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
-        advantages = gen_array_ops.stop_gradient(advantages)
+        if normalize_advantages:
+            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+        advantages = gen_array_ops.check_numerics(advantages, 'advantages')
 
         policy = self.policy(states, training=True)
         log_prob = policy.log_prob(actions)
-        policy_gradient_loss = advantages * -log_prob
+        policy_gradient_loss =  gen_array_ops.stop_gradient(advantages) * -log_prob
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(
             policy_gradient_loss,
             weights=weights)
+        self.policy_gradient_loss = gen_array_ops.check_numerics(
+            self.policy_gradient_loss, 'policy_gradient_loss')
 
         entropy_loss = policy_gradient_ops.policy_entropy_loss(
             policy, 
@@ -179,10 +191,13 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
         self.policy_gradient_entropy_loss = losses_impl.compute_weighted_loss(
             entropy_loss,
             weights=weights)
+        self.policy_gradient_entropy_loss = gen_array_ops.check_numerics(
+            self.policy_gradient_entropy_loss, 'policy_gradient_entropy_loss')
 
-        self.value_loss = math_ops.reduce_mean(
-            baseline_loss * baseline_scale * pmath_ops.safe_divide(1., sequence_lengths),
-            axis=0)
+        self.value_loss = pmath_ops.safe_divide(
+            baseline_scale * math_ops.reduce_sum(baseline_loss), total_num)
+        self.value_loss = gen_array_ops.check_numerics(
+            self.value_loss, 'value_loss')
 
         self.total_loss = math_ops.add_n([
             self.value_loss,
@@ -246,6 +261,7 @@ class MultiAdvantageActorCriticAgent(AdvantageActorCriticAgent):
                      lambda_=1., 
                      entropy_scale=.2, 
                      baseline_scale=1.,
+                     normalize_advantages=True,
                      **kwargs):
         """Computes the A2C loss with multiple values.
 
@@ -268,10 +284,12 @@ class MultiAdvantageActorCriticAgent(AdvantageActorCriticAgent):
         del kwargs
         base_ops.assert_rank_and_shape_compatibility([weights], 2)
         sequence_lengths = math_ops.reduce_sum(weights, axis=1)
+        total_num = math_ops.reduce_sum(sequence_lengths)
 
         multi_advantages = []
         self.value_loss = []
-        multi_baseline_values = self.value(states, training=True)
+        multi_baseline_values = self.value(states, training=True) * array_ops.expand_dims(weights, axis=-1)
+
         base_ops.assert_rank_and_shape_compatibility(
             [rewards, multi_baseline_values], 3)
         multi_baseline_values = array_ops.unstack(multi_baseline_values, axis=-1)
@@ -284,22 +302,25 @@ class MultiAdvantageActorCriticAgent(AdvantageActorCriticAgent):
 
         for i in range(num_values):
             pcontinues = decay[..., i] * weights
-            bootstrap_values = multi_baseline_values[i][:, -1]
+            lambdas = lambda_[..., i] * weights
+            bootstrap_values = indexing_ops.batched_index(
+                multi_baseline_values[i], math_ops.cast(sequence_lengths - 1, dtypes.int32))
             baseline_loss, td_lambda = value_ops.td_lambda(
                 parray_ops.swap_time_major(multi_baseline_values[i]), 
                 parray_ops.swap_time_major(rewards[..., i]), 
                 parray_ops.swap_time_major(pcontinues), 
                 bootstrap_values, 
-                lambda_[..., i])
+                parray_ops.swap_time_major(lambdas))
+            value_loss = pmath_ops.safe_divide(
+                baseline_scale[i] * math_ops.reduce_sum(baseline_loss), total_num)
             self.value_loss.append(
-                math_ops.reduce_mean(
-                    baseline_loss * baseline_scale[i] * pmath_ops.safe_divide(1., sequence_lengths),
-                    axis=0))
+                gen_array_ops.check_numerics(value_loss, 'value_loss'))
             advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
             multi_advantages.append(advantages)
 
         advantages = math_ops.add_n(multi_advantages) # A = A[0] + A[1] + ...
-        advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+        if normalize_advantages:
+            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
         policy = self.policy(states, training=True)

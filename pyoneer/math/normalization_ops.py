@@ -46,7 +46,7 @@ def normalize(x, loc, scale):
     Returns:
         A normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, loc.dtype)
     return (x - loc) / scale
 
 
@@ -61,7 +61,7 @@ def denormalize(x, loc, scale):
     Returns:
         A de-normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, loc.dtype)
     return (x * scale) + loc
 
 
@@ -77,7 +77,7 @@ def weighted_normalize(x, loc, scale, weights):
     Returns:
         A normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, loc.dtype)
     return parray_ops.weighted_mask(x, normalize(x, loc, scale), weights)
 
 
@@ -93,7 +93,7 @@ def weighted_denormalize(x, loc, scale, weights):
     Returns:
         A de-normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, loc.dtype)
     return parray_ops.weighted_mask(x, denormalize(x, loc, scale), weights)
 
 
@@ -108,7 +108,7 @@ def high_low_normalize(x, high, low):
     Returns:
         A normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, high.dtype)
     loc, scale = high_low_loc_and_scale(high, low)
     return denormalize(x, loc, scale)
 
@@ -125,7 +125,7 @@ def weighted_high_low_normalize(x, high, low, weights):
     Returns:
         A normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, high.dtype)
     loc, scale = high_low_loc_and_scale(high, low)
     return weighted_normalize(x, loc, scale, weights)
 
@@ -141,7 +141,7 @@ def high_low_denormalize(x, high, low):
     Returns:
         A de-normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, high.dtype)
     loc, scale = high_low_loc_and_scale(high, low)
     return normalize(x, loc, scale)
 
@@ -158,7 +158,7 @@ def weighted_high_low_denormalize(x, high, low, weights):
     Returns:
         A de-normalized Tensor.
     """
-    x = ops.convert_to_tensor(x)
+    x = ops.convert_to_tensor(x, high.dtype)
     loc, scale = high_low_loc_and_scale(high, low)
     return weighted_denormalize(x, loc, scale, weights)
 
@@ -214,6 +214,7 @@ def select_weighted_normalize(inputs, loc, scale_, center, scale, weights):
     Returns:
         A normalized Tensor.
     """
+    inputs = ops.convert_to_tensor(inputs, loc.dtype)
     outputs = inputs
     if center and scale:
         outputs = weighted_normalize(inputs, loc, scale_, weights)
@@ -248,6 +249,7 @@ def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights):
     Returns:
         A de-normalized Tensor.
     """
+    inputs = ops.convert_to_tensor(inputs, loc.dtype)
     outputs = inputs
     if center and scale:
         outputs = weighted_denormalize(inputs, loc, scale_, weights)

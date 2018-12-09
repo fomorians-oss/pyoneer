@@ -145,6 +145,8 @@ class QLambdaAgent(agent_impl.Agent):
 
         lambda_ = gen_array_ops.broadcast_to(lambda_, array_ops.shape(rewards))
 
+        # TODO(wenkesj): this has a bug in the trfl API, 
+        #                but I don't know how "worth" it is to fix.
         baseline_loss = action_value_ops.qlambda(
             parray_ops.swap_time_major(action_values), 
             parray_ops.swap_time_major(actions), 

@@ -147,13 +147,14 @@ class DoubleQLambdaAgent(agent_impl.Agent):
             axis=-1)
 
         pcontinues = decay * weights
+        lambda_ *= weights
         action_values = self.value(states, training=True) * mask
 
         next_action_values = gen_array_ops.stop_gradient(
             self.target_value(next_states, training=True))
 
-        lambda_ = gen_array_ops.broadcast_to(lambda_, array_ops.shape(rewards))
-
+        # TODO(wenkesj): this has a bug in the trfl API, 
+        #                but I don't know how "worth" it is to fix.
         baseline_loss = action_value_ops.qlambda(
             parray_ops.swap_time_major(action_values), 
             parray_ops.swap_time_major(actions), 

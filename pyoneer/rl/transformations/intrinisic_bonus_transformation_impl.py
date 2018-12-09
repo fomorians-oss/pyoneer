@@ -70,7 +70,7 @@ class IntrinsicMotivationBonusTransformation(IntrinsicBonusTransformation):
             **kwargs: keyword arguments (unused)
 
         Returns:
-            the total rewards Tensor same shape as `rewards`.
+            the stacked rewards Tensor of shape [..., 2].
         """
         del kwargs
         predictor_states = self.predictor_transformation(states, actions)
@@ -78,7 +78,7 @@ class IntrinsicMotivationBonusTransformation(IntrinsicBonusTransformation):
         prediction_bonus = tf.reduce_sum(
             bonus_scale * tf.square(predictor_states - target_states) * tf.expand_dims(weights, axis=-1), 
             axis=-1)
-        rewards += prediction_bonus
+        rewards = tf.stack([prediction_bonus, rewards], axis=-1)
         return rewards
 
 

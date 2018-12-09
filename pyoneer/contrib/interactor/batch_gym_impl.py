@@ -114,9 +114,7 @@ class BatchEnv(gym.Env):
             Tuple of Tensors containing (state, reward, done, {})
         """
         @wrappy(
-            [tf.as_dtype(self.observation_space.dtype),
-             tf.as_dtype(self.observation_space.dtype),
-             tf.bool])
+            [tf.as_dtype(self.observation_space.dtype), tf.float32, tf.bool])
         def step(actions):
             states = []
             rewards = []
@@ -131,8 +129,9 @@ class BatchEnv(gym.Env):
         actions = tf.convert_to_tensor(actions)
         with tf.control_dependencies(
             [tf.assert_equal(tf.shape(actions)[0], len(self.__cache__.items)),
-             tf.assert_rank(actions, 1 + len(self.observation_space.shape))]):
-            return (*step(actions), {})
+             tf.assert_rank(actions, 1 + len(self.action_space.shape))]):
+            states, rewards, dones = step(actions)
+            return states, rewards, dones, {}
 
     def seed(self, seed=None):
         """Seed the envs generator and all envs.
