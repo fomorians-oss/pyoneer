@@ -20,6 +20,7 @@ from pyoneer.manip import array_ops as parray_ops
 from pyoneer.math import math_ops as pmath_ops
 
 from trfl import policy_gradient_ops
+from trfl import indexing_ops
 from trfl import value_ops
 
 
@@ -39,6 +40,49 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
     Reference:
         T. P. Lillicrap, et al. "Continuous control with deep reinforcement learning".
             https://arxiv.org/abs/1509.02971
+    
+    Example:
+        ```
+        class Policy(tf.keras.Model):
+            def __init__(self, action_size):
+                super(Policy, self).__init__()
+                self.linear = tf.layers.Dense(action_size, activation=tf.nn.tanh)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        target_policy = Policy(num_actions)
+        strategy = pyrl.strategies.OrnsteinUhlenbeckStrategy(target_policy)
+        agent = pyrl.agents.DeterministicPolicyGradientAgent(
+            policy=Policy(num_actions), 
+            target_policy=target_policy,
+            value=Value(1),
+            target_value=Value(1),
+            policy_optimizer=tf.train.GradientDescentOptimizer(1e-3),
+            value_optimizer=tf.train.GradientDescentOptimizer(1e-3))
+        states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            baseline_scale=1.)
+        trfl.update_target_variables(
+            agent.target_policy.trainable_variables,
+            agent.policy.trainable_variables)
+        trfl.update_target_variables(
+            agent.target_value.trainable_variables,
+            agent.value.trainable_variables)
+        ```
     """
 
     def __init__(self, policy, target_policy, value, target_value, policy_optimizer, value_optimizer):
@@ -108,6 +152,8 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
         """
         del kwargs
         sequence_length = math_ops.reduce_sum(weights, axis=1)
+        total_num = math_ops.reduce_sum(sequence_length)
+
         mask = array_ops.sequence_mask(
             gen_math_ops.maximum(math_ops.cast(sequence_length, dtypes.int32) - 1, 0), 
             maxlen=states.shape[1], 
@@ -116,9 +162,17 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
         policy = self.policy(states, training=True)
         target_policy = self.target_policy(next_states)
 
+        time_steps = array_ops.shape(policy)[1]
+        sequence_length_int = math_ops.cast(sequence_length, dtypes.int32)
+        last_index = gen_array_ops.reshape(
+            array_ops.one_hot(sequence_length_int, time_steps, dtype=dtypes.float32),
+            [-1, time_steps, 1])
+
+        final_states = math_ops.reduce_sum(next_states * last_index, axis=[1])
+        final_policy = math_ops.reduce_sum(target_policy * last_index, axis=[1])
+
         bootstrap_value = gen_array_ops.reshape(
-            self.target_value(next_states[:, -1:], target_policy[:, -1:]), 
-            [-1])
+            self.target_value(final_states, final_policy), [-1])
 
         action_values = array_ops.squeeze(
             self.value(states, policy, training=True), 
@@ -136,9 +190,10 @@ class DeterministicPolicyGradientAgent(agent_impl.Agent):
             gen_array_ops.stop_gradient(bootstrap_value),
             parray_ops.swap_time_major(lambda_)).loss
 
-        self.value_loss = math_ops.reduce_mean(
-            baseline_loss * baseline_scale * pmath_ops.safe_divide(1., sequence_length), 
-            axis=0)
+        self.value_loss = pmath_ops.safe_divide(
+            baseline_scale * math_ops.reduce_sum(baseline_loss), total_num)
+        self.value_loss = gen_array_ops.check_numerics(
+            self.value_loss, 'value_loss')
 
         self.total_loss = math_ops.add_n([
             self.value_loss,

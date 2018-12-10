@@ -18,4 +18,6 @@ setup(
         'pyzmq',
         'trfl',
         'dm-sonnet',
-        'wrapt'])
+        'wrapt'],
+    dependency_links=[
+        'git+ssh://git@github.com/deepmind/trfl.git#egg=trfl'])

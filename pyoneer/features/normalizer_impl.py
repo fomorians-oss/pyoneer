@@ -24,7 +24,7 @@ class StatelessNormalizer(keras.Model):
     `StatelessNormalizer` treats the `loc` and `scale` as constant parameters.
     """
 
-    def __init__(self, loc, scale_, center=True, scale=True):
+    def __init__(self, loc, scale_, center=True, scale=True, dtype=None):
         """Creates a new StatelessNormalizer model.
 
         Args:
@@ -34,8 +34,8 @@ class StatelessNormalizer(keras.Model):
             scale: Scale using the standard deviation with this flag.
         """
         super(StatelessNormalizer, self).__init__()
-        self.loc = loc
-        self.scale = scale_
+        self.loc = ops.convert_to_tensor(loc, dtype=dtype)
+        self.scale = ops.convert_to_tensor(scale_, dtype=dtype)
         self.center = center
         self.scale_ = scale
 
@@ -60,6 +60,8 @@ class StatelessNormalizer(keras.Model):
             A normalized Tensor.
         """
         del kwargs  # unused
+        inputs = ops.convert_to_tensor(inputs)
+        inputs = math_ops.cast(inputs, self.loc.dtype)
         return normalization_ops.select_weighted_normalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
@@ -75,6 +77,8 @@ class StatelessNormalizer(keras.Model):
             An un-normalized Tensor.
         """
         del kwargs  # unused
+        inputs = ops.convert_to_tensor(inputs)
+        inputs = math_ops.cast(inputs, self.loc.dtype)
         return normalization_ops.select_weighted_denormalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
@@ -87,7 +91,7 @@ class StatefulNormalizer(keras.Model):
     A subclass must implement the property getter `scale` and method `update_loc`.
     """
 
-    def __init__(self, shape, center=True, scale=True):
+    def __init__(self, shape, center=True, scale=True, dtype=dtypes.float32):
         """Creates a new StatefulNormalizer.
 
         Args:
@@ -100,11 +104,11 @@ class StatefulNormalizer(keras.Model):
         self.center = center
         self.scale_ = scale
 
-        self.count = Variable(0., dtype=dtypes.float32, trainable=False)
+        self.count = Variable(0., dtype=dtype, trainable=False)
         self.loc = Variable(
-            array_ops.zeros(shape=shape, dtype=dtypes.float32), trainable=False)
+            array_ops.zeros(shape=shape, dtype=dtype), trainable=False)
         self.var_sum = Variable(
-            array_ops.zeros(shape=shape, dtype=dtypes.float32), trainable=False)
+            array_ops.zeros(shape=shape, dtype=dtype), trainable=False)
 
     @property
     def shape(self):
@@ -147,6 +151,7 @@ class StatefulNormalizer(keras.Model):
         """
         del kwargs
         inputs = ops.convert_to_tensor(inputs)
+        inputs = math_ops.cast(inputs, self.loc.dtype)
 
         if training:
             input_shape = inputs.get_shape().as_list()
@@ -190,6 +195,7 @@ class StatefulNormalizer(keras.Model):
         """
         del kwargs
         inputs = ops.convert_to_tensor(inputs)
+        inputs = math_ops.cast(inputs, self.loc.dtype)
         return normalization_ops.select_weighted_denormalize(
             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
@@ -197,7 +203,7 @@ class StatefulNormalizer(keras.Model):
 class HighLowNormalizer(StatelessNormalizer):
     """Infers `loc` and `scale` from `high` and `low` parameters."""
 
-    def __init__(self, high, low, center=True, scale=True):
+    def __init__(self, high, low, center=True, scale=True, dtype=None):
         """Creates a new HighLowNormalizer.
 
         Args:
@@ -207,8 +213,9 @@ class HighLowNormalizer(StatelessNormalizer):
             scale: Scale using the standard deviation with this flag.
         """
         loc, scale_ = normalization_ops.high_low_loc_and_scale(
-            ops.convert_to_tensor(high), ops.convert_to_tensor(low))
-        super(HighLowNormalizer, self).__init__(loc, scale_, center=center, scale=scale)
+            ops.convert_to_tensor(high, dtype), ops.convert_to_tensor(low, dtype))
+        super(HighLowNormalizer, self).__init__(
+            loc, scale_, center=center, scale=scale, dtype=dtype)
         
 
 class SampleAverageNormalizer(StatefulNormalizer):
@@ -231,7 +238,7 @@ class SampleAverageNormalizer(StatefulNormalizer):
 class WeightedAverageNormalizer(StatefulNormalizer):
     """Compute the moving loc and scale according to the supplied alpha scalar."""
 
-    def __init__(self, shape, alpha, center=True, scale=True):
+    def __init__(self, shape, alpha, center=True, scale=True, dtype=dtypes.float32):
         """Creates a new WeightedAverageNormalizer.
 
         Args:
@@ -241,7 +248,7 @@ class WeightedAverageNormalizer(StatefulNormalizer):
             scale: Scale using the standard deviation with this flag.
         """
         super(WeightedAverageNormalizer, self).__init__(
-            shape, center=center, scale=scale)
+            shape, center=center, scale=scale, dtype=dtype)
         self.alpha = alpha
 
     @property

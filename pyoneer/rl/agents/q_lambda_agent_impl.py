@@ -37,6 +37,34 @@ class QLambdaAgent(agent_impl.Agent):
         See "Reinforcement Learning: An Introduction" by Sutton and Barto.
             (http://incompleteideas.net/book/ebook/node78.html).
         and https://github.com/deepmind/trfl
+    
+    Example:
+        ```
+        class Value(tf.keras.Model):
+            def __init__(self, num_units):
+                super(Value, self).__init__()
+                self.linear = tf.layers.Dense(num_units)
+            def call(self, inputs):
+                return self.linear(inputs)
+
+        num_actions = 2
+        value = Value(num_actions)
+        strategy = pyrl.strategies.SampleStrategy(
+            lambda states: tfp.distributions.Categorical(logits=value(states)))
+        agent = pyrl.agents.QLambdaAgent(
+            value=value,
+            optimizer=tf.train.GradientDescentOptimizer(1.))
+        states, next_states, actions, rewards, weights = collect_rollouts(strategy)
+        _ = agent.fit(
+            states, 
+            next_states,
+            actions, 
+            rewards, 
+            weights, 
+            decay=.999, 
+            lambda_=1., 
+            baseline_scale=1.)
+        ```
     """
 
     def __init__(self, value, optimizer):
@@ -89,7 +117,7 @@ class QLambdaAgent(agent_impl.Agent):
         Args:
             states: Tensor of `[B, T, ...]` containing states.
             next_states: Tensor of `[B, T, ...]` containing states[t+1].
-            actions: Tensor of `[B, T, ...]` containing actions.
+            actions: Tensor of `[B, T]` containing actions.
             rewards: Tensor of `[B, T]` containing rewards.
             weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
             decay: scalar or Tensor of shape `[B, T]` containing decays/discounts.
@@ -117,6 +145,8 @@ class QLambdaAgent(agent_impl.Agent):
 
         lambda_ = gen_array_ops.broadcast_to(lambda_, array_ops.shape(rewards))
 
+        # TODO(wenkesj): this has a bug in the trfl API, 
+        #                but I don't know how "worth" it is to fix.
         baseline_loss = action_value_ops.qlambda(
             parray_ops.swap_time_major(action_values), 
             parray_ops.swap_time_major(actions), 
