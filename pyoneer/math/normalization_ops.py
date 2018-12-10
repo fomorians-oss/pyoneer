@@ -11,6 +11,7 @@ from tensorflow.python.ops import gen_math_ops
 from tensorflow.python.ops import nn_impl
 
 from pyoneer.math import logical_ops
+from pyoneer.math import math_ops as pmath_ops
 from pyoneer.manip import array_ops as parray_ops
 
 
@@ -47,7 +48,7 @@ def normalize(x, loc, scale):
         A normalized Tensor.
     """
     x = ops.convert_to_tensor(x, loc.dtype)
-    return (x - loc) / scale
+    return pmath_ops.safe_divide((x - loc), scale)
 
 
 def denormalize(x, loc, scale):
@@ -218,19 +219,22 @@ def select_weighted_normalize(inputs, loc, scale_, center, scale, weights):
     outputs = inputs
     if center and scale:
         outputs = weighted_normalize(inputs, loc, scale_, weights)
+        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+        return outputs
     if center:
         outputs = parray_ops.weighted_mask(
             inputs,
             inputs - loc, 
             weights)
+        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+        return outputs
     if scale:
         outputs = parray_ops.weighted_mask(
             inputs,
-            inputs / array_ops.where(
-                logical_ops.isclose(scale_, 1e-6), 
-                array_ops.ones_like(scale_), 
-                scale_), 
+            pmath_ops.safe_divide(inputs, scale_), 
             weights)
+        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+        return outputs
     outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
     return outputs
 
@@ -253,11 +257,15 @@ def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights):
     outputs = inputs
     if center and scale:
         outputs = weighted_denormalize(inputs, loc, scale_, weights)
+        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+        return outputs
     if center:
         outputs = parray_ops.weighted_mask(
             inputs,
             inputs + loc, 
             weights)
+        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+        return outputs
     if scale:
         outputs = parray_ops.weighted_mask(
             inputs,
@@ -266,5 +274,6 @@ def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights):
                 array_ops.ones_like(scale_), 
                 scale_), 
             weights)
-    outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+        return outputs
     return outputs
