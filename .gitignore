@@ -9,3 +9,4 @@ __pycache__
 .python-version
 /pyoneer/rl/baselines
 Pipfile.lock
+pyoneer/.vscode/settings.json
