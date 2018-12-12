@@ -5,9 +5,9 @@ from __future__ import print_function
 from pyoneer.rl.strategies import strategy_impl
 
 
-class SampleStrategy(strategy_impl.Strategy):
+class ModeStrategy(strategy_impl.Strategy):
     """
-    Returns random samples from the policy distribution.
+    Returns the mode of the policy distribution.
 
     Args:
         policy: callable that returns a `tfp.distributions.Distribution`.
@@ -15,4 +15,4 @@ class SampleStrategy(strategy_impl.Strategy):
 
     def call(self, *args, **kwargs):
         policy = self.policy(*args, **kwargs)
-        return policy.sample()
+        return policy.mode()
