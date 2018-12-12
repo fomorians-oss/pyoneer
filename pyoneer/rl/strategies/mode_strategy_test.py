@@ -8,10 +8,10 @@ import tensorflow_probability as tfp
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
-from pyoneer.rl.strategies import sample_strategy_impl
+from pyoneer.rl.strategies import mode_strategy_impl
 
 
-class SampleStrategyTest(test.TestCase):
+class ModeStrategyTest(test.TestCase):
     def testSampleStrategy(self):
         with context.eager_mode():
             logits = [[0., 1., -2.], [0., 1., 2.]]
@@ -23,7 +23,7 @@ class SampleStrategyTest(test.TestCase):
             expected_policy_samples = policy(logits).mode()
             self.assertAllEqual(expected_policy_samples, expected_samples)
 
-            sampler = sample_strategy_impl.SampleStrategy(policy)
+            sampler = mode_strategy_impl.ModeStrategy(policy)
             samples = sampler(logits)
             self.assertShapeEqual(samples.numpy(), expected_policy_samples)
 

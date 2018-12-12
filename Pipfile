@@ -7,10 +7,9 @@ name = "pypi"
 tensorflow = "*"
 tensorflow-probability = "*"
 gym = "*"
-pyzmq = "*"
 trfl = {git = "git://github.com/deepmind/trfl.git"}
-dm-sonnet = "*"
 wrapt = "*"
+dm-sonnet = "*"
 
 [dev-packages]
 pylint = "*"
