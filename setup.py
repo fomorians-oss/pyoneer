@@ -15,7 +15,7 @@ setup(
         'tensorflow-probability',
         'gym',
         'trfl',
-        'wrapt',
         'dm-sonnet',
+        'wrapt',
     ],
     dependency_links=['git+ssh://git@github.com/deepmind/trfl.git#egg=trfl'])

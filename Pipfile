@@ -8,8 +8,8 @@ tensorflow = "*"
 tensorflow-probability = "*"
 gym = "*"
 trfl = {git = "git://github.com/deepmind/trfl.git"}
-wrapt = "*"
 dm-sonnet = "*"
+wrapt = "*"
 
 [dev-packages]
 pylint = "*"
