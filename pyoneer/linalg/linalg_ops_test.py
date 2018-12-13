@@ -21,8 +21,11 @@ class FunkSVDSolveTest(test.TestCase):
             target_matrix = target_x @ target_y
 
             x, y = linalg.funk_svd_solve(
-                matrix=target_matrix, k=k, lr=5e-1, l2_scale=0, max_epochs=2000
-            )
+                matrix=target_matrix,
+                k=k,
+                lr=5e-1,
+                l2_scale=0,
+                max_epochs=2000)
             matrix = x @ y
 
             self.assertAllClose(target_matrix.numpy(), matrix.numpy())
