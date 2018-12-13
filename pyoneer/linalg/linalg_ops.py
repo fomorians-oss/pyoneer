@@ -8,20 +8,17 @@ import tensorflow.contrib.eager as tfe
 
 from pyoneer.losses import get_l2_loss
 
-
-def funk_svd_solve(matrix, k, optimizer, step=None, max_epochs=200, l2_scale=0,
+def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
                    batch_size=None, tol=1e-6, n_epochs_no_change=10):
     """Factorizes input `matrix` of size `[M, N]` into two matrices: `x` of
-    size `[M, k]`, and `y` of size `[N, k]`. Factorization is done through SGD.
+    size `[M, k]`, and `y` of size `[k, N]`. Factorization is done through SGD.
 
     As originally proposed by Simon Funk: https://sifter.org/simon/journal/20061211.html
 
     Args:
         matrix: 2D `Tensor` of shape `[M, N]`. Should be a `float`.
         k: Dimensionality of the two factorized matrices, as an `int`.
-        optimizer: A `tf.train.Optimizer` instance.
-        step: Optional `Variable` used by `optimizer` to track optimization
-            steps. Incremented by one each update.
+        lr: Learning rate.
         max_epochs: maximum number of epochs over the input `matrix`. If
             `tol` is not `None` (in which case it should be a `float`) and the
             factorization loss has not improved for `n_epochs_no_change`
@@ -40,22 +37,48 @@ def funk_svd_solve(matrix, k, optimizer, step=None, max_epochs=200, l2_scale=0,
 
     Returns:
         A 2-tuple `(x, y)`, where `x` is a 2D `Tensor` of size `[M, k]`, and
-            `y` is a 2D `Tensor` of size `[N, k]`.
+            `y` is a 2D `Tensor` of size `[k, N]`.
     """
     M, N = matrix.shape.as_list()
+    x = tf.random.uniform(
+        (M, k), minval=-np.sqrt(6/(M+k)), maxval=np.sqrt(6/(M+k)))
+    y = tf.random.uniform(
+        (k, N), minval=-np.sqrt(6/(N+k)), maxval=np.sqrt(6/(N+k)))
+
+    for e in range(max_epochs):
+        products = x @ y
+        err = matrix - products
+
+        x_update = (err @ tf.transpose(y)) / (N * k)
+        y_update = (tf.transpose(x) @ err) / (M * k)
+        
+        x += lr * (x_update - l2_scale * x)
+        y += lr * (y_update - l2_scale * y)
+    
+    return x, y
+
+"""
+
+        optimizer: A `tf.train.Optimizer` instance.
+        step: Optional `Variable` used by `optimizer` to track optimization
+            steps. Incremented by one each update.
+
     dtype = matrix.dtype
     x = tfe.Variable(
-        tf.random.uniform((M, k), minval=-np.sqrt(3/M), maxval=np.sqrt(3/M)),
-        dtype=dtype, trainable=True,
+        tf.random.uniform(
+            (M, k), minval=-np.sqrt(6/(M+k)), maxval=np.sqrt(6/(M+k))),
+        dtype=dtype,
+        trainable=True,
     )
     y = tfe.Variable(
-        tf.random.uniform((N, k), minval=-np.sqrt(3/N), maxval=np.sqrt(3/N)),
-        dtype=dtype, trainable=True,
+        tf.random.uniform(
+            (k, N), minval=-np.sqrt(6/(N+k)), maxval=np.sqrt(6/(N+k))),
+        dtype=dtype,
+        trainable=True,
     )
 
     data = tf.data.Dataset.from_tensor_slices(matrix)
     data = data.shuffle(M).batch(batch_size or M)
-
     epochs_w_no_change = 0
     for e in range(max_epochs):
         epoch_losses = []
@@ -64,7 +87,7 @@ def funk_svd_solve(matrix, k, optimizer, step=None, max_epochs=200, l2_scale=0,
                 tape.watch(x)
                 tape.watch(y)
 
-                products = x @ tf.transpose(y)
+                products = x @ y
                 mse_loss = tf.losses.mean_squared_error(
                     labels=batch_targets, predictions=products
                 )
@@ -81,6 +104,7 @@ def funk_svd_solve(matrix, k, optimizer, step=None, max_epochs=200, l2_scale=0,
                     break
             else:
                 epochs_w_no_change = 0
+    print(epoch_loss)
     return tfe.Variable(x, trainable=False), tfe.Variable(y, trainable=False)
-
-
+"""
+    

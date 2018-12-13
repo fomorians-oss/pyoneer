@@ -14,25 +14,18 @@ import pyoneer.linalg as linalg
 class FunkSVDSolveTest(test.TestCase):
     def test_funk_svd_solve(self):
         with context.eager_mode():
-            tf.set_random_seed(0)
-            k = 3
-            target_x = tf.random.uniform((4, k), minval=-2, maxval=2)
-            target_y = tf.random.uniform((2, k), minval=-2, maxval=2)
-            matrix = target_x @ tf.transpose(target_y)
-            l2_scale = 0
-            tol = 1e-8
-            step = tfe.Variable(0, trainable=False)
-            optimizer = tf.train.AdamOptimizer(learning_rate=1e-6)
+            tf.set_random_seed(20)
+            k = 15
+            target_x = tf.random.uniform((3, k), minval=-1, maxval=1)
+            target_y = tf.random.uniform((k, 2), minval=-1, maxval=1)
+            target_matrix = target_x @ target_y
 
             x, y = linalg.funk_svd_solve(
-                matrix, k, optimizer, step=step, l2_scale=l2_scale,
-                tol=tol, max_epochs=1000, n_epochs_no_change=50
+                matrix=target_matrix, k=k, lr=5e-1, l2_scale=0, max_epochs=2000
             )
+            matrix = x @ y
 
-            self.assertAllClose(
-                (target_x.numpy(), target_y.numpy()), (x.numpy(), y.numpy())
-            )
-
+            self.assertAllClose(target_matrix.numpy(), matrix.numpy())
 
 
 if __name__ == '__main__':
