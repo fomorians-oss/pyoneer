@@ -56,4 +56,3 @@ def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
         y += _lr * (y_update - l2_scale * y)
     
     return x, y
-

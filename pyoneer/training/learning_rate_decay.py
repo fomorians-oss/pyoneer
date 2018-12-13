@@ -62,16 +62,16 @@ class CyclicSchedule:
         if global_step is None:
             global_step = tf.train.get_or_create_global_step()
         self.global_step = global_step
-        self.value = vmin
+        self.value = tf.Variable(vmin, trainable=False)
 
     def __call__(self):
         step = self.global_step.numpy() - 1
-        cycle = 1. + step//(2.*self.step_size)
-        x = step/self.step_size - 2.*cycle + 1.
+        cycle = 1. + step // (2. * self.step_size)
+        x = step/self.step_size - 2. * cycle + 1.
         x_abs = tf.abs(x)
         # Decay the downward half towards 0 instead of vmin
         vmin = tf.where(x < 0.0, self.vmin, 0.0)
         vrange = self.vmax - vmin
-        value = vmin + vrange*tf.cast(tf.maximum(0.0, 1. - x_abs), tf.float32)
-        self.value = value
+        value = vmin + vrange * tf.cast(tf.maximum(0.0, 1. - x_abs), tf.float32)
+        self.value.assign(value)
         return value
