@@ -6,8 +6,10 @@ from pyoneer import features
 from pyoneer import linalg
 from pyoneer import layers
 from pyoneer import losses
+from pyoneer import initializers
+from pyoneer import layers
+from pyoneer import manip
 from pyoneer import math
 from pyoneer import metrics
 from pyoneer import nn
 from pyoneer import rl
-from pyoneer import training

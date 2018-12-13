@@ -1,10 +1,14 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
 
 from collections import OrderedDict
 
 from pyoneer.math import angle_ops
-from pyoneer.features import normalization_ops
+from pyoneer.math import normalization_ops
 
 
 class Normalizer(tf.keras.layers.Layer):
@@ -101,9 +105,7 @@ class DictFeaturizer(tf.keras.layers.Layer):
 
     def __init__(self, feature_layers):
         super(DictFeaturizer, self).__init__()
-        assert isinstance(feature_layers, OrderedDict), \
-            'feature_layers must be an OrderedDict'
-        self.feature_layers = feature_layers
+        self.feature_layers = OrderedDict(feature_layers)
 
     def call(self, features):
         """
