@@ -18,7 +18,8 @@ def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
     Args:
         matrix: 2D `Tensor` of shape `[M, N]`. Should be a `float`.
         k: Dimensionality of the two factorized matrices, as an `int`.
-        lr: Learning rate.
+        lr: Learning rate. Can be a callable that takes no inputs and returns
+            the learning rate to use.
         max_epochs: maximum number of epochs over the input `matrix`. If
             `tol` is not `None` (in which case it should be a `float`) and the
             factorization loss has not improved for `n_epochs_no_change`
@@ -52,8 +53,9 @@ def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
         x_update = (err @ tf.transpose(y)) / (N * k)
         y_update = (tf.transpose(x) @ err) / (M * k)
         
-        x += lr * (x_update - l2_scale * x)
-        y += lr * (y_update - l2_scale * y)
+        _lr = lr() if callable(lr) else lr
+        x += _lr * (x_update - l2_scale * x)
+        y += _lr * (y_update - l2_scale * y)
     
     return x, y
 
