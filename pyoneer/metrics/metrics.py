@@ -9,9 +9,9 @@ from tensorflow.contrib.eager.python import metrics
 from tensorflow.python.ops import array_ops, check_ops
 
 def mean_absolute_percentage_error(y_true, y_pred,
-                                sample_weight=None,
-                                multioutput='raw_values',
-                                mask_invalid=False):
+                                   sample_weight=None,
+                                   multioutput='raw_values',
+                                   mask_invalid=False):
     """Calculates the mean absolute percentage error of the predicted values to
     the true values. `y_true`, `y_pred` should be of the same type and shape,
     while `sample_weight` (if given; defaults to `None`) should be either the

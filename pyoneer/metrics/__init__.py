@@ -7,7 +7,7 @@ from pyoneer.metrics.metrics import SymmetricMeanAbsolutePercentageError
 from pyoneer.metrics.metrics import mean_absolute_percentage_error
 from pyoneer.metrics.metrics import symmetric_mean_absolute_percentage_error
 
-from pyoneer.metrics.metrics import MeanAbsolutePercentageError as MAPE
-from pyoneer.metrics.metrics import SymmetricMeanAbsolutePercentageError as SMAPE
-from pyoneer.metrics.metrics import mean_absolute_percentage_error as mape
-from pyoneer.metrics.metrics import symmetric_mean_absolute_percentage_error as smape
+MAPE = MeanAbsolutePercentageError
+SMAPE = SymmetricMeanAbsolutePercentageError
+mape = mean_absolute_percentage_error
+smape = symmetric_mean_absolute_percentage_error

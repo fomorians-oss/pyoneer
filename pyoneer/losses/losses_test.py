@@ -11,15 +11,15 @@ from tensorflow.python.platform import test
 
 from pyoneer import losses
 
-class GetL2LossTest(test.TestCase):
-    def test_get_l2_loss(self):
+class L2RegularizationTest(test.TestCase):
+    def test_l2_regularization(self):
         with context.eager_mode():
             variables = [
                 tfe.Variable(tf.random.uniform((2, 3)), trainable=True),
                 tfe.Variable(tf.random.uniform((3, 4)), trainable=True)
             ]
             l2_scale = 0.5
-            l2_loss = float(losses.get_l2_loss(l2_scale, variables))
+            l2_loss = float(losses.l2_regularization(l2_scale, variables))
 
             correct_l2_loss = l2_scale * float(tf.reduce_sum([
                 tf.reduce_sum(v**2)/2.0 for v in variables

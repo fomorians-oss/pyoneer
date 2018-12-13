@@ -6,8 +6,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
 
-from pyoneer.losses import get_l2_loss
-
 def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
                    batch_size=None, tol=1e-6, n_epochs_no_change=10):
     """Factorizes input `matrix` of size `[M, N]` into two matrices: `x` of
@@ -59,54 +57,3 @@ def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
     
     return x, y
 
-"""
-
-        optimizer: A `tf.train.Optimizer` instance.
-        step: Optional `Variable` used by `optimizer` to track optimization
-            steps. Incremented by one each update.
-
-    dtype = matrix.dtype
-    x = tfe.Variable(
-        tf.random.uniform(
-            (M, k), minval=-np.sqrt(6/(M+k)), maxval=np.sqrt(6/(M+k))),
-        dtype=dtype,
-        trainable=True,
-    )
-    y = tfe.Variable(
-        tf.random.uniform(
-            (k, N), minval=-np.sqrt(6/(N+k)), maxval=np.sqrt(6/(N+k))),
-        dtype=dtype,
-        trainable=True,
-    )
-
-    data = tf.data.Dataset.from_tensor_slices(matrix)
-    data = data.shuffle(M).batch(batch_size or M)
-    epochs_w_no_change = 0
-    for e in range(max_epochs):
-        epoch_losses = []
-        for batch_targets in data:
-            with tf.GradientTape() as tape:
-                tape.watch(x)
-                tape.watch(y)
-
-                products = x @ y
-                mse_loss = tf.losses.mean_squared_error(
-                    labels=batch_targets, predictions=products
-                )
-                l2_loss = get_l2_loss(l2_scale, [x, y])
-                loss = mse_loss + l2_loss
-            grads = tape.gradient(loss, [x, y])
-            optimizer.apply_gradients(zip(grads, [x, y]), global_step=step)
-            epoch_losses.append(loss)
-        epoch_loss = float(tf.reduce_mean(epoch_losses))
-        if tol is not None:
-            if epoch_loss < tol:
-                epochs_w_no_change += 1
-                if epochs_w_no_change >= n_epochs_no_change:
-                    break
-            else:
-                epochs_w_no_change = 0
-    print(epoch_loss)
-    return tfe.Variable(x, trainable=False), tfe.Variable(y, trainable=False)
-"""
-    

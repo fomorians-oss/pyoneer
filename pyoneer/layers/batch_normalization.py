@@ -19,8 +19,10 @@ class BatchNormBlock(tf.keras.layers.Wrapper):
         batchnorm_kwargs: Keyword arguments to use when initializing the
             `BatchNormalization` layer, passed in as a `dict`.
     """
-    def __init__(self, layer, activation, batchnorm_kwargs=dict(), **kwargs):
+    def __init__(self, layer, activation, batchnorm_kwargs=None, **kwargs):
         super(BatchNormBlock, self).__init__(layer, **kwargs)
+        if batchnorm_kwargs is None:
+            batchnorm_kwargs = {}
         self.bn = tf.keras.layers.BatchNormalization(**batchnorm_kwargs)
         self.activation = keras.activations.get(activation)
 
