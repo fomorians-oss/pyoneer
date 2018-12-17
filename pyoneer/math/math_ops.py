@@ -14,3 +14,12 @@ def safe_divide(x, y, rtol=1e-5, atol=1e-8):
     y = tf.where(
         logical_ops.isclose(y, 0.0, rtol=rtol, atol=atol), tf.ones_like(y), y)
     return x / y
+
+
+def safe_divide_inverse(x, y, rtol=1e-5, atol=1e-8):
+    """
+    Inverse of safe division.
+    """
+    y = tf.where(
+        logical_ops.isclose(y, 0.0, rtol=rtol, atol=atol), tf.ones_like(y), y)
+    return x * y

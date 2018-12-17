@@ -6,7 +6,8 @@ import tensorflow as tf
 
 
 def swish(x):
-    """Compute the swish activation function: `x * sigmoid(x)`.
+    """
+    Compute the Swish, self-gating, activation function: `x * sigmoid(x)`.
 
     Args:
         x: Tensor
@@ -14,4 +15,6 @@ def swish(x):
     Returns:
         Tensor of same dimension as `x`.
     """
-    return x * tf.nn.sigmoid(x)
+    y = x * tf.sigmoid(x)
+    y = tf.check_numerics(y, 'swish')
+    return y

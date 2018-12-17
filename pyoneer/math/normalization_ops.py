@@ -21,7 +21,7 @@ def high_low_loc_and_scale(high, low):
     Args:
         high: scalar or Tensor.
         low: scalar or Tensor.
-    
+
     Returns:
         tuple containing (loc, scale).
     """
@@ -30,15 +30,13 @@ def high_low_loc_and_scale(high, low):
     loc = (high + low) / 2.
     scale = (high - low) / 2.
     scale = array_ops.where(
-        logical_ops.isclose(scale, 0.), 
-        array_ops.ones_like(scale), 
-        scale)
+        logical_ops.isclose(scale, 0.), array_ops.ones_like(scale), scale)
     return loc, scale
 
 
 def normalize(x, loc, scale):
     """Normalizes an input.
-    
+
     Args:
         x: a possibly un-normalized Tensor.
         loc: expected loc.
@@ -53,7 +51,7 @@ def normalize(x, loc, scale):
 
 def denormalize(x, loc, scale):
     """De-normalizes an input.
-    
+
     Args:
         x: a possibly normalized Tensor.
         loc: expected loc.
@@ -66,9 +64,18 @@ def denormalize(x, loc, scale):
     return (x * scale) + loc
 
 
+def rescale(x, oldmin, oldmax, newmin, newmax):
+    """
+    Rescale from [oldmin..oldmax] to [newmin..newmax].
+    """
+    x = (x - oldmin) / (oldmax - oldmin)
+    x = (x * (newmax - newmin)) + newmin
+    return x
+
+
 def weighted_normalize(x, loc, scale, weights):
     """Normalizes an input.
-    
+
     Args:
         x: a possibly un-normalized Tensor.
         loc: expected loc.
@@ -84,7 +91,7 @@ def weighted_normalize(x, loc, scale, weights):
 
 def weighted_denormalize(x, loc, scale, weights):
     """De-normalizes an input.
-    
+
     Args:
         x: a possibly normalized Tensor.
         loc: expected loc.
@@ -100,7 +107,7 @@ def weighted_denormalize(x, loc, scale, weights):
 
 def high_low_normalize(x, high, low):
     """Normalizes an input according to high and low.
-    
+
     Args:
         x: a possibly un-normalized Tensor.
         high: high boundary.
@@ -111,12 +118,12 @@ def high_low_normalize(x, high, low):
     """
     x = ops.convert_to_tensor(x, high.dtype)
     loc, scale = high_low_loc_and_scale(high, low)
-    return denormalize(x, loc, scale)
+    return normalize(x, loc, scale)
 
 
 def weighted_high_low_normalize(x, high, low, weights):
     """Normalizes an input according to high and low.
-    
+
     Args:
         x: a possibly un-normalized Tensor.
         high: high boundary.
@@ -133,7 +140,7 @@ def weighted_high_low_normalize(x, high, low, weights):
 
 def high_low_denormalize(x, high, low):
     """De-normalizes an input according to high and low.
-    
+
     Args:
         x: a possibly normalized Tensor.
         high: high boundary.
@@ -144,12 +151,12 @@ def high_low_denormalize(x, high, low):
     """
     x = ops.convert_to_tensor(x, high.dtype)
     loc, scale = high_low_loc_and_scale(high, low)
-    return normalize(x, loc, scale)
+    return denormalize(x, loc, scale)
 
 
 def weighted_high_low_denormalize(x, high, low, weights):
     """De-normalizes an input according to high and low.
-    
+
     Args:
         x: a possibly normalized Tensor.
         high: high boundary.
@@ -176,8 +183,7 @@ def moments_normalize(x, axes=[0, 1], epsilon=1e-7):
         A normalized Tensor.
     """
     x = ops.convert_to_tensor(x)
-    x_loc, x_variance = nn_impl.moments(
-        x, axes=axes, keep_dims=True)
+    x_loc, x_variance = nn_impl.moments(x, axes=axes, keep_dims=True)
     x_scale = math_ops.sqrt(gen_math_ops.maximum(x_variance, epsilon))
     return normalize(x, x_loc, x_scale)
 
@@ -203,7 +209,7 @@ def weighted_moments_normalize(x, weights, axes=[0, 1], epsilon=1e-7):
 
 def select_weighted_normalize(inputs, loc, scale_, center, scale, weights):
     """Normalizes an input according the center and scale.
-    
+
     Args:
         inputs: a possibly de-normalized Tensor.
         loc: expected loc.
@@ -219,29 +225,28 @@ def select_weighted_normalize(inputs, loc, scale_, center, scale, weights):
     outputs = inputs
     if center and scale:
         outputs = weighted_normalize(inputs, loc, scale_, weights)
-        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+        outputs = gen_array_ops.check_numerics(outputs,
+                                               'select_weighted_normalize')
         return outputs
     if center:
-        outputs = parray_ops.weighted_mask(
-            inputs,
-            inputs - loc, 
-            weights)
-        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+        outputs = parray_ops.weighted_mask(inputs, inputs - loc, weights)
+        outputs = gen_array_ops.check_numerics(outputs,
+                                               'select_weighted_normalize')
         return outputs
     if scale:
         outputs = parray_ops.weighted_mask(
-            inputs,
-            pmath_ops.safe_divide(inputs, scale_), 
-            weights)
-        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+            inputs, pmath_ops.safe_divide(inputs, scale_), weights)
+        outputs = gen_array_ops.check_numerics(outputs,
+                                               'select_weighted_normalize')
         return outputs
-    outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_normalize')
+    outputs = gen_array_ops.check_numerics(outputs,
+                                           'select_weighted_normalize')
     return outputs
 
 
 def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights):
     """De-normalizes an input according the center and scale.
-    
+
     Args:
         inputs: a possibly normalized Tensor.
         loc: expected loc.
@@ -257,23 +262,21 @@ def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights):
     outputs = inputs
     if center and scale:
         outputs = weighted_denormalize(inputs, loc, scale_, weights)
-        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+        outputs = gen_array_ops.check_numerics(outputs,
+                                               'select_weighted_denormalize')
         return outputs
     if center:
-        outputs = parray_ops.weighted_mask(
-            inputs,
-            inputs + loc, 
-            weights)
-        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+        outputs = parray_ops.weighted_mask(inputs, inputs + loc, weights)
+        outputs = gen_array_ops.check_numerics(outputs,
+                                               'select_weighted_denormalize')
         return outputs
     if scale:
         outputs = parray_ops.weighted_mask(
             inputs,
             inputs * array_ops.where(
-                logical_ops.isclose(scale_, 1e-6), 
-                array_ops.ones_like(scale_), 
-                scale_), 
-            weights)
-        outputs = gen_array_ops.check_numerics(outputs, 'select_weighted_denormalize')
+                logical_ops.isclose(scale_, 1e-6), array_ops.ones_like(scale_),
+                scale_), weights)
+        outputs = gen_array_ops.check_numerics(outputs,
+                                               'select_weighted_denormalize')
         return outputs
     return outputs
