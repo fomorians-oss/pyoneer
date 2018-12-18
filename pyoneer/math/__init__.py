@@ -13,8 +13,7 @@ from pyoneer.math.angle_ops import to_cartesian
 from pyoneer.math.angle_ops import to_polar
 
 from pyoneer.math.normalization_ops import high_low_loc_and_scale
-from pyoneer.math.normalization_ops import scale
-from pyoneer.math.normalization_ops import unscale
+from pyoneer.math.normalization_ops import rescale
 from pyoneer.math.normalization_ops import normalize
 from pyoneer.math.normalization_ops import denormalize
 from pyoneer.math.normalization_ops import weighted_normalize
