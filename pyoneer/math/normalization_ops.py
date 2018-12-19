@@ -52,7 +52,7 @@ def normalize(x, loc, scale, weights=1):
 
     x = ops.convert_to_tensor(x, loc.dtype)
     weights = ops.convert_to_tensor(weights, x.dtype)
-    x_normed = math_ops.safe_divide((x - loc), scale)
+    x_normed = pmath_ops.safe_divide((x - loc), scale)
 
     return parray_ops.weighted_mask(x, x_normed, weights)
 
@@ -129,7 +129,7 @@ def moments_normalize(x, weights=1, axes=[0, 1], epsilon=1e-7):
     return normalize(x, x_loc, x_scale, weights)
 
 
-def select_normalize(inputs, loc, scale_, center, scale, weights=1):
+def select_weighted_normalize(inputs, loc, scale_, center, scale, weights=1):
     """Normalizes an input according the center and scale.
     
     Args:
@@ -168,7 +168,7 @@ def select_normalize(inputs, loc, scale_, center, scale, weights=1):
     return outputs
 
 
-def select_denormalize(inputs, loc, scale_, center, scale, weights=1):
+def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights=1):
     """De-normalizes an input according the center and scale.
     
     Args:
