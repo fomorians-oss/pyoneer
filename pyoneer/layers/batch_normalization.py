@@ -7,8 +7,7 @@ import tensorflow as tf
 from tensorflow.python import keras
 
 class BatchNormBlock(tf.keras.layers.Wrapper):
-    """
-    Wrapper around a tf.keras layer that applies batch normalization to its
+    """Wrapper around a tf.keras layer that applies batch normalization to its
     output before applying an activation function.
 
     Args:
@@ -20,8 +19,10 @@ class BatchNormBlock(tf.keras.layers.Wrapper):
         batchnorm_kwargs: Keyword arguments to use when initializing the
             `BatchNormalization` layer, passed in as a `dict`.
     """
-    def __init__(self, layer, activation, batchnorm_kwargs={}, **kwargs):
+    def __init__(self, layer, activation, batchnorm_kwargs=None, **kwargs):
         super(BatchNormBlock, self).__init__(layer, **kwargs)
+        if batchnorm_kwargs is None:
+            batchnorm_kwargs = {}
         self.bn = tf.keras.layers.BatchNormalization(**batchnorm_kwargs)
         self.activation = keras.activations.get(activation)
 
