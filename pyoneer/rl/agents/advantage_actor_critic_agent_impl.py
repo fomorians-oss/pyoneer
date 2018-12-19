@@ -172,7 +172,7 @@ class AdvantageActorCriticAgent(agent_impl.Agent):
 
         advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
         if normalize_advantages:
-            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+            advantages = normalization_ops.normalize_by_moments(advantages, weights)
         advantages = gen_array_ops.check_numerics(advantages, 'advantages')
 
         policy = self.policy(states, training=True)
@@ -320,7 +320,7 @@ class MultiAdvantageActorCriticAgent(AdvantageActorCriticAgent):
 
         advantages = math_ops.add_n(multi_advantages) # A = A[0] + A[1] + ...
         if normalize_advantages:
-            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+            advantages = normalization_ops.normalize_by_moments(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
         policy = self.policy(states, training=True)

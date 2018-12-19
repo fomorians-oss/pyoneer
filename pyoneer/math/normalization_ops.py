@@ -16,7 +16,7 @@ from pyoneer.manip import array_ops as parray_ops
 
 
 
-def high_low_loc_and_scale(high, low):
+def min_max_loc_and_scale(min, max):
     """Compute the loc and scale from high and low bounds.
 
     Args:
@@ -26,10 +26,10 @@ def high_low_loc_and_scale(high, low):
     Returns:
         tuple containing (loc, scale).
     """
-    high = ops.convert_to_tensor(high)
-    low = ops.convert_to_tensor(low)
-    loc = (high + low) / 2.
-    scale = (high - low) / 2.
+    max = ops.convert_to_tensor(max)
+    min = ops.convert_to_tensor(min)
+    loc = (max + min) / 2.
+    scale = (max - min) / 2.
     scale = array_ops.where(
         logical_ops.isclose(scale, 0.), 
         array_ops.ones_like(scale), 
@@ -37,7 +37,7 @@ def high_low_loc_and_scale(high, low):
     return loc, scale
 
 
-def normalize(x, loc, scale, weights=1):
+def normalize(x, loc, scale, weights=1.):
     """Normalizes an input.
     
     Args:
@@ -57,7 +57,7 @@ def normalize(x, loc, scale, weights=1):
     return parray_ops.weighted_mask(x, x_normed, weights)
 
 
-def denormalize(x, loc, scale, weights=1):
+def denormalize(x, loc, scale, weights=1.):
     """De-normalizes an input.
     
     Args:
@@ -75,42 +75,7 @@ def denormalize(x, loc, scale, weights=1):
 
     return parray_ops.weighted_mask(x, x_denormed, weights)
 
-def high_low_normalize(x, high, low, weights=1):
-    """Normalizes an input according to high and low.
-    
-    Args:
-        x: a possibly un-normalized Tensor.
-        high: high boundary.
-        low: low boundary.
-        weights: mask for computing this op.
-
-    Returns:
-        A normalized Tensor.
-    """
-    x = ops.convert_to_tensor(x, high.dtype)
-
-    loc, scale = high_low_loc_and_scale(high, low)
-    return normalize(x, loc, scale, weights)
-
-
-def high_low_denormalize(x, high, low, weights=1):
-    """De-normalizes an input according to high and low.
-    
-    Args:
-        x: a possibly normalized Tensor.
-        high: high boundary.
-        low: low boundary.
-        weights: mask for computing this op.
-
-    Returns:
-        A de-normalized Tensor.
-    """
-    x = ops.convert_to_tensor(x, high.dtype)
-    loc, scale = high_low_loc_and_scale(high, low)
-    return denormalize(x, loc, scale, weights)
-
-
-def weighted_moments_normalize(x, weights=1, axes=[0, 1], epsilon=1e-7):
+def normalize_by_moments(x, weights=1., axes=[0, 1], epsilon=1e-7):
     """Normalizes an input according to the input moments.
 
     Args:
@@ -129,7 +94,7 @@ def weighted_moments_normalize(x, weights=1, axes=[0, 1], epsilon=1e-7):
     return normalize(x, x_loc, x_scale, weights)
 
 
-def select_weighted_normalize(inputs, loc, scale_, center, scale, weights=1):
+def select_weighted_normalize(inputs, loc, scale_, center, scale, weights=1.):
     """Normalizes an input according the center and scale.
     
     Args:
@@ -168,7 +133,7 @@ def select_weighted_normalize(inputs, loc, scale_, center, scale, weights=1):
     return outputs
 
 
-def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights=1):
+def select_weighted_denormalize(inputs, loc, scale_, center, scale, weights=1.):
     """De-normalizes an input according the center and scale.
     
     Args:

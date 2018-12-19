@@ -170,7 +170,7 @@ class ProximalPolicyOptimizationAgent(agent_impl.Agent):
             parray_ops.swap_time_major(lambda_))
 
         advantages = parray_ops.swap_time_major(td_lambda.temporal_differences)
-        advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+        advantages = normalization_ops.normalize_by_moments(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
         ratio = gen_math_ops.exp(

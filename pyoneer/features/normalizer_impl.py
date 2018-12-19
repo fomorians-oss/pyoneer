@@ -212,8 +212,8 @@ class HighLowNormalizer(StatelessNormalizer):
             center: Center using the mean with this flag.
             scale: Scale using the standard deviation with this flag.
         """
-        loc, scale_ = normalization_ops.high_low_loc_and_scale(
-            ops.convert_to_tensor(high, dtype), ops.convert_to_tensor(low, dtype))
+        loc, scale_ = normalization_ops.min_max_loc_and_scale(
+            ops.convert_to_tensor(low, dtype), ops.convert_to_tensor(high, dtype))
         super(HighLowNormalizer, self).__init__(
             loc, scale_, center=center, scale=scale, dtype=dtype)
         

@@ -136,7 +136,7 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
         advantages = (returns - array_ops.squeeze(self.value(states, training=True), axis=-1))
         advantages *= weights
         if normalize_advantages:
-            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+            advantages = normalization_ops.normalize_by_moments(advantages, weights)
 
         policy = self.policy(states, training=True)
         log_prob = policy.log_prob(actions)
