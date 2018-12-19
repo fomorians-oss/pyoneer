@@ -203,17 +203,17 @@ class StatefulNormalizer(keras.Model):
 class HighLowNormalizer(StatelessNormalizer):
     """Infers `loc` and `scale` from `high` and `low` parameters."""
 
-    def __init__(self, high, low, center=True, scale=True, dtype=None):
+    def __init__(self, minval, maxval, center=True, scale=True, dtype=None):
         """Creates a new HighLowNormalizer.
 
         Args:
-            high: the high parameter.
-            low: the low parameter.
+            maxval: the max parameter.
+            minval: the min parameter.
             center: Center using the mean with this flag.
             scale: Scale using the standard deviation with this flag.
         """
         loc, scale_ = normalization_ops.min_max_loc_and_scale(
-            ops.convert_to_tensor(low, dtype), ops.convert_to_tensor(high, dtype))
+            ops.convert_to_tensor(minval, dtype), ops.convert_to_tensor(maxval, dtype))
         super(HighLowNormalizer, self).__init__(
             loc, scale_, center=center, scale=scale, dtype=dtype)
         

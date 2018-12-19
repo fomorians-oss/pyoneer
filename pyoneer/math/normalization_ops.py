@@ -16,7 +16,7 @@ from pyoneer.manip import array_ops as parray_ops
 
 
 
-def min_max_loc_and_scale(min, max):
+def min_max_loc_and_scale(minval, maxval):
     """Compute the loc and scale from high and low bounds.
 
     Args:
@@ -26,10 +26,10 @@ def min_max_loc_and_scale(min, max):
     Returns:
         tuple containing (loc, scale).
     """
-    max = ops.convert_to_tensor(max)
-    min = ops.convert_to_tensor(min)
-    loc = (max + min) / 2.
-    scale = (max - min) / 2.
+    maxval = ops.convert_to_tensor(maxval)
+    minval = ops.convert_to_tensor(minval)
+    loc = (maxval + minval) / 2.
+    scale = (maxval - minval) / 2.
     scale = array_ops.where(
         logical_ops.isclose(scale, 0.), 
         array_ops.ones_like(scale), 
