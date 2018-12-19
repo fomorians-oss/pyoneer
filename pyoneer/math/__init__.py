@@ -16,6 +16,6 @@ from pyoneer.math.normalization_ops import normalize
 from pyoneer.math.normalization_ops import denormalize
 from pyoneer.math.normalization_ops import high_low_normalize
 from pyoneer.math.normalization_ops import high_low_denormalize
-from pyoneer.math.normalization_ops import moments_normalize
+from pyoneer.math.normalization_ops import weighted_moments_normalize
 from pyoneer.math.normalization_ops import select_weighted_normalize
 from pyoneer.math.normalization_ops import select_weighted_denormalize

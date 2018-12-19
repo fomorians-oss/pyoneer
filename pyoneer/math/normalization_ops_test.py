@@ -19,7 +19,7 @@ class NormalizationOpsTest(test.TestCase):
             x = [[[1., 1.], [1., 0.]]]
             weights = [[[1., 1.], [1., 0.]]]
             self.assertAllClose(
-                normalization_ops.moments_normalize(x, weights, axes=[0, 1]), 
+                normalization_ops.weighted_moments_normalize(x, weights, axes=[0, 1]), 
                 array_ops.zeros_like(x))
 
 

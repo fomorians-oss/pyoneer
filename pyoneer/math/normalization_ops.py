@@ -110,7 +110,7 @@ def high_low_denormalize(x, high, low, weights=1):
     return denormalize(x, loc, scale, weights)
 
 
-def moments_normalize(x, weights=1, axes=[0, 1], epsilon=1e-7):
+def weighted_moments_normalize(x, weights=1, axes=[0, 1], epsilon=1e-7):
     """Normalizes an input according to the input moments.
 
     Args:
