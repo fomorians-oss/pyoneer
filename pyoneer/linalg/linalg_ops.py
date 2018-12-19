@@ -40,9 +40,9 @@ def funk_svd_solve(matrix, k, lr, max_epochs=200, l2_scale=0,
     """
     M, N = matrix.shape.as_list()
     x = tf.random.uniform(
-        (M, k), minval=-np.sqrt(6/(M+k)), maxval=np.sqrt(6/(M+k)))
+        (M, k), minval=-np.sqrt(6 / (M+k)), maxval=np.sqrt(6 / (M+k)))
     y = tf.random.uniform(
-        (k, N), minval=-np.sqrt(6/(N+k)), maxval=np.sqrt(6/(N+k)))
+        (k, N), minval=-np.sqrt(6 / (N+k)), maxval=np.sqrt(6 / (N+k)))
 
     for e in range(max_epochs):
         products = x @ y

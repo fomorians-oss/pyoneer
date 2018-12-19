@@ -10,8 +10,7 @@ from tensorflow.python.ops import array_ops, check_ops
 
 def mean_absolute_percentage_error(y_true, y_pred,
                                    sample_weight=None,
-                                   multioutput='raw_values',
-                                   mask_invalid=False):
+                                   multioutput='raw_values'):
     """Calculates the mean absolute percentage error of the predicted values to
     the true values. `y_true`, `y_pred` should be of the same type and shape,
     while `sample_weight` (if given; defaults to `None`) should be either the
@@ -24,29 +23,24 @@ def mean_absolute_percentage_error(y_true, y_pred,
         multioutput: a string. If `'raw_values'`, returns a full set of errors
             in case of multioutput input (equal to shape dimension -1). If
             `'uniform_average'`, returns a uniformly weighted average error.
-        mask_invalid: if `True`, masks any invalid values in `y_pred` and
-            `y_true`, otherwise errors will be thrown if any are present.
-            Defaults to `False`.
     """
     if sample_weight is not None:
-        assert len(sample_weight) == len(y_true) == len(y_pred)
-    if mask_invalid:
-        # Mask invalid values to avoid throwing an error:
-        apes = np.ma.masked_invalid(np.abs((y_pred - y_true) / y_true))
-        output_errors = np.ma.average(apes, axis=0, weights=sample_weight)
+        assert sample_weight.shape[0] == y_true.shape[0] == y_pred.shape[0]
+    apes = tf.abs((y_pred - y_true) / y_true)
+    if sample_weight is not None:
+        sample_weight /= tf.reduce_sum(sample_weight, axis=0, keepdims=True)
+        apes *= sample_weight
+        output_errors = tf.reduce_sum(apes, axis=0)
     else:
-        # Don't mask invalid values so errors are thrown if they're present
-        apes = np.abs((y_pred - y_true) / y_true)
-        output_errors = np.average(apes, axis=0, weights=sample_weight)
+        output_errors = tf.reduce_mean(apes, axis=0)
     if multioutput == 'raw_values':
         return output_errors
     elif multioutput == 'uniform_average':
-        return np.average(output_errors, weights=None)
+        return tf.reduce_mean(output_errors)
 
 def symmetric_mean_absolute_percentage_error(y_true, y_pred,
                                             sample_weight=None,
-                                            multioutput='raw_values',
-                                            mask_invalid=False):
+                                            multioutput='raw_values'):
     """Calculates the symmetric mean absolute percentage error of the predicted
     values to the true values. `y_true`, `y_pred` should be of the same type
     and shape, while `sample_weight` (if given; defaults to `None`) should be
@@ -65,24 +59,21 @@ def symmetric_mean_absolute_percentage_error(y_true, y_pred,
         multioutput: a string. If `'raw_values'`, returns a full set of errors
             in case of multioutput input (equal to shape dimension -1). If
             `'uniform_average'`, returns a uniformly weighted average error.
-        mask_invalid: if `True`, masks any invalid values in `y_pred` and
-            `y_true`, otherwise errors will be thrown if any are present.
-            Defaults to `False`.
     """
     if sample_weight is not None:
-        assert len(sample_weight) == len(y_true) == len(y_pred)
-    sapes = 2 * np.abs(y_pred - y_true) / (np.abs(y_pred) + np.abs(y_true))
-    if mask_invalid:
-        # Mask invalid values to avoid throwing an error:
-        sapes = np.ma.masked_invalid(sapes)
-        output_errors = np.ma.average(sapes, axis=0, weights=sample_weight)
+        assert sample_weight.shape[0] == y_true.shape[0] == y_pred.shape[0]
+    sapes = 2 * tf.abs(y_pred - y_true) / (tf.abs(y_pred) + tf.abs(y_true))
+    if sample_weight is not None:
+        sample_weight /= tf.reduce_sum(sample_weight, axis=0, keepdims=True)
+        sapes *= sample_weight
+        output_errors = tf.reduce_sum(sapes, axis=0)
     else:
-        # Don't mask invalid values so errors are thrown if they're present:
-        output_errors = np.average(sapes, axis=0, weights=sample_weight)
+        output_errors = tf.reduce_mean(sapes, axis=0)
     if multioutput == 'raw_values':
         return output_errors
     elif multioutput == 'uniform_average':
-        return np.average(output_errors, weights = None)
+        return tf.reduce_mean(output_errors)
+
 
 class MeanAbsolutePercentageError(metrics.Mean):
     """Calculates the mean absolute percentage error of predicted values to the
