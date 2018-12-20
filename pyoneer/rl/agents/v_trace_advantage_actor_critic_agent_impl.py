@@ -162,7 +162,7 @@ class VTraceAdvantageActorCriticAgent(agent_impl.Agent):
 
         advantages = parray_ops.swap_time_major(vtrace_returns.pg_advantages)
         if normalize_advantages:
-            advantages = normalization_ops.weighted_moments_normalize(advantages, weights)
+            advantages = normalization_ops.normalize_by_moments(advantages, weights)
         advantages = gen_array_ops.stop_gradient(advantages)
 
         policy_gradient_loss = advantages * -log_prob

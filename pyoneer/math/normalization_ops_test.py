@@ -14,12 +14,12 @@ from pyoneer.math import normalization_ops
 
 class NormalizationOpsTest(test.TestCase):
 
-    def test_weighted_moments_normalize(self):
+    def test_moments_normalize(self):
         with context.eager_mode():
             x = [[[1., 1.], [1., 0.]]]
             weights = [[[1., 1.], [1., 0.]]]
             self.assertAllClose(
-                normalization_ops.weighted_moments_normalize(x, weights, axes=[0, 1]), 
+                normalization_ops.normalize_by_moments(x, weights, axes=[0, 1]), 
                 array_ops.zeros_like(x))
 
 

@@ -113,7 +113,7 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
                      weights, 
                      decay=.999, 
                      entropy_scale=.2, 
-                     normalize_action_values=True,
+                     normalize_advantages=True,
                      **kwargs):
         """Computes the Vanilla PG loss.
 
@@ -133,14 +133,14 @@ class VanillaPolicyGradientAgent(agent_impl.Agent):
         returns = _discounted_returns(rewards, decay, weights)
         self.value.fit(states, returns)
 
-        action_values = (returns - array_ops.squeeze(self.value(states, training=True), axis=-1))
-        action_values *= weights
-        if normalize_action_values:
-            action_values = normalization_ops.weighted_moments_normalize(action_values, weights)
+        advantages = (returns - array_ops.squeeze(self.value(states, training=True), axis=-1))
+        advantages *= weights
+        if normalize_advantages:
+            advantages = normalization_ops.normalize_by_moments(advantages, weights)
 
         policy = self.policy(states, training=True)
         log_prob = policy.log_prob(actions)
-        policy_gradient_loss = gen_array_ops.stop_gradient(action_values) * -log_prob
+        policy_gradient_loss = gen_array_ops.stop_gradient(advantages) * -log_prob
         self.policy_gradient_loss = losses_impl.compute_weighted_loss(
             policy_gradient_loss,
             weights=weights)
