@@ -11,17 +11,20 @@ def policy_ratio_loss(log_probs,
                       epsilon_clipping=0.2,
                       weights=1.0):
 
-    """ Computes the Vanilla PG loss.
+    """Computes the clipped surrogate objective found in [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) based on clipped probability ratios.
+
     Args:
-      log_probs: 
-      log_probs_anchor:
-      advantages:
-      epsilon_clipping:
-      weights:
-    Returns: tensor 
+        log_probs: Log probabilities of taking actions under a policy.
+        log_probs_anchor: Log probabilities of taking actions under a less-frequently updated anchor policy.
+        advantages: Advantage function estimation.
+        epsilon_clipping: Scalar for clipping the policy ratio.
+        weights: Optional tensor for weighting the losses.
+    Returns: 
+        A scalar tensor 
     """
 
     log_probs_anchor = tf.stop_gradient(log_probs_anchor)
+    advantages = tf.stop_gradient(advantages)
 
     ratio = tf.exp(log_probs - log_probs_anchor)
     ratio = tf.check_numerics(ratio, 'ratio')
