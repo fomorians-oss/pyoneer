@@ -2,5 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from pyoneer.losses.losses import l2_regularization
 from pyoneer.losses.policy_ratio_loss_impl import policy_ratio_loss
 from pyoneer.losses.vanilla_policy_gradient_loss_impl import vanilla_policy_gradient_loss
