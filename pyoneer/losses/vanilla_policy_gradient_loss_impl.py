@@ -8,13 +8,15 @@ import tensorflow as tf
 def vanilla_policy_gradient_loss(log_probs,
                                  advantages,
                                  weights=1.0):
-    """ Computes the Vanilla PG loss.
+    """Computes the Vanilla policy gradient loss.
     
     Args:
-      log_probs: Log probabilities of taking actions under a policy.
-      advantages: Advantage function estimation.
-      weights: Optional tensor for weighting the losses.
-    Returns tensor 
+        log_probs: Log probabilities of taking actions under a policy.
+        advantages: Advantage function estimation.
+        weights: Optional tensor for weighting the losses.
+
+    Returns:
+        A scalar tensor 
     """
 
     advantages = tf.stop_gradient(advantages)
