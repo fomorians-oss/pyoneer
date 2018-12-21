@@ -32,26 +32,19 @@ def vanilla_policy_gradient_loss(log_probs,
   
     return loss
 
-def vanilla_policy_entropy_loss(policy, 
-                                entropy_scale,
-                                trainable_variables=None,
-                                weights=1.):
-    """Compute the entropy loss. 
-    
-    Args:
-        policy: a policy distribution
-        entropy_scale: scalar or Tensor of shape `[B, T]` containing the entropy loss scale.
-        weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
+def entropy_loss(entropy, weights=1.):
+    """Computes the entropy loss.
 
-    Returns:
-        The entropy loss Tensor of shape [] 
+    Use this to encourage the policy posterior distribution to expand or collapse during training.
 
+    Args: 
+        entropy: A Tensor of entropies.
+        weights: Tensor of shape `[B, T]` containing weights.
+
+    Returns: Tensor of shape []
     """
-
-    losses = policy_gradient_ops.policy_entropy_loss(
-        policy,
-        trainable_variables,
-        lambda policies: entropy_scale).loss
-    losses = tf.check_numerics(losses, "losses")
-
-    return tf.losses.compute_weighted_loss(losses, weights=weights)
+    entropy_loss = -tf.losses.compute_weighted_loss(
+        losses=entropy,
+        weights=weights)
+    entropy_loss = tf.check_numerics(entropy_loss, "entropy_loss")
+    return entropy_loss

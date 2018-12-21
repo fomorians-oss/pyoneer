@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def policy_ratio_loss(log_probs,
+def proximal_policy_ratio_gradient_loss(log_probs,
                       log_probs_anchor,
                       advantages,
                       epsilon_clipping=0.2,
@@ -44,3 +44,4 @@ def policy_ratio_loss(log_probs,
         losses=surrogate_min, weights=weights)
     loss = tf.check_numerics(loss, 'loss')
     return loss
+
