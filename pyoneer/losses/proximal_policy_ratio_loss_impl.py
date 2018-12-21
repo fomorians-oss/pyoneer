@@ -23,7 +23,6 @@ def proximal_policy_ratio_gradient_loss(log_probs,
     Returns: 
         A scalar tensor 
     """
-
     log_probs_anchor = tf.stop_gradient(log_probs_anchor)
     advantages = tf.stop_gradient(advantages)
 
@@ -44,4 +43,3 @@ def proximal_policy_ratio_gradient_loss(log_probs,
         losses=surrogate_min, weights=weights)
     loss = tf.check_numerics(loss, 'loss')
     return loss
-

@@ -22,7 +22,6 @@ def vanilla_policy_gradient_loss(log_probs,
     """
 
     advantages = tf.stop_gradient(advantages)
-    weights = tf.convert_to_tensor(weights)
 
     losses = -log_probs * advantages
     losses = tf.check_numerics(losses, "loss")
