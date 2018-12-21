@@ -39,7 +39,7 @@ def vanilla_policy_entropy_loss(policy,
     """Compute the entropy loss. 
     
     Args:
-        policy: a subclass of tf.keras.Model 
+        policy: a policy distribution
         entropy_scale: scalar or Tensor of shape `[B, T]` containing the entropy loss scale.
         weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
 

@@ -40,7 +40,7 @@ class LossTest(test.TestCase):
             advantages = array_ops.constant([1.,0.,1.,0.])
 
             loss = vanilla_policy_gradient_loss(log_probs, advantages)
-            expected = tf.losses.compute_weighted_loss(advantages * -log_probs)
+            expected = tf.losses.compute_weighted_loss(-log_probs * advantages)
 
             self.assertAllClose(loss, expected)
 
@@ -55,7 +55,7 @@ class LossTest(test.TestCase):
             loss = vanilla_policy_gradient_loss(log_probs, 
                                                 advantages, 
                                                 weights)
-            expected = tf.losses.compute_weighted_loss(advantages * -log_probs,
+            expected = tf.losses.compute_weighted_loss(-log_probs * advantages,
                                              weights=weights)
 
             self.assertAllClose(loss, expected)
