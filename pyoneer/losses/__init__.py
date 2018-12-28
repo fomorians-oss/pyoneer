@@ -7,3 +7,4 @@ from pyoneer.losses.losses import l2_regularization
 from pyoneer.losses.vanilla_policy_gradient_loss_impl import entropy_loss
 from pyoneer.losses.vanilla_policy_gradient_loss_impl import vanilla_policy_gradient_loss
 from pyoneer.losses.proximal_policy_ratio_loss_impl import proximal_policy_ratio_gradient_loss
+from pyoneer.losses.q_lambda_loss_impl import q_lambda_loss
