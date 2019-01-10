@@ -9,3 +9,5 @@ __pycache__
 .python-version
 Pipfile.lock
 /pyoneer.egg-info
+/build/
+/dist/
