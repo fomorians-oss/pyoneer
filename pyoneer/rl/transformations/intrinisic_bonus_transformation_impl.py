@@ -10,7 +10,7 @@ from pyoneer.rl.transformations import transformation_impl
 
 class IntrinsicBonusTransformation(transformation_impl.Transformation):
     """The Intrinsic Bonus.
-    
+
     This is generic enough to implement algorithms like:
         D. Pathak, et al. "Curiosity-driven Exploration by Self-supervised Prediction"
             https://arxiv.org/abs/1705.05363
@@ -32,11 +32,11 @@ class IntrinsicBonusTransformation(transformation_impl.Transformation):
 
 class IntrinsicMotivationBonusTransformation(IntrinsicBonusTransformation):
     """Implements the Intrinsic Motivation bonus.
-    
+
     References:
         D. Pathak, et al. "Curiosity-driven Exploration by Self-supervised Prediction"
             https://arxiv.org/abs/1705.05363
-    
+
     Example:
         ```
         transformation = pyrl.transformations.IntrinsicMotivationBonusTransformation(
@@ -53,10 +53,18 @@ class IntrinsicMotivationBonusTransformation(IntrinsicBonusTransformation):
         Args:
             forward_model: A forward model that returns a 
                 predition of the next state, `forward_model(states, actions)`
-        """     
-        super(IntrinsicMotivationBonusTransformation, self).__init__(forward_model)
+        """
+        super(IntrinsicMotivationBonusTransformation,
+              self).__init__(forward_model)
 
-    def call(self, states, next_states, actions, rewards, weights, bonus_scale=1., **kwargs):
+    def call(self,
+             states,
+             next_states,
+             actions,
+             rewards,
+             weights,
+             bonus_scale=1.,
+             **kwargs):
         """Transform by adding loss to rewards.
 
         Args:
@@ -76,7 +84,8 @@ class IntrinsicMotivationBonusTransformation(IntrinsicBonusTransformation):
         predictor_states = self.predictor_transformation(states, actions)
         target_states = next_states
         prediction_bonus = tf.reduce_sum(
-            bonus_scale * tf.square(predictor_states - target_states) * tf.expand_dims(weights, axis=-1), 
+            bonus_scale * tf.square(predictor_states - target_states) *
+            tf.expand_dims(weights, axis=-1),
             axis=-1)
         rewards = tf.stack([prediction_bonus, rewards], axis=-1)
         return rewards
@@ -88,7 +97,7 @@ class DistillationBonusTransformation(IntrinsicBonusTransformation):
     References:
         Y. Burda, et al. "Exploration by Random Network Distillation"
             https://arxiv.org/abs/1810.12894
-    
+
     Example:
         ```
         transformation = pyrl.transformations.DistillationBonusTransformation(
@@ -107,7 +116,7 @@ class DistillationBonusTransformation(IntrinsicBonusTransformation):
                 of the target_model returns, `predictor_model(states)`
             target_model: A model that returns anything for the 
                 predictor_model to target, `target_model(states)`
-        """     
+        """
         super(DistillationBonusTransformation, self).__init__(
             predictor_model, target_model)
 
@@ -129,8 +138,9 @@ class DistillationBonusTransformation(IntrinsicBonusTransformation):
         predictor_states = self.predictor_transformation(states)
         target_states = self.target_transformation(states)
         prediction_bonus = tf.reduce_sum(
-            bonus_scale * tf.square(predictor_states - tf.stop_gradient(target_states)) * tf.expand_dims(
-                weights, axis=-1), 
+            bonus_scale *
+            tf.square(predictor_states - tf.stop_gradient(target_states)) *
+            tf.expand_dims(weights, axis=-1),
             axis=-1)
         rewards = tf.stack([prediction_bonus, rewards], axis=-1)
         return rewards

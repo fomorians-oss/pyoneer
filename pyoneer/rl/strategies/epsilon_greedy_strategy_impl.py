@@ -20,31 +20,31 @@ class EpsilonGreedyStrategy(strategy_impl.Strategy):
             ```
             strategy = EpsilonGreedyStrategy(policy, 1.)
             ```
-        
+
         Example: decay ε every 1000 steps with a base of 0.96:
             ```
             global_step = tfe.Variable(0, trainable=False)
             starter_epsilon = 1. # completely random start
             strategy = pyrl.EpsilonGreedyStrategy(
                 tf.train.exponential_decay(
-                    starter_epsilon, 
-                    global_step, 
-                    1000, 
+                    starter_epsilon,
+                    global_step,
+                    1000,
                     0.96))
             ```
 
         Args:
             policy: callable that returns a `tfp.distributions.Distribution`.
-            initial_epsilon: the initial epsilon greedy value. This can be 
-                a callable that takes no arguments and returns the actual 
+            initial_epsilon: the initial epsilon greedy value. This can be
+                a callable that takes no arguments and returns the actual
                 value to use.
         """
         super(EpsilonGreedyStrategy, self).__init__(policy)
-        self._eps = epsilon
+        self.epsilon = epsilon
 
     def call(self, *args, **kwargs):
         policy = self.policy(*args, **kwargs)
-        eps = self._call_if_callable(self._eps)
+        eps = self._call_if_callable(self.epsilon)
         mask_dist = tfp.distributions.Bernoulli(probs=1 - eps, dtype=tf.bool)
         sample_mask = mask_dist.sample(policy.batch_shape)
         sample = policy.sample()

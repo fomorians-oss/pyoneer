@@ -6,14 +6,14 @@ import tensorflow as tf
 
 from copy import deepcopy
 from tensorflow.python.eager import context
-from tensorflow.python.platform import test
 
 from pyoneer.layers.batch_normalization import BatchNormBlock
 
-class BatchNormBlockTest(test.TestCase):
+
+class BatchNormBlockTest(tf.test.TestCase):
     def test_batchnorm_block(self):
         with context.eager_mode():
-            inputs = tf.random.normal(shape=(30,15), mean=5.0, stddev=10.0)
+            inputs = tf.random.normal(shape=(30, 15), mean=5.0, stddev=10.0)
             # Initialize called layers separately
             dense = tf.keras.layers.Dense(units=20, activation=None)
             bn = tf.keras.layers.BatchNormalization()
@@ -30,4 +30,4 @@ class BatchNormBlockTest(test.TestCase):
 
 
 if __name__ == '__main__':
-    test.main()
+    tf.test.main()

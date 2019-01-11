@@ -16,7 +16,7 @@ class Strategy(tf.keras.Model):
 
     def __init__(self, policy):
         """Creates a new Strategy.
-        
+
         Args:
             policy: callable that returns a `tfp.distributions.Distribution`.
         """

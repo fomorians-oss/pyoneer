@@ -42,7 +42,7 @@ class StatelessNormalizer(keras.Model):
     @property
     def shape(self):
         """Returns the event shape of the normalizer.
-        
+
         Returns:
             the TensorShape of the `loc`.
         """
@@ -50,7 +50,7 @@ class StatelessNormalizer(keras.Model):
 
     def call(self, inputs, weights=1., **kwargs):
         """Normalizes an input.
-        
+
         Args:
             inputs: a possibly un-normalized Tensor no less than 2-D.
             weights: mask to apply the operation.
@@ -67,7 +67,7 @@ class StatelessNormalizer(keras.Model):
 
     def inverse(self, inputs, weights=1., **kwargs):
         """Un-normalizes an input.
-        
+
         Args:
             inputs: a possibly normalized Tensor no less than 2-D.
             weights: mask to apply the operation.
@@ -113,7 +113,7 @@ class StatefulNormalizer(keras.Model):
     @property
     def shape(self):
         """Returns the event shape of the normalizer.
-        
+
         Returns:
             the TensorShape of the `loc`.
         """
@@ -125,7 +125,7 @@ class StatefulNormalizer(keras.Model):
 
     def update_loc(self, loc_deltas, inputs, weights=1.):
         """Updates the `loc` variable.
-        
+
         Args:
             loc_deltas: the change in `loc`.
             inputs: a possibly un-normalized Tensor no less than 2-D.
@@ -138,7 +138,7 @@ class StatefulNormalizer(keras.Model):
 
     def call(self, inputs, weights=1., training=False, **kwargs):
         """Normalizes an input.
-        
+
         Args:
             inputs: a possibly un-normalized Tensor no less than 2-D.
             weights: mask to apply the operation.
@@ -163,7 +163,8 @@ class StatefulNormalizer(keras.Model):
             reduce_shape = input_shape[:-loc_dims]
 
             assert input_dims > loc_dims
-            count = math_ops.cast(math_ops.reduce_prod(reduce_shape), dtypes.float32)
+            count = math_ops.cast(
+                math_ops.reduce_prod(reduce_shape), dtypes.float32)
             self.count.assign_add(count)
 
             loc_deltas = math_ops.reduce_sum(
@@ -173,9 +174,8 @@ class StatefulNormalizer(keras.Model):
 
             var_deltas = (inputs - self.loc) * (inputs - new_loc)
             new_var_sum = parray_ops.weighted_mask(
-                self.var_sum,
-                self.var_sum + math_ops.reduce_sum(var_deltas, axis=reduce_axes),
-                weights)
+                self.var_sum, self.var_sum + math_ops.reduce_sum(
+                    var_deltas, axis=reduce_axes), weights)
             self.loc.assign(new_loc)
             self.var_sum.assign(new_var_sum)
 
@@ -184,7 +184,7 @@ class StatefulNormalizer(keras.Model):
 
     def inverse(self, inputs, weights=1., **kwargs):
         """Un-normalizes an input.
-        
+
         Args:
             inputs: a possibly normalized Tensor no less than 2-D.
             weights: mask to apply the operation.
@@ -203,42 +203,47 @@ class StatefulNormalizer(keras.Model):
 class HighLowNormalizer(StatelessNormalizer):
     """Infers `loc` and `scale` from `high` and `low` parameters."""
 
-    def __init__(self, high, low, center=True, scale=True, dtype=None):
+    def __init__(self, minval, maxval, center=True, scale=True, dtype=None):
         """Creates a new HighLowNormalizer.
 
         Args:
-            high: the high parameter.
-            low: the low parameter.
+            maxval: the max parameter.
+            minval: the min parameter.
             center: Center using the mean with this flag.
             scale: Scale using the standard deviation with this flag.
         """
-        loc, scale_ = normalization_ops.high_low_loc_and_scale(
-            ops.convert_to_tensor(high, dtype), ops.convert_to_tensor(low, dtype))
+        loc, scale_ = normalization_ops.min_max_loc_and_scale(
+            ops.convert_to_tensor(minval, dtype),
+            ops.convert_to_tensor(maxval, dtype))
         super(HighLowNormalizer, self).__init__(
             loc, scale_, center=center, scale=scale, dtype=dtype)
-        
+
 
 class SampleAverageNormalizer(StatefulNormalizer):
     """Compute the moving loc and scale according to the input sample count."""
 
     @property
     def scale(self):
-        return math_ops.sqrt(gen_math_ops.maximum(self.var_sum / self.count, 0))
+        return math_ops.sqrt(
+            gen_math_ops.maximum(self.var_sum / self.count, 0))
 
     def update_loc(self, loc_deltas, inputs, weights=1.):
         return array_ops.where(
             self.count > 1.,
             parray_ops.weighted_mask(
-                self.loc, 
-                self.loc + (loc_deltas / self.count), 
-                weights),
+                self.loc, self.loc + (loc_deltas / self.count), weights),
             inputs[tuple([0] * (len(inputs.shape) - 1))])
 
 
 class WeightedAverageNormalizer(StatefulNormalizer):
     """Compute the moving loc and scale according to the supplied alpha scalar."""
 
-    def __init__(self, shape, alpha, center=True, scale=True, dtype=dtypes.float32):
+    def __init__(self,
+                 shape,
+                 alpha,
+                 center=True,
+                 scale=True,
+                 dtype=dtypes.float32):
         """Creates a new WeightedAverageNormalizer.
 
         Args:
@@ -253,10 +258,9 @@ class WeightedAverageNormalizer(StatefulNormalizer):
 
     @property
     def scale(self):
-        return math_ops.sqrt(gen_math_ops.maximum(self.var_sum * self.alpha, 0))
+        return math_ops.sqrt(
+            gen_math_ops.maximum(self.var_sum * self.alpha, 0))
 
     def update_loc(self, loc_deltas, inputs, weights=1.):
         return parray_ops.weighted_mask(
-            self.loc, 
-            self.loc + (loc_deltas * self.alpha), 
-            weights)
+            self.loc, self.loc + (loc_deltas * self.alpha), weights)

@@ -16,13 +16,14 @@ from pyoneer.nn.rnn_cell import fast_weights_impl
 
 
 class FastWeightsTest(test.TestCase):
-
     def test_FastWeightsRNNCell(self):
         with context.eager_mode():
             inputs = array_ops.zeros([1, 2])
-            initial_states = (array_ops.zeros([1, 2]), array_ops.zeros([1, 2, 2]))
+            initial_states = (array_ops.zeros([1, 2]),
+                              array_ops.zeros([1, 2, 2]))
             with variable_scope.variable_scope(
-                    'test_fast_weights_cell', initializer=init_ops.constant_initializer(0.5)):
+                    'test_fast_weights_cell',
+                    initializer=init_ops.constant_initializer(0.5)):
                 cell = fast_weights_impl.FastWeightsRNNCell(2)
                 outputs, states = cell(inputs, initial_states)
             self.assertAllClose(outputs, array_ops.constant([[0., 0.]]))

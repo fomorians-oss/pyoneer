@@ -12,7 +12,7 @@ def layer_norm(inputs, beta, gamma):
         inputs: Tensor no less than 2-D.
         beta: Tensor size 1-D
         gamma: Tensor size 1-D
-    
+
     Returns:
         A layer normalized Tensor the same dimension as `inputs`.
     """

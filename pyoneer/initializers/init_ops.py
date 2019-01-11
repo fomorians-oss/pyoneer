@@ -2,31 +2,39 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import gen_math_ops
-from tensorflow.python.ops import math_ops
+import tensorflow as tf
+import tensorflow_probability as tfp
 
 
-class InverseSoftplusScale(init_ops.Initializer):
-    """Initializer that generates tensors initialized to `inverse_softplus(scale)`."""
+class SoftplusInverse(tf.keras.initializers.Initializer):
+    """
+    Initializer that generates tensors initialized to `log(exp(value) - 1)`.
+    """
 
-    def __init__(self, scale=1., dtype=dtypes.float32):
-        """Creates a new InverseSoftplusScale initializer.
-        
+    def __init__(self, value=1.0, dtype=tf.float32):
+        """
+        Creates a new InverseSoftplusScale initializer.
+
         Args:
-            scale: scale of the initializer output.
+            value: value of the initializer output.
             dtype: dtype of the operation.
         """
-        self.dtype = dtypes.as_dtype(dtype)
-        self.scale = ops.convert_to_tensor(scale)
+        self.value = tf.convert_to_tensor(value)
+        self.dtype = tf.dtypes.as_dtype(dtype)
 
-    def __call__(self, shape, dtype=None, partition_info=None):
+    def __call__(self,
+                 shape,
+                 dtype=None,
+                 partition_info=None,
+                 verify_shape=None):
         if dtype is None:
             dtype = self.dtype
-        return gen_math_ops.log(gen_math_ops.exp(array_ops.ones(shape) * self.scale) - 1.)
+
+        return tf.constant(
+            tfp.distributions.softplus_inverse(self.value),
+            dtype=dtype,
+            shape=shape,
+            verify_shape=verify_shape)
 
     def get_config(self):
-        return {"dtype": self.dtype.name}
+        return {'value': self.value, 'dtype': self.dtype.name}

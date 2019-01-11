@@ -4,15 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+gym = "*"
 tensorflow = "*"
 tensorflow-probability = "*"
-gym = "*"
-trfl = {git = "git://github.com/deepmind/trfl.git"}
-dm-sonnet = "*"
-wrapt = "*"
-
-[dev-packages]
-pylint = "*"
 
 [requires]
 python_version = "3.6.5"
