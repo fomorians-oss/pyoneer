@@ -5,11 +5,33 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def policy_ratio_loss(log_probs,
-                      log_probs_anchor,
-                      advantages,
-                      epsilon_clipping=0.2,
-                      weights=1.0):
+def policy_gradient_loss(log_probs, advantages, weights=1.0):
+    """Computes the Vanilla policy gradient loss.
+
+    Args:
+        log_probs: Log probabilities of taking actions under a policy.
+        advantages: Advantage estimation.
+        weights: Tensor of shape `[B, T]` containing weights (1. or 0.).
+
+    Returns:
+        A scalar tensor.
+    """
+    advantages = tf.stop_gradient(advantages)
+
+    losses = -log_probs * advantages
+    losses = tf.check_numerics(losses, "loss")
+
+    loss = tf.losses.compute_weighted_loss(losses, weights=weights)
+    loss = tf.check_numerics(loss, "losses")
+
+    return loss
+
+
+def clipped_policy_gradient_loss(log_probs,
+                                 log_probs_anchor,
+                                 advantages,
+                                 epsilon_clipping=0.2,
+                                 weights=1.0):
     """
     Computes the clipped surrogate objective found in
     [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) based on

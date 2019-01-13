@@ -5,47 +5,43 @@ from __future__ import print_function
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from pyoneer.rl.strategies import strategy_impl
 
+class EpsilonGreedyStrategy:
+    """
+    Epsilon-greedy strategy. Samples from a policy distribution with
+    `1 - epsilon` probability.
 
-class EpsilonGreedyStrategy(strategy_impl.Strategy):
-    """The basic ε-greedy sampling strategy."""
+    Example:
 
-    def __init__(self, policy, epsilon=1.):
-        """Creates a new EpsilonGreedyStrategy.
+        Decay ε every 1000 steps with a base of 0.96:
 
-        This samples from a policy with `1 - ε` probability.
+        ```
+        global_step = tfe.Variable(0, trainable=False)
+        initial_epsilon = 1.0 # only random samples
+        strategy = EpsilonGreedyStrategy(
+            tf.train.exponential_decay(
+                initial_epsilon,
+                global_step,
+                1000,
+                0.96))
+        ```
 
-        Example:
-            ```
-            strategy = EpsilonGreedyStrategy(policy, 1.)
-            ```
+    Args:
+        policy: callable that returns a `tfp.distributions.Distribution`.
+        epsilon: epsilon value. This can be
+            a callable that takes no arguments and returns the actual
+            value to use.
+    """
 
-        Example: decay ε every 1000 steps with a base of 0.96:
-            ```
-            global_step = tfe.Variable(0, trainable=False)
-            starter_epsilon = 1. # completely random start
-            strategy = pyrl.EpsilonGreedyStrategy(
-                tf.train.exponential_decay(
-                    starter_epsilon,
-                    global_step,
-                    1000,
-                    0.96))
-            ```
-
-        Args:
-            policy: callable that returns a `tfp.distributions.Distribution`.
-            initial_epsilon: the initial epsilon greedy value. This can be
-                a callable that takes no arguments and returns the actual
-                value to use.
-        """
-        super(EpsilonGreedyStrategy, self).__init__(policy)
+    def __init__(self, policy, epsilon=1.0):
+        self.policy = policy
         self.epsilon = epsilon
 
-    def call(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         policy = self.policy(*args, **kwargs)
-        eps = self._call_if_callable(self.epsilon)
-        mask_dist = tfp.distributions.Bernoulli(probs=1 - eps, dtype=tf.bool)
+        epsilon = self.epsilon() if callable(self.epsilon) else self.epsilon
+        mask_dist = tfp.distributions.Bernoulli(
+            probs=1 - epsilon, dtype=tf.bool)
         sample_mask = mask_dist.sample(policy.batch_shape)
         sample = policy.sample()
         mode = policy.mode()

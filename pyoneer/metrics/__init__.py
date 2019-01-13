@@ -4,10 +4,3 @@ from __future__ import print_function
 
 from pyoneer.metrics.metrics import MeanAbsolutePercentageError
 from pyoneer.metrics.metrics import SymmetricMeanAbsolutePercentageError
-from pyoneer.metrics.metrics import mean_absolute_percentage_error
-from pyoneer.metrics.metrics import symmetric_mean_absolute_percentage_error
-
-MAPE = MeanAbsolutePercentageError
-SMAPE = SymmetricMeanAbsolutePercentageError
-mape = mean_absolute_percentage_error
-smape = symmetric_mean_absolute_percentage_error

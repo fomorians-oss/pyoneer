@@ -2,10 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from pyoneer.rl.strategies import strategy_impl
 
-
-class SampleStrategy(strategy_impl.Strategy):
+class SampleStrategy:
     """
     Returns random samples from the policy distribution.
 
@@ -13,6 +11,9 @@ class SampleStrategy(strategy_impl.Strategy):
         policy: callable that returns a `tfp.distributions.Distribution`.
     """
 
-    def call(self, *args, **kwargs):
+    def __init__(self, policy):
+        self.policy = policy
+
+    def __call__(self, *args, **kwargs):
         policy = self.policy(*args, **kwargs)
         return policy.sample()

@@ -63,7 +63,6 @@ class OneHotEncoder(tf.keras.layers.Layer):
         Returns:
             The one-hot encoded inputs.
         """
-        inputs = tf.to_int64(inputs)
         outputs = tf.one_hot(inputs, self.depth)
         outputs = tf.check_numerics(outputs, 'outputs')
         return outputs

@@ -15,7 +15,7 @@ class InitializersTest(test.TestCase):
         with context.eager_mode():
             initializer = SoftplusInverse(1.0)
             output = initializer(shape=[3, 1])
-            expected = tf.constant([0.25], dtype=tf.float32)
+            expected = tf.constant([[0.25, 0.25, 0.25]], dtype=tf.float32)
             self.assertAllEqual(output, expected)
 
 

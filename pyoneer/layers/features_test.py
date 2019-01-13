@@ -15,7 +15,7 @@ from pyoneer.layers.features_impl import (Normalizer, OneHotEncoder,
                                           ListFeaturizer, VecFeaturizer)
 
 
-class FeatureLayersTest(test.TestCase):
+class FeaturesTest(test.TestCase):
     def test_normalizer_layer(self):
         with context.eager_mode():
             layer = Normalizer(loc=0.5, scale=2.0)
