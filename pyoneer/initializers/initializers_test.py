@@ -7,15 +7,16 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
-from pyoneer.initializers.init_ops import SoftplusInverse
+from pyoneer.initializers.initializers_impl import SoftplusInverse
 
 
 class InitializersTest(test.TestCase):
     def test_softplus_inverse(self):
         with context.eager_mode():
             initializer = SoftplusInverse(1.0)
-            output = initializer(shape=[3, 1])
-            expected = tf.constant([[0.25, 0.25, 0.25]], dtype=tf.float32)
+            output = initializer(shape=[1, 3])
+            expected = tf.constant(
+                [[0.54132485, 0.54132485, 0.54132485]], dtype=tf.float32)
             self.assertAllEqual(output, expected)
 
 

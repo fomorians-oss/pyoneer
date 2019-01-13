@@ -8,7 +8,7 @@ import tensorflow.contrib.eager as tfe
 from collections import OrderedDict
 
 from pyoneer.math import angle_ops
-from pyoneer.math import normalization_ops
+from pyoneer.math import math_ops
 
 
 class Normalizer(tf.keras.layers.Layer):
@@ -37,7 +37,7 @@ class Normalizer(tf.keras.layers.Layer):
             The normalized input tensor.
         """
         inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
-        outputs = normalization_ops.normalize(inputs, self.loc, self.scale)
+        outputs = math_ops.normalize(inputs, self.loc, self.scale)
         return outputs
 
 
@@ -63,6 +63,8 @@ class OneHotEncoder(tf.keras.layers.Layer):
         Returns:
             The one-hot encoded inputs.
         """
+        inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
+        inputs = tf.cast(inputs, tf.int64)
         outputs = tf.one_hot(inputs, self.depth)
         outputs = tf.check_numerics(outputs, 'outputs')
         return outputs

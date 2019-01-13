@@ -1,266 +1,228 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
 
-from tensorflow.python import keras
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import dtypes
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import gen_array_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import gen_math_ops
-from tensorflow.python.ops.resource_variable_ops import ResourceVariable as Variable
+# import tensorflow as tf
+# import tensorflow.contrib.eager as tfe
 
-from pyoneer.math import logical_ops
-from pyoneer.math import normalization_ops
+# class StatelessNormalizer(tf.keras.Model):
+#     """
+#     Normalizes the inputs by subtracting a mean and dividing by a standard
+#     deviation.
 
-from pyoneer.manip import array_ops as parray_ops
+#     `StatelessNormalizer` treats the `loc` and `scale` as constant parameters.
 
+#     Args:
+#         loc: Mean to use for normalization.
+#         scale: Standard deviation to use for normalization.
+#         should_center: Center by subtracting the mean.
+#         should_scale: Scale by the standard deviation.
+#     """
 
-class StatelessNormalizer(keras.Model):
-    """
-    Normalizes the inputs by subtracting a mean and dividing by a standard deviation. 
+#     def __init__(self,
+#                  loc,
+#                  scale,
+#                  should_center=True,
+#                  should_scale=True,
+#                  dtype=None,
+#                  **kwargs):
+#         super(StatelessNormalizer, self).__init__(**kwargs)
+#         self.loc = tf.convert_to_tensor(loc, dtype=dtype)
+#         self.scale = tf.convert_to_tensor(scale, dtype=dtype)
+#         self.should_center = should_center
+#         self.should_scale = should_scale
 
-    `StatelessNormalizer` treats the `loc` and `scale` as constant parameters.
-    """
+#     def call(self, inputs, weights=1.0):
+#         """
+#         Normalizes inputs.
 
-    def __init__(self, loc, scale_, center=True, scale=True, dtype=None):
-        """Creates a new StatelessNormalizer model.
+#         Args:
+#             inputs: A tensor to normalize.
+#             weights: Optional weights for the normalization.
+#             **kwargs: unused keyword arguments.
 
-        Args:
-            loc: The mean to use for normalization.
-            scale_: The standard deviation to use for normalization.
-            center: Center using the mean with this flag.
-            scale: Scale using the standard deviation with this flag.
-        """
-        super(StatelessNormalizer, self).__init__()
-        self.loc = ops.convert_to_tensor(loc, dtype=dtype)
-        self.scale = ops.convert_to_tensor(scale_, dtype=dtype)
-        self.center = center
-        self.scale_ = scale
+#         Returns:
+#             A normalized Tensor.
+#         """
+#         inputs = tf.convert_to_tensor(inputs)
+#         if self.should_center:
+#             inputs = inputs - self.loc
+#         if self.should_scale:
+#             inputs = inputs / self.scale
+#         inputs = inputs * weights
+#         return inputs
 
-    @property
-    def shape(self):
-        """Returns the event shape of the normalizer.
+#     def inverse(self, inputs, weights=1.0):
+#         """
+#         Denormalizes inputs.
 
-        Returns:
-            the TensorShape of the `loc`.
-        """
-        return self.loc.shape
+#         Args:
+#             inputs: a possibly normalized Tensor no less than 2-D.
+#             weights: mask to apply the operation.
+#             **kwargs: unused keyword arguments.
 
-    def call(self, inputs, weights=1., **kwargs):
-        """Normalizes an input.
+#         Returns:
+#             A denormalized Tensor.
+#         """
+#         inputs = tf.convert_to_tensor(inputs)
+#         if self.should_scale:
+#             inputs = inputs * self.scale
+#         if self.should_center:
+#             inputs = inputs + self.loc
+#         inputs = inputs * weights
+#         return inputs
 
-        Args:
-            inputs: a possibly un-normalized Tensor no less than 2-D.
-            weights: mask to apply the operation.
-            **kwargs: unused keyword arguments.
+# class StatefulNormalizer(tf.keras.Model):
+#     """
+#     Normalizes the inputs by subtracting a mean and dividing by a standard
+#     deviation.
 
-        Returns:
-            A normalized Tensor.
-        """
-        del kwargs  # unused
-        inputs = ops.convert_to_tensor(inputs)
-        inputs = math_ops.cast(inputs, self.loc.dtype)
-        return normalization_ops.select_weighted_normalize(
-            inputs, self.loc, self.scale, self.center, self.scale_, weights)
+#     `StatefulNormalizer` treats the `loc` and `scale` as variable parameters.
+#     A subclass must implement the property getter `scale` and method
+#     `update_loc`.
+#     """
 
-    def inverse(self, inputs, weights=1., **kwargs):
-        """Un-normalizes an input.
+#     def __init__(self, shape, center=True, scale=True, dtype=tf.float32):
+#         """Creates a new StatefulNormalizer.
 
-        Args:
-            inputs: a possibly normalized Tensor no less than 2-D.
-            weights: mask to apply the operation.
-            **kwargs: unused keyword arguments.
+#         Args:
+#             shape: The shape of the mean/standard deviation to use for
+#                 normalization.
+#             center: Center using the mean with this flag.
+#             scale: Scale using the standard deviation with this flag.
+#         """
+#         super(StatefulNormalizer, self).__init__()
 
-        Returns:
-            An un-normalized Tensor.
-        """
-        del kwargs  # unused
-        inputs = ops.convert_to_tensor(inputs)
-        inputs = math_ops.cast(inputs, self.loc.dtype)
-        return normalization_ops.select_weighted_denormalize(
-            inputs, self.loc, self.scale, self.center, self.scale_, weights)
+#         self.center = center
+#         self.scale_ = scale
 
+#         self.count = tfe.Variable(0, dtype=tf.int64, trainable=False)
+#         self.loc = tfe.Variable(
+#             tf.zeros(shape=shape, dtype=dtype), trainable=False)
+#         self.var_sum = tfe.Variable(
+#             tf.zeros(shape=shape, dtype=dtype), trainable=False)
 
-class StatefulNormalizer(keras.Model):
-    """
-    Normalizes the inputs by subtracting a mean and dividing by a standard deviation. 
+#     @property
+#     def shape(self):
+#         """Returns the event shape of the normalizer.
 
-    `StatefulNormalizer` treats the `loc` and `scale` as variable parameters. 
-    A subclass must implement the property getter `scale` and method `update_loc`.
-    """
+#         Returns:
+#             the TensorShape of the `loc`.
+#         """
+#         return self.loc.shape
 
-    def __init__(self, shape, center=True, scale=True, dtype=dtypes.float32):
-        """Creates a new StatefulNormalizer.
+#     @property
+#     def scale(self):
+#         raise NotImplementedError()
 
-        Args:
-            shape: The shape of the mean/standard deviation to use for normalization.
-            center: Center using the mean with this flag.
-            scale: Scale using the standard deviation with this flag.
-        """
-        super(StatefulNormalizer, self).__init__()
+#     def update_loc(self, loc_deltas, inputs, weights=1.0):
+#         """Updates the `loc` variable.
 
-        self.center = center
-        self.scale_ = scale
+#         Args:
+#             loc_deltas: the change in `loc`.
+#             inputs: a possibly un-normalized Tensor no less than 2-D.
+#             weights: mask to apply the operation.
 
-        self.count = Variable(0., dtype=dtype, trainable=False)
-        self.loc = Variable(
-            array_ops.zeros(shape=shape, dtype=dtype), trainable=False)
-        self.var_sum = Variable(
-            array_ops.zeros(shape=shape, dtype=dtype), trainable=False)
+#         Returns:
+#             A new `loc`.
+#         """
+#         raise NotImplementedError()
 
-    @property
-    def shape(self):
-        """Returns the event shape of the normalizer.
+#     def call(self, inputs, weights=1.0, training=False):
+#         """Normalizes an input.
 
-        Returns:
-            the TensorShape of the `loc`.
-        """
-        return self.loc.shape
+#         Args:
+#             inputs: a possibly un-normalized Tensor no less than 2-D.
+#             weights: mask to apply the operation.
+#             training: bool used for determining if the loc and scale should
+#                 be updated.
+#             **kwargs: unused keyword arguments.
 
-    @property
-    def scale(self):
-        raise NotImplementedError()
+#         Returns:
+#             A normalized Tensor.
+#         """
+#         inputs = tf.convert_to_tensor(inputs)
+#         inputs = tf.cast(inputs, self.loc.dtype)
 
-    def update_loc(self, loc_deltas, inputs, weights=1.):
-        """Updates the `loc` variable.
+#         if training:
+#             input_shape = inputs.get_shape().as_list()
+#             input_dims = len(input_shape)
+#             loc_shape = self.loc.get_shape().as_list()
+#             loc_dims = len(loc_shape)
 
-        Args:
-            loc_deltas: the change in `loc`.
-            inputs: a possibly un-normalized Tensor no less than 2-D.
-            weights: mask to apply the operation.
+#             reduce_axes = list(range(input_dims - loc_dims + 1))
+#             reduce_shape = input_shape[:-loc_dims]
 
-        Returns:
-            A new `loc`.
-        """
-        raise NotImplementedError()
+#             assert input_dims > loc_dims
+#             count = tf.cast(tf.reduce_prod(reduce_shape), tf.float32)
+#             self.count.assign_add(count)
 
-    def call(self, inputs, weights=1., training=False, **kwargs):
-        """Normalizes an input.
+#             loc_deltas = tf.reduce_sum(inputs - self.loc, axis=reduce_axes)
 
-        Args:
-            inputs: a possibly un-normalized Tensor no less than 2-D.
-            weights: mask to apply the operation.
-            training: bool used for determining if the loc and scale should 
-                be updated.
-            **kwargs: unused keyword arguments.
+#             new_loc = self.update_loc(loc_deltas, inputs, weights)
 
-        Returns:
-            A normalized Tensor.
-        """
-        del kwargs
-        inputs = ops.convert_to_tensor(inputs)
-        inputs = math_ops.cast(inputs, self.loc.dtype)
+#             var_deltas = (inputs - self.loc) * (inputs - new_loc)
+#             new_var_sum = parray_ops.weighted_mask(
+#                 self.var_sum,
+#                 self.var_sum + tf.reduce_sum(var_deltas, axis=reduce_axes),
+#                 weights)
+#             self.loc.assign(new_loc)
+#             self.var_sum.assign(new_var_sum)
 
-        if training:
-            input_shape = inputs.get_shape().as_list()
-            input_dims = len(input_shape)
-            loc_shape = self.loc.get_shape().as_list()
-            loc_dims = len(loc_shape)
+#         return normalization_ops.select_weighted_normalize(
+#             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
-            reduce_axes = list(range(input_dims - loc_dims + 1))
-            reduce_shape = input_shape[:-loc_dims]
+#     def inverse(self, inputs, weights=1.0):
+#         """Un-normalizes an input.
 
-            assert input_dims > loc_dims
-            count = math_ops.cast(
-                math_ops.reduce_prod(reduce_shape), dtypes.float32)
-            self.count.assign_add(count)
+#         Args:
+#             inputs: a possibly normalized Tensor no less than 2-D.
+#             weights: mask to apply the operation.
+#             **kwargs: unused keyword arguments.
 
-            loc_deltas = math_ops.reduce_sum(
-                inputs - self.loc, axis=reduce_axes)
+#         Returns:
+#             An un-normalized Tensor.
+#         """
+#         inputs = tf.convert_to_tensor(inputs)
+#         inputs = tf.cast(inputs, self.loc.dtype)
+#         return normalization_ops.select_weighted_denormalize(
+#             inputs, self.loc, self.scale, self.center, self.scale_, weights)
 
-            new_loc = self.update_loc(loc_deltas, inputs, weights)
+# class SampleAverageNormalizer(StatefulNormalizer):
+#     """Compute the moving loc and scale according to the input sample count."""
 
-            var_deltas = (inputs - self.loc) * (inputs - new_loc)
-            new_var_sum = parray_ops.weighted_mask(
-                self.var_sum, self.var_sum + math_ops.reduce_sum(
-                    var_deltas, axis=reduce_axes), weights)
-            self.loc.assign(new_loc)
-            self.var_sum.assign(new_var_sum)
+#     @property
+#     def scale(self):
+#         return tf.sqrt(tf.maximum(self.var_sum / self.count, 0))
 
-        return normalization_ops.select_weighted_normalize(
-            inputs, self.loc, self.scale, self.center, self.scale_, weights)
+#     def update_loc(self, loc_deltas, inputs, weights=1.0):
+#         return tf.where(
+#             self.count > 1,
+#             parray_ops.weighted_mask(
+#                 self.loc, self.loc + (loc_deltas / self.count), weights),
+#             inputs[tuple([0] * (len(inputs.shape) - 1))])
 
-    def inverse(self, inputs, weights=1., **kwargs):
-        """Un-normalizes an input.
+# class WeightedAverageNormalizer(StatefulNormalizer):
+#     """Compute the moving loc and scale according to the supplied alpha scalar."""
 
-        Args:
-            inputs: a possibly normalized Tensor no less than 2-D.
-            weights: mask to apply the operation.
-            **kwargs: unused keyword arguments.
+#     def __init__(self, shape, alpha, center=True, scale=True,
+#                  dtype=tf.float32):
+#         """Creates a new WeightedAverageNormalizer.
 
-        Returns:
-            An un-normalized Tensor.
-        """
-        del kwargs
-        inputs = ops.convert_to_tensor(inputs)
-        inputs = math_ops.cast(inputs, self.loc.dtype)
-        return normalization_ops.select_weighted_denormalize(
-            inputs, self.loc, self.scale, self.center, self.scale_, weights)
+#         Args:
+#             shape: The shape of the mean/standard deviation to use for normalization.
+#             alpha: the scalar used to scale the mean updates instead of a sample average.
+#             center: Center using the mean with this flag.
+#             scale: Scale using the standard deviation with this flag.
+#         """
+#         super(WeightedAverageNormalizer, self).__init__(
+#             shape, center=center, scale=scale, dtype=dtype)
+#         self.alpha = alpha
 
+#     @property
+#     def scale(self):
+#         return tf.sqrt(tf.maximum(self.var_sum * self.alpha, 0))
 
-class HighLowNormalizer(StatelessNormalizer):
-    """Infers `loc` and `scale` from `high` and `low` parameters."""
-
-    def __init__(self, minval, maxval, center=True, scale=True, dtype=None):
-        """Creates a new HighLowNormalizer.
-
-        Args:
-            maxval: the max parameter.
-            minval: the min parameter.
-            center: Center using the mean with this flag.
-            scale: Scale using the standard deviation with this flag.
-        """
-        loc, scale_ = normalization_ops.min_max_loc_and_scale(
-            ops.convert_to_tensor(minval, dtype),
-            ops.convert_to_tensor(maxval, dtype))
-        super(HighLowNormalizer, self).__init__(
-            loc, scale_, center=center, scale=scale, dtype=dtype)
-
-
-class SampleAverageNormalizer(StatefulNormalizer):
-    """Compute the moving loc and scale according to the input sample count."""
-
-    @property
-    def scale(self):
-        return math_ops.sqrt(
-            gen_math_ops.maximum(self.var_sum / self.count, 0))
-
-    def update_loc(self, loc_deltas, inputs, weights=1.):
-        return array_ops.where(
-            self.count > 1.,
-            parray_ops.weighted_mask(
-                self.loc, self.loc + (loc_deltas / self.count), weights),
-            inputs[tuple([0] * (len(inputs.shape) - 1))])
-
-
-class WeightedAverageNormalizer(StatefulNormalizer):
-    """Compute the moving loc and scale according to the supplied alpha scalar."""
-
-    def __init__(self,
-                 shape,
-                 alpha,
-                 center=True,
-                 scale=True,
-                 dtype=dtypes.float32):
-        """Creates a new WeightedAverageNormalizer.
-
-        Args:
-            shape: The shape of the mean/standard deviation to use for normalization.
-            alpha: the scalar used to scale the mean updates instead of a sample average.
-            center: Center using the mean with this flag.
-            scale: Scale using the standard deviation with this flag.
-        """
-        super(WeightedAverageNormalizer, self).__init__(
-            shape, center=center, scale=scale, dtype=dtype)
-        self.alpha = alpha
-
-    @property
-    def scale(self):
-        return math_ops.sqrt(
-            gen_math_ops.maximum(self.var_sum * self.alpha, 0))
-
-    def update_loc(self, loc_deltas, inputs, weights=1.):
-        return parray_ops.weighted_mask(
-            self.loc, self.loc + (loc_deltas * self.alpha), weights)
+#     def update_loc(self, loc_deltas, inputs, weights=1.0):
+#         return parray_ops.weighted_mask(
+#             self.loc, self.loc + (loc_deltas * self.alpha), weights)

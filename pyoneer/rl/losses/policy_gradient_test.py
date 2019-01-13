@@ -7,8 +7,8 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
-from pyoneer.losses.policy_gradient_impl import (policy_gradient_loss,
-                                                 clipped_policy_gradient_loss)
+from pyoneer.rl.losses.policy_gradient_impl import (
+    policy_gradient_loss, clipped_policy_gradient_loss)
 
 
 class PolicyGradientTest(test.TestCase):

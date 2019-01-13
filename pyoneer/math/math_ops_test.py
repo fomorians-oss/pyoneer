@@ -13,7 +13,11 @@ from pyoneer.math import math_ops
 class MathOpsTest(test.TestCase):
     def test_loc_scale_from_low_high(self):
         with context.eager_mode():
-            self.assertAllEqual(False, True)
+            loc, scale = math_ops.loc_scale_from_range(-1, 1)
+            expected_loc = 0
+            expected_scale = 1
+            self.assertAllEqual(loc, expected_loc)
+            self.assertAllEqual(scale, expected_scale)
 
     def test_safe_divide(self):
         with context.eager_mode():
@@ -25,26 +29,28 @@ class MathOpsTest(test.TestCase):
 
     def test_rescale(self):
         with context.eager_mode():
-            x = tf.ones(shape=[7], dtype=tf.float32)
-            y = tf.constant([-1.0, -0.5, -0.2, 0.0, +0.2, +0.5, +1.0])
-            actual = math_ops.rescale(x, y)
-            expected = tf.constant([0.0, -2.0, -5.0, 1.0, +5.0, +2.0, +1.0])
+            x = tf.constant([0.5, 0.5, 0.5])
+            actual = math_ops.rescale(x, 0.0, 1.0, -1.0, 1.0)
+            expected = tf.zeros(shape=[3], dtype=tf.float32)
             self.assertAllEqual(actual, expected)
 
     def test_normalize(self):
         with context.eager_mode():
-            x = [[[1., 1.], [1., 0.]]]
-            weights = [[[1., 1.], [1., 0.]]]
-            self.assertAllClose(
-                math_ops.normalize(x, weights, axes=[0, 1]), tf.zeros_like(x))
+            x = tf.constant([-1.0, 0.0, 1.0, 0.0])
+            weights = tf.constant([1.0, 1.0, 1.0, 0.0])
+            actual = math_ops.normalize(
+                x, loc=-1.0, scale=2.0, weights=weights)
+            expected = tf.constant([0.0, 0.5, 1.0, 0.0])
+            self.assertAllClose(actual, expected)
 
     def test_denormalize(self):
         with context.eager_mode():
-            x = [[[1., 1.], [1., 0.]]]
-            weights = [[[1., 1.], [1., 0.]]]
-            self.assertAllClose(
-                math_ops.denormalize(x, weights, axes=[0, 1]),
-                tf.zeros_like(x))
+            x = tf.constant([0.0, 0.5, 1.0, 0.0])
+            weights = tf.constant([1.0, 1.0, 1.0, 0.0])
+            actual = math_ops.denormalize(
+                x, loc=-1.0, scale=2.0, weights=weights)
+            expected = tf.constant([-1.0, 0.0, 1.0, 0.0])
+            self.assertAllClose(actual, expected)
 
 
 if __name__ == '__main__':
