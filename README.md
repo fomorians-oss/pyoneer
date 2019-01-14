@@ -51,7 +51,7 @@ In general the API tries to adhere to TensorFlow 2.0's API.
 
 Utilities for reinforcement learning.
 
-#### envs ([`pynr.rl.envs`](pyoneer/rl/envs))
+#### Environments ([`pynr.rl.envs`](pyoneer/rl/envs))
 
 - `pynr.rl.envs.BatchEnv`
 - `pynr.rl.envs.ProcessEnv`
@@ -60,6 +60,11 @@ Utilities for reinforcement learning.
 
 - `pynr.rl.losses.policy_gradient_loss`
 - `pynr.rl.losses.clipped_policy_gradient_loss`
+
+#### Targets ([`pynr.rl.targets`](pyoneer/rl/targets))
+
+- `pynr.rl.targets.discounted_rewards`
+- `pynr.rl.targets.generalized_advantages`
 
 #### Strategies ([`pynr.rl.strategies`](pyoneer/rl/strategies))
 

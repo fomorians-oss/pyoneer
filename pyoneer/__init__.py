@@ -9,3 +9,4 @@ from pyoneer import metrics
 from pyoneer import nn
 from pyoneer import rl
 from pyoneer import training
+from pyoneer.indexing_ops import batched_index
