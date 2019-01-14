@@ -45,6 +45,7 @@ In general the API tries to adhere to TensorFlow 2.0's API.
 - `pynr.nn.swish`
 - `pynr.nn.moments_from_range`
 - `pynr.nn.StreamingMoments`
+- `pynr.nn.ExponentialMovingMoments`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 
@@ -69,6 +70,7 @@ Utilities for reinforcement learning.
 ### Training ([`pynr.training`](pyoneer/training))
 
 - `pynr.training.CyclicSchedule`
+- `pynr.training.update_target_variables`
 
 ## Installation
 
