@@ -11,14 +11,6 @@ from pyoneer.math import math_ops
 
 
 class MathOpsTest(test.TestCase):
-    def test_loc_scale_from_low_high(self):
-        with context.eager_mode():
-            loc, scale = math_ops.loc_scale_from_range(-1, 1)
-            expected_loc = 0
-            expected_scale = 1
-            self.assertAllEqual(loc, expected_loc)
-            self.assertAllEqual(scale, expected_scale)
-
     def test_safe_divide(self):
         with context.eager_mode():
             x = tf.ones(shape=[7], dtype=tf.float32)

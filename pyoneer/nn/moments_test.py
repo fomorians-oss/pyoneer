@@ -11,6 +11,15 @@ from pyoneer.nn import moments_impl
 
 
 class MomentsTest(test.TestCase):
+    def test_moments_from_range(self):
+        with context.eager_mode():
+            mean, variance = moments_impl.moments_from_range(
+                minval=tf.constant([-2.0]), maxval=tf.constant([2.0]))
+            expected_mean = tf.constant([0.0])
+            expected_variance = tf.constant([4.0])
+            self.assertAllEqual(mean, expected_mean)
+            self.assertAllEqual(variance, expected_variance)
+
     def test_streaming_moments(self):
         with context.eager_mode():
             moments = moments_impl.StreamingMoments(shape=[3])

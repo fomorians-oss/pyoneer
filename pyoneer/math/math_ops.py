@@ -7,22 +7,6 @@ import tensorflow as tf
 from pyoneer.math import logical_ops
 
 
-def loc_scale_from_range(minval, maxval):
-    """
-    Compute element-wise loc and scale from min and max values.
-
-    Args:
-        minval: A tensor of minimum values.
-        maxval: A tensor of maximum values.
-
-    Returns:
-        Tuple of (loc, scale).
-    """
-    loc = (maxval + minval) / 2
-    scale = (maxval - minval) / 2
-    return loc, scale
-
-
 def safe_divide(x, y, rtol=1e-5, atol=1e-8):
     """
     Safely divide x by y while avoiding dividing by zero.

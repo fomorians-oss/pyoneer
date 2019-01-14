@@ -6,7 +6,8 @@ import tensorflow as tf
 
 
 def policy_gradient_loss(log_probs, advantages, weights=1.0):
-    """Computes the Vanilla policy gradient loss.
+    """
+    Computes the Vanilla policy gradient loss.
 
     Args:
         log_probs: Log probabilities of taking actions under a policy.

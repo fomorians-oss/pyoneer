@@ -8,6 +8,22 @@ import tensorflow.contrib.eager as tfe
 from pyoneer.math import math_ops
 
 
+def moments_from_range(minval, maxval):
+    """
+    Compute element-wise mean and variance from min and max values.
+
+    Args:
+        minval: A tensor of minimum values.
+        maxval: A tensor of maximum values.
+
+    Returns:
+        Tuple of (mean, variance).
+    """
+    mean = (maxval + minval) / 2
+    variance = tf.square((maxval - minval) / 2)
+    return mean, variance
+
+
 class StreamingMoments(tf.keras.Model):
     def __init__(self, shape, dtype=tf.float32, **kwargs):
         super(StreamingMoments, self).__init__(**kwargs)
@@ -53,9 +69,6 @@ class StreamingMoments(tf.keras.Model):
                 (inputs - self.mean) * (inputs - new_mean) * weights,
                 axis=axis)
             new_var_sum = self.var_sum + var_delta
-
-            import ipdb
-            ipdb.set_trace()
 
             self.count.assign(new_count)
             self.mean.assign(new_mean)

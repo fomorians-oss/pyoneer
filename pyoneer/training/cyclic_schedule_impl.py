@@ -39,9 +39,8 @@ class CyclicSchedule:
         x = step / self.step_size - 2 * cycle + 1
         x_abs = tf.abs(x)
         # decay the downward half towards 0 instead of minval
-        minval = tf.where(x < 0.0, self.minval, 0.0)
+        minval = tf.where(x < 0, self.minval, 0.0)
         vrange = self.maxval - minval
-        value = minval + vrange * tf.cast(
-            tf.maximum(0.0, 1 - x_abs), tf.float32)
+        value = minval + vrange * tf.maximum(0.0, 1 - x_abs)
         self.value.assign(value)
         return value
