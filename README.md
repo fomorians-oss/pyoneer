@@ -19,6 +19,12 @@ In general the API tries to adhere to TensorFlow 2.0's API.
 - `pynr.layers.ListFeaturizer`
 - `pynr.layers.VecFeaturizer`
 
+### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
+
+- `pynr.manip.batched_index`
+- `pynr.manip.pad_or_truncate`
+- `pynr.manip.shift`
+
 ### Math ([`pynr.math`](pyoneer/math))
 
 - `pynr.math.to_radians`
@@ -83,30 +89,28 @@ There are a few options of installing:
 
 1. Install with `pipenv`:
 
-       pipenv install pyoneer
+    pipenv install pyoneer
 
 2. Install with `pip`:
 
-       pip install pyoneer
+    pip install pyoneer
 
 3. Install locally for development with `pipenv`:
 
-       git clone https://github.com/fomorians/pyoneer.git
-       cd pyoneer
-       pipenv install
-       pipenv shell
+    git clone https://github.com/fomorians/pyoneer.git
+    cd pyoneer
+    pipenv install
+    pipenv shell
 
 4. Install locally for development with `pip`:
 
-       git clone https://github.com/fomorians/pyoneer.git
-       cd pyoneer
-       pip install -e .
+    git clone https://github.com/fomorians/pyoneer.git
+    cd pyoneer
+    pip install -e .
 
 ## Usage
 
-```
-import pyoneer as pynr
-```
+    import pyoneer as pynr
 
 ### Examples
 
@@ -118,11 +122,11 @@ There are a few options for testing:
 
 1. Run all tests:
 
-       python -m unittest discover -p '*_test.py'
+    python -m unittest discover -p '*_test.py'
 
 2. Run specific tests:
 
-       python -m pyoneer.math.logical_ops_test
+    python -m pyoneer.math.logical_ops_test
 
 ## Contributing
 

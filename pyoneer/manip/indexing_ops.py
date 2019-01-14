@@ -7,10 +7,10 @@ import tensorflow as tf
 
 def batched_index(values, indices):
     """
-    Equivalent to `values[:, indices]`.
-
     Performs indexing on batches and sequence-batches by reducing over
     zero-masked values.
+
+    Equivalent to `values[:, indices]`.
 
     Args:
         values: tensor of shape `[B, num_values]` or `[T, B, num_values]`

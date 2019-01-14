@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from pyoneer import indexing_ops
+from pyoneer.manip import indexing_ops
 from pyoneer.math import math_ops
 
 

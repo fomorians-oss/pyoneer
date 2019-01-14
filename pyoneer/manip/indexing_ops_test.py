@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
-from pyoneer import indexing_ops
+from pyoneer.manip import indexing_ops
 
 
 class IndexingOpsTest(test.TestCase):
