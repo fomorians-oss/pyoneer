@@ -7,6 +7,5 @@ from pyoneer import layers
 from pyoneer import math
 from pyoneer import metrics
 from pyoneer import nn
-from pyoneer import normalization
 from pyoneer import rl
 from pyoneer import training
