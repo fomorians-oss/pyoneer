@@ -5,12 +5,9 @@ from __future__ import print_function
 from setuptools import setup, find_packages
 
 REQUIRED_PACKAGES = [
+    'gym',
     'tensorflow',
     'tensorflow-probability',
-    'gym',
-    'trfl',
-    'dm-sonnet',
-    'wrapt',
 ]
 
 setup(
