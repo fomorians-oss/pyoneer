@@ -12,7 +12,7 @@ from pyoneer.rl.strategies import epsilon_greedy_strategy_impl
 
 
 class EpsilonGreedyStrategyTest(test.TestCase):
-    def testEpsilonGreedyStrategy(self):
+    def test_epsilon_greedy_strategy(self):
         with context.eager_mode():
             logits = [[0., 1., -2.], [0., 1., 2.]]
 
