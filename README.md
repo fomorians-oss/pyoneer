@@ -1,4 +1,4 @@
-# `import pyoneer as pynr`
+# pyoneer
 
 Tensor utilities, reinforcement learning, and more! Designed to make research easier with lower-level abstractions for common operations.
 
