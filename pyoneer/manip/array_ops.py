@@ -5,72 +5,121 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def pad_or_truncate(tensor, maxsize, axis=-1, constant_values=0.0):
+def pad_or_truncate(tensor, sizes, mode='CONSTANT', constant_values=0.0):
     """
-    Pad or truncate tensor according to a max size.
+    Pad or truncate a tensor. This is useful for ensuring sequences have the
+    same minimum shape when the sequence length is not known in advance.
+
+    Examples:
+
+    sentences = [['apple', 'is', 'red'], ['i', 'dont', 'like', 'apples']]
+    sentences = tf.stack([
+        pynr.manip.pad_or_truncate(sentences, sizes=[2, 3], '<PAD>')
+        for s in sentences], axis=0)
+    >>> [['apple', 'is', 'red'], ['i', 'dont', 'like']]
+
+    sentences = [['apple', 'is', 'red'], ['i', 'dont', 'like', 'apples']]
+    sentences = tf.stack([
+        pynr.manip.pad_or_truncate(sentences, sizes=[2, 4], '<PAD>')
+        for s in sentences], axis=0)
+    >>> [['apple', 'is', 'red', '<PAD>'], ['i', 'dont', 'like', 'apples']]
 
     Args:
         tensor: Tensor to pad or truncate.
-        maxsize: maximum size for tensor. If tensor.shape[axis] is greater than
-            maxsize, the values will be trucated, else they will be padded with
-            constant_values.
-        axis: where to pad or truncate tensor.
-        constant_values: value to pad tensor.shape[axis] to `maxsize`.
+        sizes: Maximum sizes for tensor along each axis. If tensor.shape is
+            greater than sizes along any axis, the axis will be trucated,
+            otherwise they will be padded according to `mode` and
+            `constant_values`.
+        mode: One of "CONSTANT", "REFLECT", or "SYMMETRIC" (case-insensitive).
+        constant_values: In "CONSTANT" mode, the padding value to use.
 
     Returns:
-        padded or truncated Tensor of `shape[axis] = maxsize`
+        Padded or truncated tensor.
     """
-    ndims = tensor.shape.ndims
-    size = tensor.shape[axis]
-    value_padding = [[0, 0]] * ndims
-    value_padding[axis] = [0, maxsize - size]
+    tensor = tf.convert_to_tensor(tensor)
 
-    index_padding = [slice(None)] * ndims
-    index_padding[axis] = slice(0, maxsize)
-    index_padding = tuple(index_padding)
+    paddings = [[0, max(sizes[axis] - tensor.shape[axis].value, 0)]
+                for axis in range(tensor.shape.ndims)]
 
-    def truncate():
-        return tensor[index_padding]
+    slices = [slice(0, sizes[axis]) for axis in range(tensor.shape.ndims)]
 
-    def pad():
-        return tf.pad(
-            tensor,
-            value_padding,
-            mode='CONSTANT',
-            constant_values=constant_values)
+    tensor = tf.pad(
+        tensor=tensor,
+        paddings=paddings,
+        mode=mode,
+        constant_values=constant_values)
+    tensor = tensor[slices]
 
-    return tf.cond(size > maxsize, truncate, pad)
+    return tensor
 
 
-def shift(x, axis=1, shift=1, constant_values=None):
+def shift(inputs, shift, axis, padding_values=0.0):
     """
-    Shift the dimension according to `axis` of `x` right by `shift`.
+    Shifts the elements of a tensor along an axis.
 
-    This is similar to `tf.manip.roll`, expect it fills the rolled
-    Tensors with `constant_values`.
+    This is similar to `tf.manip.roll`, except that it optionally fills the
+    rolled Tensors with `padding_values`.
+
+    Examples:
+
+        Convert states to next states and fill last step with zeros:
+
+            next_state = pynr.manip.shift(states, shift=-1, axis=1)
+
+        Convert values to next values and use bootstrap values for last step:
+
+            next_values = pynr.manip.shift(values, shift=-1, axis=1,
+                padding_values=bootstrap_values[:, None])
+
+        Convert actions and rewards to previous actions and rewards for RL^2:
+
+            previous_actions = pynr.manip.shift(actions, shift=1, axis=1)
+            previous_rewards = pynr.manip.shift(rewards, shift=1, axis=1)
 
     Args:
-        x: Tensor to be shifted.
-        axis: dimension to shift.
-        shift: number of shifts to compute.
-        constant_values: value to pad where shifts took place.
+        inputs: A `Tensor` to shift.
+        shift:  A `Tensor`. Must be one of the following types: int32, int64.
+            Dimension must be 0-D or 1-D. shift[i] specifies the number of
+            places by which elements are shifted positively (towards larger
+            indices) along the dimension specified by axis[i]. Negative shifts
+            will roll the elements in the opposite direction.
+        axis: A `Tensor`. Must be one of the following types: int32, int64.
+            Dimension must be 0-D or 1-D. axis[i] specifies the dimension that
+            the shift shift[i] should occur. If the same axis is referenced
+            more than once, the total shift for that axis will be the sum of
+            all the shifts that belong to that axis.
+        padding_values: A tensor to use for padding.
 
     Returns:
         A shifted Tensor.
     """
-    x = tf.convert_to_tensor(x)
-    direction = abs(shift)
-    is_right = direction == shift
-    ndims = x.shape.ndims
+    inputs = tf.convert_to_tensor(inputs)
 
-    index_padding = [slice(None)] * ndims
-    index_padding[axis] = slice(0, -1) if is_right else slice(1, None)
-    index_padding = tuple(index_padding)
+    # slice inputs
+    slices = [slice(None)] * inputs.shape.ndims
 
-    if constant_values is None:
-        value_padding = [[0, 0]] * ndims
-        value_padding[axis] = [direction, 0] if is_right else [0, direction]
-        return tf.pad(x, value_padding)[index_padding]
+    if shift >= 0:
+        slices[axis] = slice(0, -shift)
+    else:
+        slices[axis] = slice(-shift, None)
 
-    padded = [constant_values, x] if is_right else [x, constant_values]
-    return tf.concat(padded, axis=axis)[index_padding]
+    sliced = inputs[slices]
+
+    # pad inputs
+    paddings = [[0, 0]] * inputs.shape.ndims
+    paddings[axis] = [max(shift, 0), max(-shift, 0)]
+    padding_slices = [slice(None)] * inputs.shape.ndims
+
+    if shift >= 0:
+        padding_slices[axis] = slice(-shift, None)
+        padded = tf.concat(
+            [padding_values * tf.ones_like(inputs[padding_slices]), sliced],
+            axis=axis)
+    else:
+        padding_slices[axis] = slice(0, -shift)
+        padded = tf.concat(
+            [sliced,
+             tf.ones_like(inputs[padding_slices]) * padding_values],
+            axis=axis)
+
+    return padded

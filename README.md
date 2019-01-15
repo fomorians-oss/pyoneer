@@ -2,7 +2,21 @@
 
 Tensor utilities, reinforcement learning, and more! Designed to make research easier with low-level abstractions for common operations.
 
-## API
+### Examples
+
+- [Eager Proximal Policy Optimization](https://github.com/fomorians/ppo)
+
+## Usage
+
+For the top-level utilities, import like so:
+
+    import pyoneer as pynr
+    pynr.math.rescale(...)
+
+For the large sub-modules, such as reinforcement learning, we recommend:
+
+    import pyoneer.rl as pyrl
+    pyrl.losses.policy_gradient_loss(...)
 
 In general the API tries to adhere to TensorFlow 2.0's API.
 
@@ -107,14 +121,6 @@ There are a few options of installing:
         git clone https://github.com/fomorians/pyoneer.git
         cd pyoneer
         pip install -e .
-
-## Usage
-
-    import pyoneer as pynr
-
-### Examples
-
-- [Proximal Policy Optimization](https://github.com/fomorians/ppo)
 
 ## Testing
 

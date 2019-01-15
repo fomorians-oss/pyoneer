@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from pyoneer.manip import indexing_ops
+from pyoneer.manip import array_ops, indexing_ops
 from pyoneer.math import math_ops
 
 
@@ -59,7 +59,8 @@ def generalized_advantages(rewards,
     last_steps = tf.cast(sequence_lengths - 1, tf.int32)
     bootstrap_values = indexing_ops.batched_index(values, last_steps)
 
-    values_next = tf.concat([values[:, 1:], bootstrap_values[:, None]], axis=1)
+    values_next = array_ops.shift(
+        values, shift=1, axis=1, constant_values=bootstrap_values[:, None])
 
     deltas = rewards + discount_factor * values_next - values
 
