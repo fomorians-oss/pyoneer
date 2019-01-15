@@ -60,7 +60,7 @@ def generalized_advantages(rewards,
     bootstrap_values = indexing_ops.batched_index(values, last_steps)
 
     values_next = array_ops.shift(
-        values, shift=1, axis=1, constant_values=bootstrap_values[:, None])
+        values, shift=-1, axis=1, padding_values=bootstrap_values[:, None])
 
     deltas = rewards + discount_factor * values_next - values
 
