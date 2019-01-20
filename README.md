@@ -2,10 +2,6 @@
 
 Tensor utilities, reinforcement learning, and more! Designed to make research easier with low-level abstractions for common operations.
 
-### Examples
-
-- [Eager Proximal Policy Optimization](https://github.com/fomorians/ppo)
-
 ## Usage
 
 For the top-level utilities, import like so:
@@ -19,6 +15,12 @@ For the large sub-modules, such as reinforcement learning, we recommend:
     pyrl.losses.policy_gradient_loss(...)
 
 In general the API tries to adhere to TensorFlow 2.0's API.
+
+### Examples
+
+- [Eager Proximal Policy Optimization](https://github.com/fomorians/ppo)
+
+## API
 
 ### Initializers ([`pynr.initializers`](pyoneer/initializers))
 
