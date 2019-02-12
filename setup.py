@@ -6,7 +6,6 @@ from setuptools import setup, find_packages
 
 REQUIRED_PACKAGES = [
     'gym',
-    'tensorflow',
     'tensorflow-probability',
 ]
 

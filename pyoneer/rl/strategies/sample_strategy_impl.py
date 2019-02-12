@@ -15,5 +15,5 @@ class SampleStrategy:
         self.policy = policy
 
     def __call__(self, *args, **kwargs):
-        policy = self.policy(*args, **kwargs)
-        return policy.sample()
+        dist = self.policy(*args, **kwargs)
+        return dist.sample()
