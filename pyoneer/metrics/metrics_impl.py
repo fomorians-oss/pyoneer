@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow.contrib.eager as tfe
 
 
 def mape(labels, predictions, weights=None):
@@ -59,8 +58,7 @@ def smape(labels, predictions, weights=None):
     if weights is not None:
         assert weights.shape[0] == labels.shape[0]
 
-    errors = 2 * tf.abs(predictions - labels) / (
-        tf.abs(predictions) + tf.abs(labels))
+    errors = 2 * tf.abs(predictions - labels) / (tf.abs(predictions) + tf.abs(labels))
 
     if weights is not None:
         weights /= tf.reduce_sum(weights, axis=0, keepdims=True)
@@ -71,7 +69,7 @@ def smape(labels, predictions, weights=None):
     return errors
 
 
-class MAPE(tfe.metrics.Mean):
+class MAPE(tf.metrics.Mean):
     """Calculates the mean absolute percentage error of predicted values to the
     actual ground-truth values.
 
@@ -100,7 +98,8 @@ class MAPE(tfe.metrics.Mean):
         tf.assert_equal(
             labels.shape,
             predictions.shape,
-            message='shapes of labels and predictions must be equal')
+            message="shapes of labels and predictions must be equal",
+        )
         errors = tf.abs((predictions - labels) / labels)
         super(MAPE, self).call(errors, weights=weights)
         if weights is None:
@@ -109,7 +108,7 @@ class MAPE(tfe.metrics.Mean):
             return labels, predictions, weights
 
 
-class SMAPE(tfe.metrics.Mean):
+class SMAPE(tf.metrics.Mean):
     """
     Calculates the symmetric mean absolute percentage error of predicted
     values to the actual ground-truth values. The SMAPE is calculated as:
@@ -143,9 +142,11 @@ class SMAPE(tfe.metrics.Mean):
         tf.assert_equal(
             labels.shape,
             predictions.shape,
-            message='shapes of labels and predictions must be equal')
-        errors = (2 * tf.abs(predictions - labels) /
-                  (tf.abs(predictions) + tf.abs(labels)))
+            message="shapes of labels and predictions must be equal",
+        )
+        errors = (
+            2 * tf.abs(predictions - labels) / (tf.abs(predictions) + tf.abs(labels))
+        )
         super(SMAPE, self).call(errors, weights=weights)
         if weights is None:
             return labels, predictions

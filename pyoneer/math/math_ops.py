@@ -11,9 +11,8 @@ def safe_divide(x, y, rtol=1e-5, atol=1e-8):
     """
     Safely divide x by y while avoiding dividing by zero.
     """
-    y = tf.where(
-        logical_ops.isclose(y, 0.0, rtol=rtol, atol=atol), tf.ones_like(y), y)
-    return tf.check_numerics(x / y, 'safe_divide')
+    y = tf.where(logical_ops.isclose(y, 0.0, rtol=rtol, atol=atol), tf.ones_like(y), y)
+    return tf.debugging.check_numerics(x / y, "safe_divide")
 
 
 def rescale(x, oldmin, oldmax, newmin, newmax):
@@ -27,7 +26,7 @@ def rescale(x, oldmin, oldmax, newmin, newmax):
     newmax = tf.convert_to_tensor(newmax)
     x = (x - oldmin) / (oldmax - oldmin)
     x = (x * (newmax - newmin)) + newmin
-    x = tf.check_numerics(x, 'rescale')
+    x = tf.debugging.check_numerics(x, "rescale")
     return x
 
 
@@ -49,7 +48,7 @@ def normalize(x, loc, scale, weights=1.0):
     scale = tf.convert_to_tensor(scale)
     weights = tf.convert_to_tensor(weights)
     outputs = safe_divide((x - loc), scale) * weights
-    outputs = tf.check_numerics(outputs, 'normalize')
+    outputs = tf.debugging.check_numerics(outputs, "normalize")
     return outputs
 
 
@@ -71,5 +70,5 @@ def denormalize(x, loc, scale, weights=1.0):
     scale = tf.convert_to_tensor(scale)
     weights = tf.convert_to_tensor(weights)
     outputs = ((x * scale) + loc) * weights
-    outputs = tf.check_numerics(outputs, 'denormalize')
+    outputs = tf.debugging.check_numerics(outputs, "denormalize")
     return outputs

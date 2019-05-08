@@ -34,7 +34,7 @@ class CyclicSchedule:
         self.value = tf.Variable(minval, trainable=False)
 
     def __call__(self):
-        step = tf.to_float(self.global_step - 1)
+        step = tf.cast(self.global_step - 1, tf.float32)
         cycle = 1 + step // (2 * self.step_size)
         x = step / self.step_size - 2 * cycle + 1
         x_abs = tf.abs(x)
