@@ -6,7 +6,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class SoftplusInverse(tf.keras.initializers.Initializer):
+class SoftplusInverse(tf.initializers.Initializer):
     """
     Initializer that generates tensors initialized to `log(exp(scale) - 1)`.
 
@@ -27,7 +27,8 @@ class SoftplusInverse(tf.keras.initializers.Initializer):
             tfp.distributions.softplus_inverse(self.scale),
             dtype=dtype,
             shape=shape,
-            verify_shape=verify_shape)
+            verify_shape=verify_shape,
+        )
 
     def get_config(self):
-        return {'scale': self.scale, 'dtype': self.dtype.name}
+        return {"scale": self.scale, "dtype": self.dtype.name}
