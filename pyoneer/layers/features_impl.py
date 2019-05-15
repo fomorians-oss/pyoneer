@@ -103,8 +103,8 @@ class DictFeaturizer(tf.keras.layers.Layer):
                         Keras-compatible layers.
     """
 
-    def __init__(self, feature_layers):
-        super(DictFeaturizer, self).__init__()
+    def __init__(self, feature_layers, **kwargs):
+        super(DictFeaturizer, self).__init__(**kwargs)
         self.feature_layers = OrderedDict(feature_layers)
 
     def call(self, features):
@@ -143,8 +143,8 @@ class ListFeaturizer(tf.keras.layers.Layer):
         feature_layers: A list of Keras-compatible layers.
     """
 
-    def __init__(self, feature_layers):
-        super(ListFeaturizer, self).__init__()
+    def __init__(self, feature_layers, **kwargs):
+        super(ListFeaturizer, self).__init__(**kwargs)
         self.feature_layers = feature_layers
 
     def call(self, features):
@@ -186,8 +186,8 @@ class VecFeaturizer(tf.keras.layers.Layer):
         feature_layers: A list of Keras-compatible layers.
     """
 
-    def __init__(self, feature_layers):
-        super(VecFeaturizer, self).__init__()
+    def __init__(self, feature_layers, **kwargs):
+        super(VecFeaturizer, self).__init__(**kwargs)
         self.feature_layers = feature_layers
 
     def call(self, features):
@@ -201,7 +201,7 @@ class VecFeaturizer(tf.keras.layers.Layer):
             The concatenated outputs of each feature layer.
         """
         assert (
-            len(self.feature_layers) == features.shape[-1].value
+            len(self.feature_layers) == features.shape[-1]
         ), "must provide equal length features and feature layers"
 
         outputs_list = []
@@ -215,4 +215,19 @@ class VecFeaturizer(tf.keras.layers.Layer):
         ]
         outputs = tf.concat(outputs_list, axis=-1)
         outputs = tf.debugging.check_numerics(outputs, "outputs")
+        return outputs
+
+
+class Flatten(tf.keras.layers.Layer):
+    def __init__(self, axis, **kwargs):
+        super(Flatten, self).__init__(**kwargs)
+        self.axis = axis
+
+    def call(self, inputs):
+        print(self.input_shape)
+        outputs = tf.reshape(inputs, [])
+        return outputs
+
+    def reverse(self, inputs):
+        outputs = tf.reshape(inputs, [])
         return outputs

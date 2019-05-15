@@ -19,5 +19,5 @@ class LogicalOpsTest(test.TestCase):
             self.assertAllEqual(actual_x, expected_x)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

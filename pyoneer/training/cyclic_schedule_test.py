@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.contrib.eager as tfe
+import tensorflow as tf
 
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
@@ -13,9 +13,10 @@ from pyoneer.training.cyclic_schedule_impl import CyclicSchedule
 class CyclicScheduleTest(test.TestCase):
     def test_cyclic_schedule(self):
         with context.eager_mode():
-            global_step = tfe.Variable(0, trainable=False)
+            global_step = tf.Variable(0, trainable=False)
             cyclic_lr = CyclicSchedule(
-                minval=0.2, maxval=0.4, step_size=500, global_step=global_step)
+                minval=0.2, maxval=0.4, step_size=500, global_step=global_step
+            )
             # start of a cycle
             global_step.assign(1)
             self.assertAllClose(cyclic_lr(), 0.2)
@@ -33,5 +34,5 @@ class CyclicScheduleTest(test.TestCase):
             self.assertAllClose(cyclic_lr(), 0.2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

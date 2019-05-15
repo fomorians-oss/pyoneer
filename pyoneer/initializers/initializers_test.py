@@ -16,9 +16,10 @@ class InitializersTest(test.TestCase):
             initializer = SoftplusInverse(1.0)
             output = initializer(shape=[1, 3])
             expected = tf.constant(
-                [[0.54132485, 0.54132485, 0.54132485]], dtype=tf.float32)
+                [[0.54132485, 0.54132485, 0.54132485]], dtype=tf.float32
+            )
             self.assertAllEqual(output, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

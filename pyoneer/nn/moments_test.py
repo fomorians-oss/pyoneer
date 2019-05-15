@@ -14,7 +14,8 @@ class MomentsTest(test.TestCase):
     def test_moments_from_range(self):
         with context.eager_mode():
             mean, variance = moments_impl.moments_from_range(
-                minval=tf.constant([-2.0]), maxval=tf.constant([2.0]))
+                minval=tf.constant([-2.0]), maxval=tf.constant([2.0])
+            )
             expected_mean = tf.constant([0.0])
             expected_variance = tf.constant([4.0])
             self.assertAllEqual(mean, expected_mean)
@@ -68,8 +69,7 @@ class MomentsTest(test.TestCase):
 
     def test_exponential_moving_moments(self):
         with context.eager_mode():
-            moments = moments_impl.ExponentialMovingMoments(
-                shape=[3], rate=0.9)
+            moments = moments_impl.ExponentialMovingMoments(shape=[3], rate=0.9)
 
             # sample 1
             inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
@@ -114,5 +114,5 @@ class MomentsTest(test.TestCase):
             self.assertAllClose(expected_std, moments.std.numpy())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

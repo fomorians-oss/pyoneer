@@ -43,7 +43,7 @@ def pad_or_truncate(tensor, sizes, mode="CONSTANT", constant_values=0.0):
     tensor = tf.convert_to_tensor(tensor)
 
     paddings = [
-        [0, max(sizes[axis] - tensor.shape[axis].value, 0)]
+        [0, max(sizes[axis] - tensor.shape[axis], 0)]
         for axis in range(tensor.shape.ndims)
     ]
 

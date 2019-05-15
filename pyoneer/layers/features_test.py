@@ -10,9 +10,14 @@ from collections import OrderedDict
 from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
-from pyoneer.layers.features_impl import (Normalizer, OneHotEncoder,
-                                          AngleEncoder, DictFeaturizer,
-                                          ListFeaturizer, VecFeaturizer)
+from pyoneer.layers.features_impl import (
+    Normalizer,
+    OneHotEncoder,
+    AngleEncoder,
+    DictFeaturizer,
+    ListFeaturizer,
+    VecFeaturizer,
+)
 
 
 class FeaturesTest(test.TestCase):
@@ -51,46 +56,44 @@ class FeaturesTest(test.TestCase):
     def test_dict_featurizer(self):
         with context.eager_mode():
             layer = DictFeaturizer(
-                OrderedDict([
-                    ('categorical', OneHotEncoder(depth=4)),
-                    ('scalar', Normalizer(loc=0.5, scale=2.0)),
-                ]))
+                OrderedDict(
+                    [
+                        ("categorical", OneHotEncoder(depth=4)),
+                        ("scalar", Normalizer(loc=0.5, scale=2.0)),
+                    ]
+                )
+            )
             features = {
-                'categorical': tf.constant([3], dtype=tf.int32),
-                'scalar': tf.constant([1.0], dtype=tf.float32),
+                "categorical": tf.constant([3], dtype=tf.int32),
+                "scalar": tf.constant([1.0], dtype=tf.float32),
             }
             outputs = layer(features)
-            expected = tf.constant(
-                [[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
+            expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
             self.assertAllEqual(outputs, expected)
 
     def test_list_featurizer(self):
         with context.eager_mode():
-            layer = ListFeaturizer([
-                OneHotEncoder(depth=4),
-                Normalizer(loc=0.5, scale=2.0),
-            ])
+            layer = ListFeaturizer(
+                [OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)]
+            )
             features = [
                 tf.constant([3], dtype=tf.int32),
                 tf.constant([1.0], dtype=tf.float32),
             ]
             outputs = layer(features)
-            expected = tf.constant(
-                [[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
+            expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
             self.assertAllEqual(outputs, expected)
 
     def test_vec_featurizer(self):
         with context.eager_mode():
-            layer = VecFeaturizer([
-                OneHotEncoder(depth=4),
-                Normalizer(loc=0.5, scale=2.0),
-            ])
+            layer = VecFeaturizer(
+                [OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)]
+            )
             features = tf.constant([3.0, 1.0], dtype=tf.float32)
             outputs = layer(features)
-            expected = tf.constant(
-                [[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
+            expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
             self.assertAllEqual(outputs, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

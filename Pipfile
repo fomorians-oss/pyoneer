@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 gym = "*"
-tensorflow = "*"
-tensorflow-probability = "*"
+tf-nightly-2-0-preview = "*"
+tfp-nightly = "*"
 
 [requires]
 python_version = "3.6.5"

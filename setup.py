@@ -4,15 +4,13 @@ from __future__ import print_function
 
 from setuptools import setup, find_packages
 
-REQUIRED_PACKAGES = [
-    'gym',
-    'tensorflow-probability',
-]
+REQUIRED_PACKAGES = ["gym", "tfp-nightly"]
 
 setup(
-    name='pyoneer',
-    version='0.0.0',
-    url='https://github.com/fomorians/pyoneer',
+    name="pyoneer",
+    version="0.0.0",
+    url="https://github.com/fomorians/pyoneer",
     install_requires=REQUIRED_PACKAGES,
     packages=find_packages(),
-    include_package_data=True)
+    include_package_data=True,
+)

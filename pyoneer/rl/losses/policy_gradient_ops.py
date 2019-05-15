@@ -2,36 +2,30 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import abc
 import tensorflow as tf
 
 from tensorflow.python.keras.utils import losses_utils
 
 
-def policy_gradient_loss(log_probs, advantages, sample_weight=1.0):
+def policy_gradient(log_probs, advantages):
     """
     Computes the Vanilla policy gradient loss.
 
     Args:
         log_probs: Log probabilities of taking actions under a policy.
         advantages: Advantage estimation.
-        sample_weight: Tensor of shape `[B, T]` containing sample_weight (1. or 0.).
 
     Returns:
-        A scalar tensor.
+        Tensor of losses.
     """
-    advantages = tf.stop_gradient(advantages)
-
     losses = -log_probs * advantages
     losses = tf.debugging.check_numerics(losses, "loss")
-
-    loss = losses_utils.compute_weighted_loss(losses, sample_weight=sample_weight)
-    loss = tf.debugging.check_numerics(loss, "losses")
-
-    return loss
+    return losses
 
 
-def clipped_policy_gradient_loss(
-    log_probs, log_probs_anchor, advantages, epsilon_clipping=0.2, sample_weight=1.0
+def clipped_policy_gradient(
+    log_probs, log_probs_anchor, advantages, epsilon_clipping=0.2
 ):
     """
     Computes the clipped surrogate objective found in
@@ -47,7 +41,7 @@ def clipped_policy_gradient_loss(
         sample_weight: Optional tensor for weighting the losses.
 
     Returns:
-        A scalar tensor.
+        Tensor of losses.
     """
     log_probs_anchor = tf.stop_gradient(log_probs_anchor)
     advantages = tf.stop_gradient(advantages)
@@ -64,10 +58,116 @@ def clipped_policy_gradient_loss(
     surrogate2 = tf.debugging.check_numerics(surrogate2, "surrogate2")
 
     surrogate_min = tf.minimum(surrogate1, surrogate2)
-    surrogate_min = tf.debugging.check_numerics(surrogate_min, "surrogate_min")
 
-    loss = -losses_utils.compute_weighted_loss(
-        losses=surrogate_min, sample_weight=sample_weight
-    )
-    loss = tf.debugging.check_numerics(loss, "loss")
-    return loss
+    losses = -surrogate_min
+    losses = tf.debugging.check_numerics(losses, "losses")
+    return losses
+
+
+def policy_entropy(entropy):
+    """
+    Computes the policy entropy loss.
+
+    Args:
+        entropy: Entropy of the policy distribution.
+
+    Returns:
+        Tensor of losses.
+    """
+    losses = -entropy
+    losses = tf.debugging.check_numerics(losses, "losses")
+    return losses
+
+
+class PolicyGradient:
+    """
+    Computes the Vanilla policy gradient loss.
+
+    Attributes:
+        reduction: a tf.losses.Reduction method.
+        name: name of the loss.
+    """
+
+    def __init__(self, reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE, name=None):
+        self.reduction = reduction
+        self.name = name
+
+    def __call__(self, log_probs, advantages, sample_weight=None):
+        losses = policy_gradient(log_probs, advantages)
+        return losses_utils.compute_weighted_loss(
+            losses, sample_weight, reduction=self.reduction
+        )
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+    def get_config(self):
+        return {"reduction": self.reduction, "name": self.name}
+
+
+class ClippedPolicyGradient:
+    """
+    Computes the clipped surrogate objective found in
+    [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) based on
+    clipped probability ratios.
+
+    Attributes:
+        epsilon_clipping: epsilon parameter of the clipped surrogate objective.
+        reduction: a tf.losses.Reduction method.
+        name: name of the loss.
+    """
+
+    def __init__(
+        self,
+        epsilon_clipping=0.2,
+        reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE,
+        name="clipped_policy_gradient",
+    ):
+        self.epsilon_clipping = epsilon_clipping
+        self.reduction = reduction
+        self.name = name
+
+    def __call__(self, log_probs, log_probs_anchor, advantages, sample_weight=None):
+        losses = clipped_policy_gradient(log_probs, log_probs_anchor, advantages)
+        return losses_utils.compute_weighted_loss(
+            losses, sample_weight, reduction=self.reduction
+        )
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+    def get_config(self):
+        return {
+            "epsilon_clipping": self.epsilon_clipping,
+            "reduction": self.reduction,
+            "name": self.name,
+        }
+
+
+class PolicyEntropy:
+    """
+    Computes the policy entropy loss.
+
+    Attributes:
+        reduction: a tf.losses.Reduction method.
+        name: name of the loss.
+    """
+
+    def __init__(self, reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE, name=None):
+        self.reduction = reduction
+        self.name = name
+
+    def __call__(self, entropy, sample_weight=None):
+        losses = policy_entropy(entropy)
+        return losses_utils.compute_weighted_loss(
+            losses, sample_weight, reduction=self.reduction
+        )
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+    def get_config(self):
+        return {"reduction": self.reduction, "name": self.name}

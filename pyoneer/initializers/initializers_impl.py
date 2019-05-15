@@ -19,15 +19,12 @@ class SoftplusInverse(tf.initializers.Initializer):
         self.scale = tf.convert_to_tensor(scale)
         self.dtype = tf.dtypes.as_dtype(dtype)
 
-    def __call__(self, shape, dtype=None, verify_shape=None):
+    def __call__(self, shape, dtype=None):
         if dtype is None:
             dtype = self.dtype
 
         return tf.constant(
-            tfp.distributions.softplus_inverse(self.scale),
-            dtype=dtype,
-            shape=shape,
-            verify_shape=verify_shape,
+            tfp.distributions.softplus_inverse(self.scale), dtype=dtype, shape=shape
         )
 
     def get_config(self):

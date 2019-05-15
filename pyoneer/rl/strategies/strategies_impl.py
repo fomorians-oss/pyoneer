@@ -6,7 +6,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class EpsilonGreedyStrategy:
+class EpsilonGreedy:
     """
     Epsilon-greedy strategy. Samples from a policy distribution with
     `1 - epsilon` probability.
@@ -40,9 +40,40 @@ class EpsilonGreedyStrategy:
     def __call__(self, *args, **kwargs):
         policy = self.policy(*args, **kwargs)
         epsilon = self.epsilon() if callable(self.epsilon) else self.epsilon
-        mask_dist = tfp.distributions.Bernoulli(
-            probs=1 - epsilon, dtype=tf.bool)
+        mask_dist = tfp.distributions.Bernoulli(probs=1 - epsilon, dtype=tf.bool)
         sample_mask = mask_dist.sample(policy.batch_shape)
         sample = policy.sample()
         mode = policy.mode()
         return tf.where(sample_mask, mode, sample)
+
+
+class Mode:
+    """
+    Returns the mode of the policy distribution.
+
+    Args:
+        policy: callable that returns a `tfp.distributions.Distribution`.
+    """
+
+    def __init__(self, policy):
+        self.policy = policy
+
+    def __call__(self, *args, **kwargs):
+        dist = self.policy(*args, **kwargs)
+        return dist.mode()
+
+
+class Sample:
+    """
+    Returns random samples from the policy distribution.
+
+    Args:
+        policy: callable that returns a `tfp.distributions.Distribution`.
+    """
+
+    def __init__(self, policy):
+        self.policy = policy
+
+    def __call__(self, *args, **kwargs):
+        dist = self.policy(*args, **kwargs)
+        return dist.sample()
