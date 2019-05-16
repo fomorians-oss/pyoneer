@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 from tensorflow.python.platform import test
 
-from pyoneer.layers.features_impl import (
+from pyoneer.layers.layers_impl import (
     Normalizer,
     OneHotEncoder,
     AngleEncoder,
@@ -19,7 +19,7 @@ from pyoneer.layers.features_impl import (
 )
 
 
-class FeaturesTest(test.TestCase):
+class LayersTest(test.TestCase):
     def test_normalizer_layer(self):
         layer = Normalizer(loc=0.5, scale=2.0)
         inputs = tf.constant([1.0], dtype=tf.float32)

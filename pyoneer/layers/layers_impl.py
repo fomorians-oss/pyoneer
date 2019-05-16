@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 
 from collections import OrderedDict
@@ -66,6 +67,11 @@ class OneHotEncoder(tf.keras.layers.Layer):
         outputs = tf.debugging.check_numerics(outputs, "outputs")
         return outputs
 
+    def get_config(self):
+        config = {'depth': self.depth}
+        base_config = super(OneHotEncoder, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 
 class AngleEncoder(tf.keras.layers.Layer):
     """
@@ -86,6 +92,11 @@ class AngleEncoder(tf.keras.layers.Layer):
         x, y = angle_ops.to_cartesian(inputs)
         outputs = tf.concat([x, y], axis=-1)
         return outputs
+
+    def get_config(self):
+        config = {'degrees': self.degrees}
+        base_config = super(AngleEncoder, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 class DictFeaturizer(tf.keras.layers.Layer):
@@ -212,49 +223,4 @@ class VecFeaturizer(tf.keras.layers.Layer):
         ]
         outputs = tf.concat(outputs_list, axis=-1)
         outputs = tf.debugging.check_numerics(outputs, "outputs")
-        return outputs
-
-
-class Flatten(tf.keras.layers.Layer):
-    """
-    Flatten inputs along the specified axis. Supports reversing the flatten operation.
-
-    Examples:
-
-    flatten = Flatten(axis=(0, 1))
-    flatten([[[0, 1, 2]]]) # [0, 1, 2]
-    flatten.unflatten([0, 1, 2]) # [[[0, 1, 2]]]
-
-    Args:
-        axis: Axes to flatten.
-    """
-
-    def __init__(self, axis, **kwargs):
-        super(Flatten, self).__init__(**kwargs)
-        self.axis = axis
-
-    def call(self, inputs):
-        """
-        Flatten inputs.
-
-        Args:
-            inputs: Tensor to flatten.
-
-        Returns:
-            Flattened inputs tensor.
-        """
-        outputs = tf.reshape(inputs, [-1])
-        return outputs
-
-    def unflatten(self, inputs):
-        """
-        Unflatten inputs.
-
-        Args:
-            inputs: Tensor to unflatten.
-
-        Returns:
-            Unflattened inputs tensor.
-        """
-        outputs = tf.reshape(inputs, [-1])
         return outputs
