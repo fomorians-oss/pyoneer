@@ -2,20 +2,22 @@ import gym
 import numpy as np
 
 
-class ObservationNormalization:
+class ObservationNormalization(gym.Wrapper):
+    """
+    Wraps the environment to normalize observations.
+    """
     def __init__(self, env):
-        assert isinstance(env.observation_space, gym.spaces.Box)
-        self.env = env
+        super(ObservationNormalization, self).__init__(env)
+        self.observation_space = self._observation_space()
 
     def __getattr__(self, name):
         return getattr(self.env, name)
 
-    @property
-    def observation_space(self):
+    def _observation_space(self):
         observation_space = self.env.observation_space
         low = -np.ones(shape=observation_space.shape, dtype=observation_space.dtype)
         high = np.ones(shape=observation_space.shape, dtype=observation_space.dtype)
-        return gym.spaces.Box(low, high, dtype=observation_space.dtype.dtype)
+        return gym.spaces.Box(low, high, dtype=observation_space.dtype)
 
     def normalize_observation(self, observ):
         low = self.env.observation_space.low
@@ -32,15 +34,20 @@ class ObservationNormalization:
         return observation, reward, done, info
 
 
-class ObservationCoordinates:
+class ObservationCoordinates(gym.Wrapper):
+    """
+    Wraps the environment to append coordinate features.
+
+    Expects the observation space to have shape [height, width, channel]`.
+    """
     def __init__(self, env):
-        self.env = env
+        super(ObservationCoordinates, self).__init__(env)
+        self.observation_space = self._observation_space()
 
     def __getattr__(self, name):
         return getattr(self.env, name)
 
-    @property
-    def observation_space(self):
+    def _observation_space(self):
         observation_space = self.env.observation_space
 
         coord_low = np.zeros_like(observation_space.low[..., :1])

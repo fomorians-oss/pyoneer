@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.eager import context
 from tensorflow.python.platform import test
 
 from pyoneer.nn import moments_impl
@@ -12,106 +11,103 @@ from pyoneer.nn import moments_impl
 
 class MomentsTest(test.TestCase):
     def test_moments_from_range(self):
-        with context.eager_mode():
-            mean, variance = moments_impl.moments_from_range(
-                minval=tf.constant([-2.0]), maxval=tf.constant([2.0])
-            )
-            expected_mean = tf.constant([0.0])
-            expected_variance = tf.constant([4.0])
-            self.assertAllEqual(mean, expected_mean)
-            self.assertAllEqual(variance, expected_variance)
+        mean, variance = moments_impl.moments_from_range(
+            minval=tf.constant([-2.0]), maxval=tf.constant([2.0])
+        )
+        expected_mean = tf.constant([0.0])
+        expected_variance = tf.constant([4.0])
+        self.assertAllEqual(mean, expected_mean)
+        self.assertAllEqual(variance, expected_variance)
 
     def test_streaming_moments(self):
-        with context.eager_mode():
-            moments = moments_impl.StreamingMoments(shape=[3])
+        moments = moments_impl.StreamingMoments(shape=[3])
 
-            # sample 1
-            inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
-            weights = tf.constant([[[1.0, 0.0, 1.0]]])
+        # sample 1
+        inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
+        weights = tf.constant([[[1.0, 0.0, 1.0]]])
 
-            moments(inputs, weights=weights, training=True)
+        moments(inputs, weights=weights, training=True)
 
-            expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
-            expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
-            expected_std = tf.sqrt(expected_var)
+        expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
+        expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
+        expected_std = tf.sqrt(expected_var)
 
-            self.assertAllClose(expected_mean, moments.mean.numpy())
-            self.assertAllClose(expected_var, moments.variance.numpy())
-            self.assertAllClose(expected_std, moments.std.numpy())
+        self.assertAllClose(expected_mean, moments.mean.numpy())
+        self.assertAllClose(expected_var, moments.variance.numpy())
+        self.assertAllClose(expected_std, moments.std.numpy())
 
-            # sample 2
-            inputs = tf.constant([[[0.0, +1.0, -1.0]]])
-            weights = tf.constant([[[0.0, 1.0, 1.0]]])
+        # sample 2
+        inputs = tf.constant([[[0.0, +1.0, -1.0]]])
+        weights = tf.constant([[[0.0, 1.0, 1.0]]])
 
-            moments(inputs, weights=weights, training=True)
+        moments(inputs, weights=weights, training=True)
 
-            expected_mean = tf.constant([-1.0, +1.0, 0.0], dtype=tf.float32)
-            expected_var = tf.constant([0.0, 0.0, 2.0], dtype=tf.float32)
-            expected_std = tf.sqrt(expected_var)
+        expected_mean = tf.constant([-1.0, +1.0, 0.0], dtype=tf.float32)
+        expected_var = tf.constant([0.0, 0.0, 2.0], dtype=tf.float32)
+        expected_std = tf.sqrt(expected_var)
 
-            self.assertAllClose(expected_mean, moments.mean.numpy())
-            self.assertAllClose(expected_var, moments.variance.numpy())
-            self.assertAllClose(expected_std, moments.std.numpy())
+        self.assertAllClose(expected_mean, moments.mean.numpy())
+        self.assertAllClose(expected_var, moments.variance.numpy())
+        self.assertAllClose(expected_std, moments.std.numpy())
 
-            # sample 3
-            inputs = tf.constant([[[+1.0, -1.0, 0.0]]])
-            weights = tf.constant([[[1.0, 1.0, 0.0]]])
+        # sample 3
+        inputs = tf.constant([[[+1.0, -1.0, 0.0]]])
+        weights = tf.constant([[[1.0, 1.0, 0.0]]])
 
-            moments(inputs, weights=weights, training=True)
+        moments(inputs, weights=weights, training=True)
 
-            expected_mean = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
-            expected_var = tf.constant([2.0, 2.0, 2.0], dtype=tf.float32)
-            expected_std = tf.sqrt(expected_var)
+        expected_mean = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
+        expected_var = tf.constant([2.0, 2.0, 2.0], dtype=tf.float32)
+        expected_std = tf.sqrt(expected_var)
 
-            self.assertAllClose(expected_mean, moments.mean.numpy())
-            self.assertAllClose(expected_var, moments.variance.numpy())
-            self.assertAllClose(expected_std, moments.std.numpy())
+        self.assertAllClose(expected_mean, moments.mean.numpy())
+        self.assertAllClose(expected_var, moments.variance.numpy())
+        self.assertAllClose(expected_std, moments.std.numpy())
 
     def test_exponential_moving_moments(self):
-        with context.eager_mode():
-            moments = moments_impl.ExponentialMovingMoments(shape=[3], rate=0.9)
+        moments = moments_impl.ExponentialMovingMoments(shape=[3], rate=0.9)
 
-            # sample 1
-            inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
-            weights = tf.constant([[[1.0, 0.0, 1.0]]])
+        # sample 1
+        inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
+        weights = tf.constant([[[1.0, 0.0, 1.0]]])
 
-            moments(inputs, weights=weights, training=True)
+        moments(inputs, weights=weights, training=True)
 
-            expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
-            expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
-            expected_std = tf.sqrt(expected_var)
+        expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
+        expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
+        expected_std = tf.sqrt(expected_var)
 
-            self.assertAllClose(expected_mean, moments.mean.numpy())
-            self.assertAllClose(expected_var, moments.variance.numpy())
-            self.assertAllClose(expected_std, moments.std.numpy())
+        self.assertAllClose(expected_mean, moments.mean.numpy())
+        self.assertAllClose(expected_var, moments.variance.numpy())
+        self.assertAllClose(expected_std, moments.std.numpy())
 
-            # sample 2
-            inputs = tf.constant([[[0.0, +1.0, -1.0]]])
-            weights = tf.constant([[[0.0, 1.0, 1.0]]])
+        # sample 2
+        inputs = tf.constant([[[0.0, +1.0, -1.0]]])
+        weights = tf.constant([[[0.0, 1.0, 1.0]]])
 
-            moments(inputs, weights=weights, training=True)
+        moments(inputs, weights=weights, training=True)
 
-            expected_mean = tf.constant([-1.0, 1.0, 0.8], dtype=tf.float32)
-            expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
-            expected_std = tf.sqrt(expected_var)
+        expected_mean = tf.constant([-1.0, 1.0, 0.8], dtype=tf.float32)
+        expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
+        expected_std = tf.sqrt(expected_var)
 
-            self.assertAllClose(expected_mean, moments.mean.numpy())
-            self.assertAllClose(expected_var, moments.variance.numpy())
-            self.assertAllClose(expected_std, moments.std.numpy())
+        self.assertAllClose(expected_mean, moments.mean.numpy())
+        self.assertAllClose(expected_var, moments.variance.numpy())
+        self.assertAllClose(expected_std, moments.std.numpy())
 
-            # sample 3
-            inputs = tf.constant([[[+1.0, -1.0, 0.0]]])
-            weights = tf.constant([[[1.0, 1.0, 0.0]]])
+        # sample 3
+        inputs = tf.constant([[[+1.0, -1.0, 0.0]]])
+        weights = tf.constant([[[1.0, 1.0, 0.0]]])
 
-            moments(inputs, weights=weights, training=True)
+        moments(inputs, weights=weights, training=True)
 
-            expected_mean = tf.constant([-0.8, 0.8, 0.8], dtype=tf.float32)
-            expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
-            expected_std = tf.sqrt(expected_var)
+        expected_mean = tf.constant([-0.8, 0.8, 0.8], dtype=tf.float32)
+        expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
+        expected_std = tf.sqrt(expected_var)
 
-            self.assertAllClose(expected_mean, moments.mean.numpy())
-            self.assertAllClose(expected_var, moments.variance.numpy())
-            self.assertAllClose(expected_std, moments.std.numpy())
+        self.assertAllClose(expected_mean, moments.mean.numpy())
+        self.assertAllClose(expected_var, moments.variance.numpy())
+        self.assertAllClose(expected_std, moments.std.numpy())
 
 
 if __name__ == "__main__":

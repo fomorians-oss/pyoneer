@@ -6,6 +6,15 @@ import tensorflow as tf
 
 
 def flatten(tensor):
+    """
+    Flatten a tensor by reshaping into a vector.
+
+    Args:
+        tensor: Tensor to flatten.
+
+    Returns:
+        Flattened tensor.
+    """
     return tf.reshape(tensor, [-1])
 
 

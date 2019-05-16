@@ -219,15 +219,45 @@ class VecFeaturizer(tf.keras.layers.Layer):
 
 
 class Flatten(tf.keras.layers.Layer):
+    """
+    Flatten inputs along the specified axis. Supports reversing the flatten operation.
+
+    Examples:
+
+    flatten = Flatten(axis=(0, 1))
+    flatten([[[0, 1, 2]]]) # [0, 1, 2]
+    flatten.unflatten([0, 1, 2]) # [[[0, 1, 2]]]
+
+    Args:
+        axis: Axes to flatten.
+    """
+
     def __init__(self, axis, **kwargs):
         super(Flatten, self).__init__(**kwargs)
         self.axis = axis
 
     def call(self, inputs):
-        print(self.input_shape)
-        outputs = tf.reshape(inputs, [])
+        """
+        Flatten inputs.
+
+        Args:
+            inputs: Tensor to flatten.
+
+        Returns:
+            Flattened inputs tensor.
+        """
+        outputs = tf.reshape(inputs, [-1])
         return outputs
 
-    def reverse(self, inputs):
-        outputs = tf.reshape(inputs, [])
+    def unflatten(self, inputs):
+        """
+        Unflatten inputs.
+
+        Args:
+            inputs: Tensor to unflatten.
+
+        Returns:
+            Unflattened inputs tensor.
+        """
+        outputs = tf.reshape(inputs, [-1])
         return outputs
