@@ -25,15 +25,15 @@ class MathOpsTest(test.TestCase):
 
     def test_normalize(self):
         x = tf.constant([-1.0, 0.0, 1.0, 0.0])
-        weights = tf.constant([1.0, 1.0, 1.0, 0.0])
-        actual = math_ops.normalize(x, loc=-1.0, scale=2.0, weights=weights)
+        sample_weight = tf.constant([1.0, 1.0, 1.0, 0.0])
+        actual = math_ops.normalize(x, loc=-1.0, scale=2.0, sample_weight=sample_weight)
         expected = tf.constant([0.0, 0.5, 1.0, 0.0])
         self.assertAllClose(actual, expected)
 
     def test_denormalize(self):
         x = tf.constant([0.0, 0.5, 1.0, 0.0])
-        weights = tf.constant([1.0, 1.0, 1.0, 0.0])
-        actual = math_ops.denormalize(x, loc=-1.0, scale=2.0, weights=weights)
+        sample_weight = tf.constant([1.0, 1.0, 1.0, 0.0])
+        actual = math_ops.denormalize(x, loc=-1.0, scale=2.0, sample_weight=sample_weight)
         expected = tf.constant([-1.0, 0.0, 1.0, 0.0])
         self.assertAllClose(actual, expected)
 

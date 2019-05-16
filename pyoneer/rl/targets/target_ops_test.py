@@ -6,14 +6,15 @@ import tensorflow as tf
 
 from tensorflow.python.platform import test
 
-from pyoneer.rl.targets import target_ops
+from pyoneer.rl.targets.target_ops import DiscountedRewards, GeneralizedAdvantages
 
 
 class TargetOpsTest(test.TestCase):
     def test_discounted_rewards(self):
         rewards = tf.constant([[0.0, 0.0, 1.0]])
-        outputs = target_ops.discounted_rewards(
-            rewards, discount_factor=0.99, weights=1.0
+        discounted_rewards = DiscountedRewards(discount_factor=0.99)
+        outputs = discounted_rewards(
+            rewards, sample_weight=1.0
         )
         expected = tf.constant([[0.9801, 0.99, 1.0]])
         self.assertAllClose(outputs, expected)
@@ -21,13 +22,15 @@ class TargetOpsTest(test.TestCase):
     def test_generalized_advantage_estimate(self):
         rewards = tf.constant([[0.0, 0.0, 1.0]])
         values = tf.constant([[0.0, 0.0, 1.0]])
-        outputs = target_ops.generalized_advantages(
-            rewards,
-            values,
+        generalized_advantages = GeneralizedAdvantages(
             discount_factor=0.99,
             lambda_factor=0.95,
-            weights=1.0,
             normalize=True,
+        )
+        outputs = generalized_advantages(
+            rewards,
+            values,
+            sample_weight=1.0,
         )
         expected = tf.constant([[0.564769, 0.840459, -1.405228]])
         self.assertAllClose(outputs, expected)

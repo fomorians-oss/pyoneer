@@ -18,14 +18,14 @@ class PolicyGradientTest(test.TestCase):
     def test_policy_gradient(self):
         log_probs = tf.math.log(tf.constant([0.9, 0.8, 0.8, 0.8]))
         advantages = tf.constant([1.0, 0.0, 1.0, 0.0])
-        weights = tf.constant([1.0, 0.0, 1.0, 0.0])
+        sample_weight = tf.constant([1.0, 0.0, 1.0, 0.0])
 
         loss_fn = PolicyGradient()
         loss = loss_fn(
-            log_probs=log_probs, advantages=advantages, sample_weight=weights
+            log_probs=log_probs, advantages=advantages, sample_weight=sample_weight
         )
         expected = losses_utils.compute_weighted_loss(
-            -log_probs * advantages, sample_weight=weights
+            -log_probs * advantages, sample_weight=sample_weight
         )
 
         self.assertAllClose(loss, expected)
@@ -37,7 +37,7 @@ class PolicyGradientTest(test.TestCase):
         log_probs_anchor = tf.math.log(tf.constant([0.95, 0.85, 0.85, 0.85]))
 
         advantages = tf.constant([1.0, 0.0, 1.0, 0.0])
-        weights = tf.constant([1.0, 0.0, 1.0, 0.0])
+        sample_weight = tf.constant([1.0, 0.0, 1.0, 0.0])
 
         # using the function
         loss_fn = ClippedPolicyGradient(epsilon_clipping=epsilon_clipping)
@@ -45,7 +45,7 @@ class PolicyGradientTest(test.TestCase):
             log_probs=log_probs,
             log_probs_anchor=log_probs_anchor,
             advantages=advantages,
-            sample_weight=weights,
+            sample_weight=sample_weight,
         )
 
         # manual check
@@ -59,7 +59,7 @@ class PolicyGradientTest(test.TestCase):
         surrogate_min = tf.minimum(surrogate1, surrogate2)
 
         expected = -losses_utils.compute_weighted_loss(
-            losses=surrogate_min, sample_weight=weights
+            losses=surrogate_min, sample_weight=sample_weight
         )
 
         self.assertAllClose(loss, expected)

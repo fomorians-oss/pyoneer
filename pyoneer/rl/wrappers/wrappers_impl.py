@@ -8,12 +8,12 @@ class ObservationNormalization(gym.Wrapper):
     """
     def __init__(self, env):
         super(ObservationNormalization, self).__init__(env)
-        self.observation_space = self._observation_space()
+        self.observation_space = self._create_observation_space()
 
     def __getattr__(self, name):
         return getattr(self.env, name)
 
-    def _observation_space(self):
+    def _create_observation_space(self):
         observation_space = self.env.observation_space
         low = -np.ones(shape=observation_space.shape, dtype=observation_space.dtype)
         high = np.ones(shape=observation_space.shape, dtype=observation_space.dtype)
@@ -42,12 +42,12 @@ class ObservationCoordinates(gym.Wrapper):
     """
     def __init__(self, env):
         super(ObservationCoordinates, self).__init__(env)
-        self.observation_space = self._observation_space()
+        self.observation_space = self._create_observation_space()
 
     def __getattr__(self, name):
         return getattr(self.env, name)
 
-    def _observation_space(self):
+    def _create_observation_space(self):
         observation_space = self.env.observation_space
 
         coord_low = np.zeros_like(observation_space.low[..., :1])

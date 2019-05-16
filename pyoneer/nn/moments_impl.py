@@ -52,13 +52,13 @@ class StreamingMoments(tf.keras.Model):
             self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.var_sum)
         )
 
-    def call(self, inputs, weights=1.0, training=None):
+    def call(self, inputs, sample_weight=1.0, training=None):
         """
         Update moments using a new batch of inputs.
 
         Args:
             inputs: Input tensor.
-            weights: Optional weights.
+            sample_weight: Optional sample_weight.
             training: Boolean indicating whether or not to update the moments.
 
         Returns:
@@ -70,24 +70,24 @@ class StreamingMoments(tf.keras.Model):
             ndims = inputs.shape.ndims - self.mean.shape.ndims
             axes = list(range(ndims))
 
-            weight_sum = tf.reduce_sum(weights, axis=axes)
+            weight_sum = tf.reduce_sum(sample_weight, axis=axes)
             count_delta = tf.cast(weight_sum, tf.int64)
             new_count = self.count + count_delta
 
             mean_delta = tf.where(
                 count_delta > 1,
                 (
-                    tf.reduce_sum((inputs - self.mean) * weights, axis=axes)
+                    tf.reduce_sum((inputs - self.mean) * sample_weight, axis=axes)
                     / tf.cast(new_count, tf.float32)
                 ),
                 math_ops.safe_divide(
-                    tf.reduce_sum(inputs * weights, axis=axes), weight_sum
+                    tf.reduce_sum(inputs * sample_weight, axis=axes), weight_sum
                 ),
             )
             new_mean = self.mean + mean_delta
 
             var_delta = tf.reduce_sum(
-                (inputs - self.mean) * (inputs - new_mean) * weights, axis=axes
+                (inputs - self.mean) * (inputs - new_mean) * sample_weight, axis=axes
             )
             new_var_sum = self.var_sum + var_delta
 
@@ -127,13 +127,13 @@ class ExponentialMovingMoments(tf.keras.Model):
             self.count > 0, tf.sqrt(self.variance), tf.zeros_like(self.variance)
         )
 
-    def call(self, inputs, weights=1.0, training=None):
+    def call(self, inputs, sample_weight=1.0, training=None):
         """
         Update moments using a new batch of inputs.
 
         Args:
             inputs: Input tensor.
-            weights: Optional weights.
+            sample_weight: Optional sample_weight.
             training: Boolean indicating whether or not to update the moments.
 
         Returns:
@@ -145,12 +145,12 @@ class ExponentialMovingMoments(tf.keras.Model):
             ndims = inputs.shape.ndims - self.mean.shape.ndims
             axes = list(range(ndims))
 
-            weight_sum = tf.reduce_sum(weights, axis=axes)
+            weight_sum = tf.reduce_sum(sample_weight, axis=axes)
             count_delta = tf.cast(weight_sum, tf.int64)
             new_count = self.count + count_delta
 
             mean, variance = tf.nn.weighted_moments(
-                inputs, axes=axes, frequency_weights=weights
+                inputs, axes=axes, frequency_weights=sample_weight
             )
 
             # mask values

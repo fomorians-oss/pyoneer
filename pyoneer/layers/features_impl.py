@@ -35,7 +35,6 @@ class Normalizer(tf.keras.layers.Layer):
         Returns:
             The normalized input tensor.
         """
-        inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
         outputs = math_ops.normalize(inputs, self.loc, self.scale)
         return outputs
 
@@ -62,7 +61,6 @@ class OneHotEncoder(tf.keras.layers.Layer):
         Returns:
             The one-hot encoded inputs.
         """
-        inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
         inputs = tf.cast(inputs, tf.int64)
         outputs = tf.one_hot(inputs, self.depth)
         outputs = tf.debugging.check_numerics(outputs, "outputs")
@@ -83,7 +81,6 @@ class AngleEncoder(tf.keras.layers.Layer):
         self.degrees = degrees
 
     def call(self, inputs):
-        inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
         if self.degrees:
             inputs = angle_ops.to_radians(inputs)
         x, y = angle_ops.to_cartesian(inputs)

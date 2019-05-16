@@ -15,14 +15,10 @@ class SoftplusInverse(tf.initializers.Initializer):
         dtype: dtype of the operation.
     """
 
-    def __init__(self, scale=1.0, dtype=tf.float32):
-        self.scale = tf.convert_to_tensor(scale)
-        self.dtype = tf.dtypes.as_dtype(dtype)
+    def __init__(self, scale=1.0):
+        self.scale = scale
 
-    def __call__(self, shape, dtype=None):
-        if dtype is None:
-            dtype = self.dtype
-
+    def __call__(self, shape, dtype=tf.float32):
         return tf.constant(
             tfp.distributions.softplus_inverse(self.scale), dtype=dtype, shape=shape
         )
