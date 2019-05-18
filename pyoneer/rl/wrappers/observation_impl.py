@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import gym
 import numpy as np
 
@@ -6,6 +10,7 @@ class ObservationNormalization(gym.Wrapper):
     """
     Wraps the environment to normalize observations.
     """
+
     def __init__(self, env):
         super(ObservationNormalization, self).__init__(env)
         self.observation_space = self._create_observation_space()
@@ -40,6 +45,7 @@ class ObservationCoordinates(gym.Wrapper):
 
     Expects the observation space to have shape [height, width, channel]`.
     """
+
     def __init__(self, env):
         super(ObservationCoordinates, self).__init__(env)
         self.observation_space = self._create_observation_space()
