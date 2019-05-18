@@ -22,7 +22,7 @@ class Batch(object):
         batch_size: Number of parallel environments.
     """
 
-    def __init__(self, constructor, batch_size=None):
+    def __init__(self, constructor, batch_size):
         self.envs = [constructor() for _ in range(batch_size)]
 
     def __len__(self):
