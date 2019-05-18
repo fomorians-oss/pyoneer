@@ -9,18 +9,26 @@ For the top-level utilities, import like so:
     import pyoneer as pynr
     pynr.math.rescale(...)
 
-For the large sub-modules, such as reinforcement learning, we recommend:
+For the larger sub-modules, such as reinforcement learning, we recommend:
 
     import pyoneer.rl as pyrl
     pyrl.losses.policy_gradient_loss(...)
 
-In general the API tries to adhere to TensorFlow 2.0's API.
+In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
 
 ### Examples
 
-- [Eager Proximal Policy Optimization](https://github.com/fomorians/ppo)
+- [TF 2.0 Proximal Policy Optimization](https://github.com/fomorians/ppo)
 
 ## API
+
+### Debugging ([`pynr.debugging`](pyoneer/debugging))
+
+- `pynr.debugging.Stopwatch`
+
+### Distributions ([`pynr.distributions`](pyoneer/distributions))
+
+- `pynr.distributions.MultiCategorical`
 
 ### Initializers ([`pynr.initializers`](pyoneer/initializers))
 
@@ -37,6 +45,7 @@ In general the API tries to adhere to TensorFlow 2.0's API.
 
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
+- `pynr.manip.flatten`
 - `pynr.manip.batched_index`
 - `pynr.manip.pad_or_truncate`
 - `pynr.manip.shift`
@@ -69,56 +78,51 @@ In general the API tries to adhere to TensorFlow 2.0's API.
 - `pynr.nn.StreamingMoments`
 - `pynr.nn.ExponentialMovingMoments`
 
-### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
-
-Utilities for reinforcement learning.
-
-#### Environments ([`pynr.rl.envs`](pyoneer/rl/envs))
-
-- `pynr.rl.envs.BatchEnv`
-- `pynr.rl.envs.ProcessEnv`
-
-#### Losses ([`pynr.rl.losses`](pyoneer/rl/losses))
-
-- `pynr.rl.losses.policy_gradient_loss`
-- `pynr.rl.losses.clipped_policy_gradient_loss`
-
-#### Targets ([`pynr.rl.targets`](pyoneer/rl/targets))
-
-- `pynr.rl.targets.discounted_rewards`
-- `pynr.rl.targets.generalized_advantages`
-
-#### Strategies ([`pynr.rl.strategies`](pyoneer/rl/strategies))
-
-- `pynr.rl.strategies.EpsilonGreedyStrategy`
-- `pynr.rl.strategies.ModeStrategy`
-- `pynr.rl.strategies.SampleStrategy`
-
 ### Training ([`pynr.training`](pyoneer/training))
 
 - `pynr.training.CyclicSchedule`
 - `pynr.training.update_target_variables`
 
+### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
+
+Utilities for reinforcement learning.
+
+#### Losses ([`pynr.rl.losses`](pyoneer/rl/losses))
+
+- `pynr.rl.losses.policy_gradient`
+- `pynr.rl.losses.policy_entropy`
+- `pynr.rl.losses.clipped_policy_gradient`
+- `pynr.rl.losses.PolicyGradient`
+- `pynr.rl.losses.PolicyEntropy`
+- `pynr.rl.losses.ClippedPolicyGradient`
+
+#### Targets ([`pynr.rl.targets`](pyoneer/rl/targets))
+
+- `pynr.rl.targets.DiscountedRewards`
+- `pynr.rl.targets.GeneralizedAdvantages`
+
+#### Strategies ([`pynr.rl.strategies`](pyoneer/rl/strategies))
+
+- `pynr.rl.strategies.EpsilonGreedy`
+- `pynr.rl.strategies.Mode`
+- `pynr.rl.strategies.Sample`
+
 ## Installation
 
-There are a few options of installing:
+There are a few options for installation:
 
-1. Install with `pipenv`:
+1. (Recommended) Install with `pipenv`:
 
         pipenv install pyoneer
 
-2. Install with `pip`:
-
-        pip install pyoneer
-
-3. Install locally for development with `pipenv`:
+2. Install locally for development with `pipenv`:
 
         git clone https://github.com/fomorians/pyoneer.git
         cd pyoneer
         pipenv install
         pipenv shell
 
-4. Install locally for development with `pip`:
+3. Install locally for development with `pip`:
 
         git clone https://github.com/fomorians/pyoneer.git
         cd pyoneer

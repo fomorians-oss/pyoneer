@@ -6,6 +6,15 @@ import tensorflow as tf
 
 
 class MultiCategorical:
+    """
+    Distribution composed of multiple distributions.
+
+    Useful for representing `gym.spaces.MultiDiscrete`.
+
+    Args:
+        distributions: list of distributions.
+    """
+
     def __init__(self, distributions):
         self.distributions = distributions
 

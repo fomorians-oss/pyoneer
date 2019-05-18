@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
 import tensorflow as tf
 
 from collections import OrderedDict
@@ -68,7 +67,7 @@ class OneHotEncoder(tf.keras.layers.Layer):
         return outputs
 
     def get_config(self):
-        config = {'depth': self.depth}
+        config = {"depth": self.depth}
         base_config = super(OneHotEncoder, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -94,7 +93,7 @@ class AngleEncoder(tf.keras.layers.Layer):
         return outputs
 
     def get_config(self):
-        config = {'degrees': self.degrees}
+        config = {"degrees": self.degrees}
         base_config = super(AngleEncoder, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
