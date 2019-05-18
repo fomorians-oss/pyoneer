@@ -107,6 +107,14 @@ Utilities for reinforcement learning.
 - `pynr.rl.strategies.Mode`
 - `pynr.rl.strategies.Sample`
 
+#### Wrappers ([`pynr.rl.wrappers`](pyoneer/rl/wrappers))
+
+- `pynr.rl.wrappers.ObservationCoordinates`
+- `pynr.rl.wrappers.ObservationNormalization`
+- `pynr.rl.wrappers.Batch`
+- `pynr.rl.wrappers.BatchProcess`
+- `pynr.rl.wrappers.Process`
+
 ## Installation
 
 There are a few options for installation:
