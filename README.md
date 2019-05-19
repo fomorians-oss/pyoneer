@@ -12,7 +12,7 @@ For the top-level utilities, import like so:
 For the larger sub-modules, such as reinforcement learning, we recommend:
 
     import pyoneer.rl as pyrl
-    pyrl.losses.policy_gradient_loss(...)
+    loss_fn = pyrl.losses.PolicyGradient(...)
 
 In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
 
