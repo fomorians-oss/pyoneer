@@ -15,22 +15,23 @@ class ObservationNormalization(gym.Wrapper):
         super(ObservationNormalization, self).__init__(env)
         self.observation_space = self._create_observation_space()
 
+    @property
+    def mean(self):
+        observation_space = self.env.observation_space
+        return (observation_space.high + observation_space.low) / 2
+
+    @property
+    def std(self):
+        observation_space = self.env.observation_space
+        return (observation_space.high - observation_space.low) / 2
+
     def _create_observation_space(self):
-        low = self.env.observation_space.low
-        high = self.env.observation_space.high
-        dtype = self.env.observation_space.dtype
-        mean = (high + low) / 2
-        std = (high - low) / 2
-        low = mean - std
-        high = mean + std
-        return gym.spaces.Box(low, high, dtype=dtype)
+        low = self.mean - self.std
+        high = self.mean + self.std
+        return gym.spaces.Box(low, high, dtype=self.env.observation_space.dtype)
 
     def normalize_observation(self, observ):
-        low = self.env.observation_space.low
-        high = self.env.observation_space.high
-        mean = (high + low) / 2
-        std = (high - low) / 2
-        observ = (observ - mean) / std
+        observ = (observ - self.mean) / self.std
         return observ
 
     def reset(self):
@@ -69,13 +70,14 @@ class ObservationCoordinates(gym.Wrapper):
         return space
 
     def generate_coords(self):
-        x_dim, y_dim = self.observation_space.shape[:2]
+        observation_space = self.observation_space
+        x_dim, y_dim = observation_space.shape[:2]
 
-        xx_range = np.linspace(0.0, 1.0, x_dim)
-        yy_range = np.linspace(0.0, 1.0, y_dim)
+        xx_range = np.linspace(0.0, 1.0, num=x_dim, dtype=observation_space.dtype)
+        yy_range = np.linspace(0.0, 1.0, num=y_dim, dtype=observation_space.dtype)
 
-        xx_ones = np.ones(x_dim, dtype=self.observation_space.dtype)
-        yy_ones = np.ones(y_dim, dtype=self.observation_space.dtype)
+        xx_ones = np.ones(x_dim, dtype=observation_space.dtype)
+        yy_ones = np.ones(y_dim, dtype=observation_space.dtype)
 
         xx_channel = np.matmul(xx_ones[..., None], xx_range[None, ...])
         yy_channel = np.matmul(yy_range[..., None], yy_ones[None, ...])
