@@ -79,7 +79,8 @@ class GeneralizedAdvantages:
         advantages = tf.reverse(
             tf.transpose(
                 tf.scan(
-                    lambda agg, cur: cur + self.discount_factor * self.lambda_factor * agg,
+                    lambda agg, cur: cur
+                    + self.discount_factor * self.lambda_factor * agg,
                     tf.transpose(tf.reverse(deltas * sample_weight, [1]), [1, 0]),
                     tf.zeros_like(deltas[:, -1]),
                     1,
@@ -101,4 +102,5 @@ class GeneralizedAdvantages:
 
         advantages = advantages * sample_weight
         advantages = tf.debugging.check_numerics(advantages, "advantages")
-        return tf.stop_gradient(advantages)
+        advantages = tf.stop_gradient(advantages)
+        return advantages

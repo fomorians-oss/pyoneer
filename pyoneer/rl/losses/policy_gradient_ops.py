@@ -19,6 +19,7 @@ def policy_gradient(log_probs, advantages):
     Returns:
         Tensor of losses.
     """
+    advantages = tf.stop_gradient(advantages)
     losses = -log_probs * advantages
     losses = tf.debugging.check_numerics(losses, "loss")
     return losses
@@ -47,15 +48,10 @@ def clipped_policy_gradient(
     advantages = tf.stop_gradient(advantages)
 
     ratio = tf.exp(log_probs - log_probs_anchor)
-    ratio = tf.debugging.check_numerics(ratio, "ratio")
+    ratio_clipped = tf.clip_by_value(ratio, 1 - epsilon_clipping, 1 + epsilon_clipping)
 
     surrogate1 = ratio * advantages
-    surrogate1 = tf.debugging.check_numerics(surrogate1, "surrogate1")
-
-    surrogate2 = (
-        tf.clip_by_value(ratio, 1 - epsilon_clipping, 1 + epsilon_clipping) * advantages
-    )
-    surrogate2 = tf.debugging.check_numerics(surrogate2, "surrogate2")
+    surrogate2 = ratio_clipped * advantages
 
     surrogate_min = tf.minimum(surrogate1, surrogate2)
 
