@@ -16,15 +16,21 @@ class ObservationNormalization(gym.Wrapper):
         self.observation_space = self._create_observation_space()
 
     def _create_observation_space(self):
-        observation_space = self.env.observation_space
-        low = -np.ones(shape=observation_space.shape, dtype=observation_space.dtype)
-        high = np.ones(shape=observation_space.shape, dtype=observation_space.dtype)
-        return gym.spaces.Box(low, high, dtype=observation_space.dtype)
+        low = self.env.observation_space.low
+        high = self.env.observation_space.high
+        dtype = self.env.observation_space.dtype
+        mean = (high + low) / 2
+        std = (high - low) / 2
+        low = mean - std
+        high = mean + std
+        return gym.spaces.Box(low, high, dtype=dtype)
 
     def normalize_observation(self, observ):
         low = self.env.observation_space.low
         high = self.env.observation_space.high
-        observ = 2 * (observ - low) / (high - low) - 1
+        mean = (high + low) / 2
+        std = (high - low) / 2
+        observ = (observ - mean) / std
         return observ
 
     def reset(self):
