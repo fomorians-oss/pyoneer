@@ -146,27 +146,21 @@ class ExponentialMovingMoments(tf.keras.Model):
             axes = list(range(ndims))
 
             weight_sum = tf.reduce_sum(sample_weight, axis=axes)
-            count_delta = tf.cast(weight_sum, tf.int64)
-            new_count = self.count + count_delta
+            count = tf.cast(weight_sum, tf.int64)
+            new_count = self.count + count
 
             mean, variance = tf.nn.weighted_moments(
                 inputs, axes=axes, frequency_weights=sample_weight
             )
 
-            # mask values
-            mean = tf.where(weight_sum > 0, mean, self.mean)
-            variance = tf.where(weight_sum > 0, variance, self.variance)
+            moving_mean = self.mean * self.rate + mean * (1 - self.rate)
+            moving_variance = self.variance * self.rate + variance * (1 - self.rate)
 
-            new_mean = tf.where(
-                tf.logical_and(new_count > 1, weight_sum > 0),
-                self.mean * self.rate + mean * (1 - self.rate),
-                mean,
-            )
-            new_variance = tf.where(
-                tf.logical_and(new_count > 1, weight_sum > 0),
-                self.variance * self.rate + variance * (1 - self.rate),
-                variance,
-            )
+            new_mean = tf.where(self.count > 0, moving_mean, mean)
+            new_variance = tf.where(self.count > 0, moving_variance, variance)
+
+            new_mean = tf.where(count > 0, new_mean, self.mean)
+            new_variance = tf.where(count > 0, new_variance, self.variance)
 
             self.mean.assign(new_mean)
             self.variance.assign(new_variance)
