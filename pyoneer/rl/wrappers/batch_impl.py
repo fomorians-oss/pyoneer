@@ -23,7 +23,7 @@ class Batch(object):
     """
 
     def __init__(self, constructor, batch_size):
-        self.envs = [constructor() for _ in range(batch_size)]
+        self.envs = [constructor(batch_id) for batch_id in range(batch_size)]
 
     def __len__(self):
         return len(self.envs)

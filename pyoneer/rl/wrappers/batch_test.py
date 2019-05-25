@@ -14,7 +14,9 @@ class BatchTest(test.TestCase):
     def test_batch(self):
         batch_size = 8
 
-        env = Batch(constructor=lambda: gym.make("Pendulum-v0"), batch_size=batch_size)
+        env = Batch(
+            constructor=lambda batch_id: gym.make("Pendulum-v0"), batch_size=batch_size
+        )
         env.seed(0)
 
         state = env.reset()
