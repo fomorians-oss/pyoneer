@@ -52,6 +52,12 @@ class Batch(object):
         info = tuple(infos)
         return next_state, reward, done, info
 
+    def render(self, mode="human"):
+        assert (
+            mode == "rgb_array"
+        ), 'only the "rgb_array" mode is supported by pyrl.wrappers.Batch'
+        return np.stack([env.render(mode=mode) for env in self.envs], axis=0)
+
     def close(self):
         for env in self.envs:
             if hasattr(env, "close"):
