@@ -97,7 +97,10 @@ class GeneralizedAdvantages:
             )
             advantages_std = tf.sqrt(advantages_variance)
             advantages = math_ops.normalize(
-                advantages, loc=advantages_mean, scale=advantages_std
+                advantages,
+                loc=advantages_mean,
+                scale=advantages_std,
+                sample_weight=sample_weight,
             )
 
         advantages = advantages * sample_weight

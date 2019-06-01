@@ -11,19 +11,20 @@ class ObservationNormalization(gym.Wrapper):
     Wraps the environment to normalize observations.
     """
 
-    def __init__(self, env):
+    def __init__(self, env, mean=None, std=None):
         super(ObservationNormalization, self).__init__(env)
+
+        if mean is None:
+            self.mean = (self.observation_space.high + self.observation_space.low) / 2
+        else:
+            self.mean = mean
+
+        if std is None:
+            self.std = (self.observation_space.high - self.observation_space.low) / 2
+        else:
+            self.std = std
+
         self.observation_space = self._create_observation_space()
-
-    @property
-    def mean(self):
-        observation_space = self.env.observation_space
-        return (observation_space.high + observation_space.low) / 2
-
-    @property
-    def std(self):
-        observation_space = self.env.observation_space
-        return (observation_space.high - observation_space.low) / 2
 
     def _create_observation_space(self):
         low = self.mean - self.std
