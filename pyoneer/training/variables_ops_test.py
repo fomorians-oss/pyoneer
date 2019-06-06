@@ -4,12 +4,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.training import variables_ops
 
 
-class VariablesOpsTest(test.TestCase):
+class VariablesOpsTest(tf.test.TestCase):
     def test_update_target_variables(self):
         source = tf.Variable(1.0)
         target = tf.Variable(0.0)
@@ -29,4 +27,4 @@ class VariablesOpsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

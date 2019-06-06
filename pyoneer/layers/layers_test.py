@@ -7,8 +7,6 @@ import tensorflow as tf
 
 from collections import OrderedDict
 
-from tensorflow.python.platform import test
-
 from pyoneer.layers.layers_impl import (
     Normalizer,
     OneHotEncoder,
@@ -19,7 +17,7 @@ from pyoneer.layers.layers_impl import (
 )
 
 
-class LayersTest(test.TestCase):
+class LayersTest(tf.test.TestCase):
     def test_normalizer_layer(self):
         layer = Normalizer(loc=0.5, scale=2.0)
         inputs = tf.constant([1.0], dtype=tf.float32)
@@ -66,9 +64,7 @@ class LayersTest(test.TestCase):
         self.assertAllEqual(outputs, expected)
 
     def test_list_featurizer(self):
-        layer = ListFeaturizer(
-            [OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)]
-        )
+        layer = ListFeaturizer([OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)])
         features = [
             tf.constant([3], dtype=tf.int32),
             tf.constant([1.0], dtype=tf.float32),
@@ -78,9 +74,7 @@ class LayersTest(test.TestCase):
         self.assertAllEqual(outputs, expected)
 
     def test_vec_featurizer(self):
-        layer = VecFeaturizer(
-            [OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)]
-        )
+        layer = VecFeaturizer([OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)])
         features = tf.constant([3.0, 1.0], dtype=tf.float32)
         outputs = layer(features)
         expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
@@ -88,4 +82,4 @@ class LayersTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

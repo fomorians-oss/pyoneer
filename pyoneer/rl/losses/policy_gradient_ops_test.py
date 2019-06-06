@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
 from tensorflow.python.keras.utils import losses_utils
 
 from pyoneer.rl.losses.policy_gradient_ops import (
@@ -14,7 +13,7 @@ from pyoneer.rl.losses.policy_gradient_ops import (
 )
 
 
-class PolicyGradientTest(test.TestCase):
+class PolicyGradientTest(tf.test.TestCase):
     def test_policy_gradient(self):
         log_probs = tf.math.log(tf.constant([0.9, 0.8, 0.8, 0.8]))
         advantages = tf.constant([1.0, 0.0, 1.0, 0.0])
@@ -73,4 +72,4 @@ class PolicyGradientTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

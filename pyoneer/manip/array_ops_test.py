@@ -9,7 +9,7 @@ from tensorflow.python.platform import test
 from pyoneer.manip import array_ops
 
 
-class ArrayOpsTest(test.TestCase):
+class ArrayOpsTest(tf.test.TestCase):
     def test_flatten(self):
         inputs = tf.constant([[0.0, 1.0, 2.0]])
         outputs = array_ops.flatten(inputs)

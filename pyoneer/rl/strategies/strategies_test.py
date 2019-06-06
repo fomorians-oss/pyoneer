@@ -5,12 +5,10 @@ from __future__ import print_function
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from tensorflow.python.platform import test
-
 from pyoneer.rl.strategies import strategies_impl
 
 
-class StrategiesTest(test.TestCase):
+class StrategiesTest(tf.test.TestCase):
     def test_epsilon_greedy(self):
         logits = [[0.0, 1.0, -2.0], [0.0, 1.0, 2.0]]
 
@@ -55,4 +53,4 @@ class StrategiesTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

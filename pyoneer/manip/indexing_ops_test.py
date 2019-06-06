@@ -4,12 +4,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.manip import indexing_ops
 
 
-class IndexingOpsTest(test.TestCase):
+class IndexingOpsTest(tf.test.TestCase):
     def test_batched_index(self):
         values = tf.constant([[0, 1, 2], [0, 1, 2], [0, 1, 2]])
         indices = tf.constant([0, 1, 2])
@@ -19,4 +17,4 @@ class IndexingOpsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

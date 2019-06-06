@@ -2,12 +2,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow.python.platform import test
+import tensorflow as tf
 
 from pyoneer.debugging.debugging_impl import Stopwatch
 
 
-class DebuggingTest(test.TestCase):
+class DebuggingTest(tf.test.TestCase):
     def test_stopwatch(self):
         with Stopwatch() as stopwatch:
             pass
@@ -17,4 +17,4 @@ class DebuggingTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

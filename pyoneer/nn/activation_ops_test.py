@@ -4,12 +4,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.nn import activation_ops
 
 
-class ActivationOpsTest(test.TestCase):
+class ActivationOpsTest(tf.test.TestCase):
     def test_swish(self):
         x = tf.constant([-1.0, 0.0, +1.0])
         actual = activation_ops.swish(x)
@@ -18,4 +16,4 @@ class ActivationOpsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

@@ -4,13 +4,12 @@ from __future__ import print_function
 
 import gym
 import numpy as np
-
-from tensorflow.python.platform import test
+import tensorflow as tf
 
 from pyoneer.rl.wrappers.batch_impl import Batch
 
 
-class BatchTest(test.TestCase):
+class BatchTest(tf.test.TestCase):
     def test_batch(self):
         batch_size = 8
 
@@ -34,4 +33,4 @@ class BatchTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

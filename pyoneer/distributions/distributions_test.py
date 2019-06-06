@@ -5,12 +5,10 @@ from __future__ import print_function
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from tensorflow.python.platform import test
-
 from pyoneer.distributions.distributions_impl import MultiCategorical
 
 
-class DistributionsTest(test.TestCase):
+class DistributionsTest(tf.test.TestCase):
     def test_multicategorical_log_prob(self):
         dist1 = tfp.distributions.Categorical(logits=[[0.1, 0.2, 0.3]])
         dist2 = tfp.distributions.Categorical(logits=[[0.3, 0.2, 0.1]])
@@ -43,4 +41,4 @@ class DistributionsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

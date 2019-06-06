@@ -43,8 +43,10 @@ def update_target_variables(
     """
     if not isinstance(rate, float):
         raise TypeError("Tau has wrong type (should be float) {}".format(rate))
+
     if not 0.0 < rate <= 1.0:
         raise ValueError("Invalid parameter rate {}".format(rate))
+
     if len(target_variables) != len(source_variables):
         raise ValueError(
             "Number of target variables {} is not the same as "

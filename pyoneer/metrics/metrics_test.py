@@ -4,12 +4,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer import metrics
 
 
-class MetricsTest(test.TestCase):
+class MetricsTest(tf.test.TestCase):
     def test_mape_fn(self):
         y_true = tf.constant([[0.2, 0.1], [0.3, 0.2], [0.1, 0.2]], dtype=tf.float32)
         y_pred = tf.constant([[0.1, 0.1], [0.2, 0.1], [0.2, 0.2]], dtype=tf.float32)
@@ -46,4 +44,4 @@ class MetricsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

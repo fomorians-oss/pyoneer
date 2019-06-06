@@ -3,13 +3,12 @@ from __future__ import division
 from __future__ import print_function
 
 import gym
-
-from tensorflow.python.platform import test
+import tensorflow as tf
 
 from pyoneer.rl.wrappers.process_impl import Process
 
 
-class ProcessTest(test.TestCase):
+class ProcessTest(tf.test.TestCase):
     def test_process(self):
         env = Process(lambda: gym.make("Pendulum-v0"), blocking=True)
         env.seed(0)
@@ -24,4 +23,4 @@ class ProcessTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

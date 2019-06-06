@@ -5,16 +5,12 @@ from __future__ import print_function
 import math
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.math import angle_ops
 
 
-class AnglesOpsTest(test.TestCase):
+class AnglesOpsTest(tf.test.TestCase):
     def test_to_radians(self):
-        inputs = tf.constant(
-            [-360, -180, -90, 0, +90, +180, +360], dtype=tf.float32
-        )
+        inputs = tf.constant([-360, -180, -90, 0, +90, +180, +360], dtype=tf.float32)
         outputs = angle_ops.to_radians(inputs)
         expected = tf.constant(
             [
@@ -44,9 +40,7 @@ class AnglesOpsTest(test.TestCase):
             dtype=tf.float32,
         )
         outputs = angle_ops.to_degrees(inputs)
-        expected = tf.constant(
-            [-360, -180, -90, 0, +90, +180, +360], dtype=tf.float32
-        )
+        expected = tf.constant([-360, -180, -90, 0, +90, +180, +360], dtype=tf.float32)
         self.assertAllEqual(outputs, expected)
 
     def test_to_cartesian(self):
@@ -81,4 +75,4 @@ class AnglesOpsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

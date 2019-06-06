@@ -4,8 +4,7 @@ from __future__ import print_function
 
 import gym
 import numpy as np
-
-from tensorflow.python.platform import test
+import tensorflow as tf
 
 from pyoneer.rl.wrappers.observation_impl import (
     ObservationCoordinates,
@@ -33,7 +32,7 @@ class TestEnv(gym.Env):
         return state, reward, done, info
 
 
-class ObservationTest(test.TestCase):
+class ObservationTest(tf.test.TestCase):
     def test_observation_coords(self):
         env = TestEnv()
         env = ObservationCoordinates(env)
@@ -46,4 +45,4 @@ class ObservationTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

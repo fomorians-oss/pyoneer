@@ -4,12 +4,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.math import math_ops
 
 
-class MathOpsTest(test.TestCase):
+class MathOpsTest(tf.test.TestCase):
     def test_safe_divide(self):
         x = tf.ones(shape=[7], dtype=tf.float32)
         y = tf.constant([-1.0, -0.5, -0.2, 0.0, +0.2, +0.5, +1.0])
@@ -33,10 +31,12 @@ class MathOpsTest(test.TestCase):
     def test_denormalize(self):
         x = tf.constant([0.0, 0.5, 1.0, 0.0])
         sample_weight = tf.constant([1.0, 1.0, 1.0, 0.0])
-        actual = math_ops.denormalize(x, loc=-1.0, scale=2.0, sample_weight=sample_weight)
+        actual = math_ops.denormalize(
+            x, loc=-1.0, scale=2.0, sample_weight=sample_weight
+        )
         expected = tf.constant([-1.0, 0.0, 1.0, 0.0])
         self.assertAllClose(actual, expected)
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

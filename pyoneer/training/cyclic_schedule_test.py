@@ -4,33 +4,23 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.training.cyclic_schedule_impl import CyclicSchedule
 
 
-class CyclicScheduleTest(test.TestCase):
+class CyclicScheduleTest(tf.test.TestCase):
     def test_cyclic_schedule(self):
-        global_step = tf.Variable(0, trainable=False)
-        cyclic_lr = CyclicSchedule(
-            minval=0.2, maxval=0.4, step_size=500, global_step=global_step
-        )
+        cyclic_lr = CyclicSchedule(minval=0.2, maxval=0.4, step_size=500)
         # start of a cycle
-        global_step.assign(1)
-        self.assertAllClose(cyclic_lr(), 0.2)
+        self.assertAllClose(cyclic_lr(0), 0.2)
         # apex of the cycle
-        global_step.assign(501)
-        self.assertAllClose(cyclic_lr(), 0.4)
+        self.assertAllClose(cyclic_lr(500), 0.4)
         # midway from the apex to the end of a cycle
-        global_step.assign(751)
-        self.assertAllClose(cyclic_lr(), 0.2)
+        self.assertAllClose(cyclic_lr(750), 0.2)
         # end of a cycle
-        global_step.assign(1000)
-        self.assertAllClose(cyclic_lr(), 0.0008)
+        self.assertAllClose(cyclic_lr(999), 0.0008)
         # start of a new cycle
-        global_step.assign(1001)
-        self.assertAllClose(cyclic_lr(), 0.2)
+        self.assertAllClose(cyclic_lr(1000), 0.2)
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

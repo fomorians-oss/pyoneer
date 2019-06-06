@@ -4,12 +4,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.platform import test
-
 from pyoneer.nn import moments_impl
 
 
-class MomentsTest(test.TestCase):
+class MomentsTest(tf.test.TestCase):
     def test_moments_from_range(self):
         mean, variance = moments_impl.moments_from_range(
             minval=tf.constant([-2.0]), maxval=tf.constant([2.0])
@@ -111,4 +109,4 @@ class MomentsTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()
