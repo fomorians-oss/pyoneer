@@ -20,10 +20,11 @@ class CyclicSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         step_size: number of optimization steps in half a cycle.
     """
 
-    def __init__(self, minval, maxval, step_size):
+    def __init__(self, minval, maxval, step_size, decay_to_zero=False):
         self.minval = minval
         self.maxval = maxval
         self.step_size = step_size
+        self.decay_to_zero = decay_to_zero
 
     def get_config(self):
         return {
@@ -38,6 +39,9 @@ class CyclicSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         x = step / self.step_size - 2 * cycle + 1
         x_abs = tf.abs(x)
         # decay the downward half towards 0 instead of minval
-        minval = tf.where(x < 0, self.minval, 0.0)
+        if self.decay_to_zero:
+            minval = tf.where(x < 0, self.minval, 0.0)
+        else:
+            minval = self.minval
         vrange = self.maxval - minval
         return minval + vrange * tf.maximum(0.0, 1 - x_abs)
