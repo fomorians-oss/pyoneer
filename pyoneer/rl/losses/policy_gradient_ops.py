@@ -79,11 +79,13 @@ class PolicyGradient:
     Computes the Vanilla policy gradient loss.
 
     Attributes:
-        reduction: a tf.losses.Reduction method.
+        reduction: a tf.keras.losses.Reduction method.
         name: name of the loss.
     """
 
-    def __init__(self, reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE, name=None):
+    def __init__(
+        self, reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE, name=None
+    ):
         self.reduction = reduction
         self.name = name
 
@@ -109,14 +111,14 @@ class ClippedPolicyGradient:
 
     Attributes:
         epsilon_clipping: epsilon parameter of the clipped surrogate objective.
-        reduction: a tf.losses.Reduction method.
+        reduction: a tf.keras.losses.Reduction method.
         name: name of the loss.
     """
 
     def __init__(
         self,
         epsilon_clipping=0.2,
-        reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE,
+        reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE,
         name="clipped_policy_gradient",
     ):
         self.epsilon_clipping = epsilon_clipping
@@ -146,11 +148,13 @@ class PolicyEntropy:
     Computes the policy entropy loss.
 
     Attributes:
-        reduction: a tf.losses.Reduction method.
+        reduction: a tf.keras.losses.Reduction method.
         name: name of the loss.
     """
 
-    def __init__(self, reduction=tf.losses.Reduction.SUM_OVER_BATCH_SIZE, name=None):
+    def __init__(
+        self, reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE, name=None
+    ):
         self.reduction = reduction
         self.name = name
 
