@@ -23,7 +23,42 @@ def moments_from_range(minval, maxval):
     return mean, variance
 
 
-class StreamingMoments(tf.keras.Model):
+class Moments(tf.keras.Model):
+    """
+    Base class for moment containers.
+    """
+
+    def normalize(self, inputs, sample_weight=1.0):
+        return math_ops.normalize(
+            inputs, loc=self.mean, scale=self.std, sample_weight=sample_weight
+        )
+
+    def denormalize(self, inputs, sample_weight=1.0):
+        return math_ops.denormalize(
+            inputs, loc=self.mean, scale=self.std, sample_weight=sample_weight
+        )
+
+
+class StaticMoments(Moments):
+    """
+    Static moments.
+
+    Args:
+        mean: Mean of moments.
+        variance: Variance of moments.
+    """
+
+    def __init__(self, mean, variance, **kwargs):
+        super(StaticMoments, self).__init__(**kwargs)
+        self.mean = tf.Variable(mean, trainable=False)
+        self.variance = tf.Variable(variance, trainable=False)
+
+    @property
+    def std(self):
+        return tf.sqrt(self.variance)
+
+
+class StreamingMoments(Moments):
     """
     Compute accurate moments on a batch basis.
 
@@ -39,17 +74,17 @@ class StreamingMoments(tf.keras.Model):
         self.var_sum = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
 
     @property
+    def std(self):
+        return tf.where(
+            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.variance)
+        )
+
+    @property
     def variance(self):
         return tf.where(
             self.count > 1,
             self.var_sum / tf.cast(self.count - 1, self.var_sum.dtype),
             tf.zeros_like(self.var_sum),
-        )
-
-    @property
-    def std(self):
-        return tf.where(
-            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.var_sum)
         )
 
     def call(self, inputs, sample_weight=1.0, training=None):
@@ -98,7 +133,7 @@ class StreamingMoments(tf.keras.Model):
         return self.mean, self.variance
 
 
-class ExponentialMovingMoments(tf.keras.Model):
+class ExponentialMovingMoments(Moments):
     """
     Compute moments as an exponential moving average using the update rule:
 
@@ -124,7 +159,7 @@ class ExponentialMovingMoments(tf.keras.Model):
     @property
     def std(self):
         return tf.where(
-            self.count > 0, tf.sqrt(self.variance), tf.zeros_like(self.variance)
+            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.variance)
         )
 
     def call(self, inputs, sample_weight=1.0, training=None):
