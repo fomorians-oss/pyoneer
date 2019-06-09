@@ -6,7 +6,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class SoftplusInverse(tf.initializers.Initializer):
+class SoftplusInverse(tf.keras.initializers.Initializer):
     """
     Initializer that generates tensors initialized to `log(exp(scale) - 1)`.
 
