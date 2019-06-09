@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 gym = "*"
-tf-nightly-2-0-preview = "*"
+tensorflow = "==2.0.0-beta0"
 tfp-nightly = "*"
 
 [requires]

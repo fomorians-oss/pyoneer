@@ -4,7 +4,7 @@ from __future__ import print_function
 
 from setuptools import setup, find_packages
 
-REQUIRED_PACKAGES = ["gym", "tfp-nightly"]
+REQUIRED_PACKAGES = ["gym"]
 
 setup(
     name="pyoneer",
