@@ -1,15 +1,17 @@
-import time
+import tensorflow as tf
 
 
-class Stopwatch:
+class Stopwatch(object):
     """
-    Embarassingly simple stopwatch for measuring how long operations take. Great for fast and easy profiling.
+    Stopwatch for measuring how long operations take. Great for fast and easy profiling.
 
     Example:
-
-    with Stopwatch() as watch:
-        time.sleep(1.0)
-    print(stopwatch.duration) # ~1s
+    >>> x = tf.constant(1.0)
+    >>> y = tf.constant(2.0)
+    >>> with Stopwatch() as watch:
+    >>>    z = x + y
+    >>> tf.print(watch.duration)
+    >>> # 0.00021505355834960938
     """
 
     def __init__(self):
@@ -18,10 +20,10 @@ class Stopwatch:
         self.duration = None
 
     def start(self):
-        self.start_time = time.time()
+        self.start_time = tf.timestamp()
 
     def stop(self):
-        self.end_time = time.time()
+        self.end_time = tf.timestamp()
         self.duration = self.end_time - self.start_time
 
     def __enter__(self):
