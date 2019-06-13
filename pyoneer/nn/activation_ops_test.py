@@ -19,5 +19,5 @@ class ActivationOpsTest(test.TestCase):
             self.assertAllClose(actual, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

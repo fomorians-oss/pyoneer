@@ -59,8 +59,7 @@ def smape(labels, predictions, weights=None):
     if weights is not None:
         assert weights.shape[0] == labels.shape[0]
 
-    errors = 2 * tf.abs(predictions - labels) / (
-        tf.abs(predictions) + tf.abs(labels))
+    errors = 2 * tf.abs(predictions - labels) / (tf.abs(predictions) + tf.abs(labels))
 
     if weights is not None:
         weights /= tf.reduce_sum(weights, axis=0, keepdims=True)
@@ -100,7 +99,8 @@ class MAPE(tfe.metrics.Mean):
         tf.assert_equal(
             labels.shape,
             predictions.shape,
-            message='shapes of labels and predictions must be equal')
+            message="shapes of labels and predictions must be equal",
+        )
         errors = tf.abs((predictions - labels) / labels)
         super(MAPE, self).call(errors, weights=weights)
         if weights is None:
@@ -143,9 +143,11 @@ class SMAPE(tfe.metrics.Mean):
         tf.assert_equal(
             labels.shape,
             predictions.shape,
-            message='shapes of labels and predictions must be equal')
-        errors = (2 * tf.abs(predictions - labels) /
-                  (tf.abs(predictions) + tf.abs(labels)))
+            message="shapes of labels and predictions must be equal",
+        )
+        errors = (
+            2 * tf.abs(predictions - labels) / (tf.abs(predictions) + tf.abs(labels))
+        )
         super(SMAPE, self).call(errors, weights=weights)
         if weights is None:
             return labels, predictions

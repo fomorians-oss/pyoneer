@@ -14,10 +14,9 @@
 import tensorflow as tf
 
 
-def update_target_variables(target_variables,
-                            source_variables,
-                            rate=1.0,
-                            use_locking=False):
+def update_target_variables(
+    target_variables, source_variables, rate=1.0, use_locking=False
+):
     """
     Returns an op to update a list of target variables from source variables.
     The update rule is:
@@ -43,29 +42,34 @@ def update_target_variables(target_variables,
         An op that executes all the variable updates.
     """
     if not isinstance(rate, float):
-        raise TypeError('Tau has wrong type (should be float) {}'.format(rate))
+        raise TypeError("Tau has wrong type (should be float) {}".format(rate))
     if not 0.0 < rate <= 1.0:
-        raise ValueError('Invalid parameter rate {}'.format(rate))
+        raise ValueError("Invalid parameter rate {}".format(rate))
     if len(target_variables) != len(source_variables):
-        raise ValueError('Number of target variables {} is not the same as '
-                         'number of source variables {}'.format(
-                             len(target_variables), len(source_variables)))
+        raise ValueError(
+            "Number of target variables {} is not the same as "
+            "number of source variables {}".format(
+                len(target_variables), len(source_variables)
+            )
+        )
 
-    same_shape = all(target_variable.shape == source_variable.shape
-                     for target_variable, source_variable in zip(
-                         target_variables, source_variables))
+    same_shape = all(
+        target_variable.shape == source_variable.shape
+        for target_variable, source_variable in zip(target_variables, source_variables)
+    )
     if not same_shape:
         raise ValueError(
-            'Target variables do not have the same shape as source variables.')
+            "Target variables do not have the same shape as source variables."
+        )
 
     def update_op(target_variable, source_variable, rate):
         if rate < 1.0:
             return target_variable.assign(
                 rate * source_variable + (1 - rate) * target_variable,
-                use_locking=use_locking)
+                use_locking=use_locking,
+            )
         else:
-            return target_variable.assign(
-                source_variable, use_locking=use_locking)
+            return target_variable.assign(source_variable, use_locking=use_locking)
 
     update_ops = [
         update_op(target_var, source_var, rate)

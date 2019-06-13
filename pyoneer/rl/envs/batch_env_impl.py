@@ -35,15 +35,12 @@ class BatchEnv(object):
         self.blocking = blocking
 
         observation_space = self.observation_space
-        if not all(env.observation_space == observation_space
-                   for env in self.envs):
-            raise ValueError(
-                'All environments must use the same observation space.')
+        if not all(env.observation_space == observation_space for env in self.envs):
+            raise ValueError("All environments must use the same observation space.")
 
         action_space = self.action_space
         if not all(env.action_space == action_space for env in self.envs):
-            raise ValueError(
-                'All environments must use the same observation space.')
+            raise ValueError("All environments must use the same observation space.")
 
     def __len__(self):
         return len(self.envs)
@@ -90,5 +87,5 @@ class BatchEnv(object):
 
     def close(self):
         for env in self.envs:
-            if hasattr(env, 'close'):
+            if hasattr(env, "close"):
                 env.close()

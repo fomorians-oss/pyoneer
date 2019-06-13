@@ -30,8 +30,7 @@ class MathOpsTest(test.TestCase):
         with context.eager_mode():
             x = tf.constant([-1.0, 0.0, 1.0, 0.0])
             weights = tf.constant([1.0, 1.0, 1.0, 0.0])
-            actual = math_ops.normalize(
-                x, loc=-1.0, scale=2.0, weights=weights)
+            actual = math_ops.normalize(x, loc=-1.0, scale=2.0, weights=weights)
             expected = tf.constant([0.0, 0.5, 1.0, 0.0])
             self.assertAllClose(actual, expected)
 
@@ -39,11 +38,10 @@ class MathOpsTest(test.TestCase):
         with context.eager_mode():
             x = tf.constant([0.0, 0.5, 1.0, 0.0])
             weights = tf.constant([1.0, 1.0, 1.0, 0.0])
-            actual = math_ops.denormalize(
-                x, loc=-1.0, scale=2.0, weights=weights)
+            actual = math_ops.denormalize(x, loc=-1.0, scale=2.0, weights=weights)
             expected = tf.constant([-1.0, 0.0, 1.0, 0.0])
             self.assertAllClose(actual, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

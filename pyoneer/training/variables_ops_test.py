@@ -17,17 +17,19 @@ class VariablesOpsTest(test.TestCase):
             source = tfe.Variable(1.0)
             target = tfe.Variable(0.0)
             variables_ops.update_target_variables(
-                source_variables=[source], target_variables=[target])
+                source_variables=[source], target_variables=[target]
+            )
             expected = tf.constant(1.0)
             self.assertAllEqual(target.numpy(), expected)
 
             source = tfe.Variable(1.0)
             target = tfe.Variable(0.0)
             variables_ops.update_target_variables(
-                source_variables=[source], target_variables=[target], rate=0.5)
+                source_variables=[source], target_variables=[target], rate=0.5
+            )
             expected = tf.constant(0.5)
             self.assertAllEqual(target.numpy(), expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

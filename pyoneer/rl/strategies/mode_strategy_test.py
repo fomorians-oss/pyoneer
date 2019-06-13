@@ -14,7 +14,7 @@ from pyoneer.rl.strategies import mode_strategy_impl
 class ModeStrategyTest(test.TestCase):
     def testSampleStrategy(self):
         with context.eager_mode():
-            logits = [[0., 1., -2.], [0., 1., 2.]]
+            logits = [[0.0, 1.0, -2.0], [0.0, 1.0, 2.0]]
 
             def policy(x):
                 return tfp.distributions.Categorical(logits=x)
@@ -28,5 +28,5 @@ class ModeStrategyTest(test.TestCase):
             self.assertShapeEqual(samples.numpy(), expected_policy_samples)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

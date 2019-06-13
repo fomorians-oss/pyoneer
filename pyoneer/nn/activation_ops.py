@@ -16,5 +16,5 @@ def swish(x):
         Tensor of same dimension as `x`.
     """
     y = x * tf.sigmoid(x)
-    y = tf.check_numerics(y, 'swish')
+    y = tf.check_numerics(y, "swish")
     return y

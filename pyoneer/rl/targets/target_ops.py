@@ -25,21 +25,31 @@ def discounted_rewards(rewards, discount_factor=0.99, weights=1.0):
 
     returns = tf.reverse(
         tf.transpose(
-            tf.scan(lambda agg, cur: cur + discount_factor * agg,
-                    tf.transpose(tf.reverse(rewards * weights, [1]), [1, 0]),
-                    tf.zeros_like(rewards[:, -1]), 1, False), [1, 0]), [1])
+            tf.scan(
+                lambda agg, cur: cur + discount_factor * agg,
+                tf.transpose(tf.reverse(rewards * weights, [1]), [1, 0]),
+                tf.zeros_like(rewards[:, -1]),
+                1,
+                False,
+            ),
+            [1, 0],
+        ),
+        [1],
+    )
     returns = returns * weights
-    returns = tf.check_numerics(returns, 'returns')
+    returns = tf.check_numerics(returns, "returns")
     returns = tf.stop_gradient(returns)
     return returns
 
 
-def generalized_advantages(rewards,
-                           values,
-                           discount_factor=0.99,
-                           lambda_factor=0.95,
-                           weights=1.0,
-                           normalize=True):
+def generalized_advantages(
+    rewards,
+    values,
+    discount_factor=0.99,
+    lambda_factor=0.95,
+    weights=1.0,
+    normalize=True,
+):
     """
     Compute generalized advantage for policy optimization. Equation 11 and 12.
 
@@ -60,7 +70,8 @@ def generalized_advantages(rewards,
     bootstrap_values = indexing_ops.batched_index(values, last_steps)
 
     values_next = array_ops.shift(
-        values, shift=-1, axis=1, padding_values=bootstrap_values[:, None])
+        values, shift=-1, axis=1, padding_values=bootstrap_values[:, None]
+    )
 
     deltas = rewards + discount_factor * values_next - values
 
@@ -69,15 +80,24 @@ def generalized_advantages(rewards,
             tf.scan(
                 lambda agg, cur: cur + discount_factor * lambda_factor * agg,
                 tf.transpose(tf.reverse(deltas * weights, [1]), [1, 0]),
-                tf.zeros_like(deltas[:, -1]), 1, False), [1, 0]), [1])
+                tf.zeros_like(deltas[:, -1]),
+                1,
+                False,
+            ),
+            [1, 0],
+        ),
+        [1],
+    )
 
     if normalize:
         advantages_mean, advantages_variance = tf.nn.weighted_moments(
-            advantages, axes=[0, 1], frequency_weights=weights, keep_dims=True)
+            advantages, axes=[0, 1], frequency_weights=weights, keep_dims=True
+        )
         advantages_std = tf.sqrt(advantages_variance)
         advantages = math_ops.normalize(
-            advantages, loc=advantages_mean, scale=advantages_std)
+            advantages, loc=advantages_mean, scale=advantages_std
+        )
 
     advantages = advantages * weights
-    advantages = tf.check_numerics(advantages, 'advantages')
+    advantages = tf.check_numerics(advantages, "advantages")
     return tf.stop_gradient(advantages)
