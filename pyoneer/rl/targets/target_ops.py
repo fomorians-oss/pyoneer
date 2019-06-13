@@ -8,7 +8,7 @@ from pyoneer.math import math_ops
 from pyoneer.manip import array_ops, indexing_ops
 
 
-class DiscountedRewards:
+class DiscountedRewards(object):
     """
     Compute discounted rewards.
 
@@ -44,7 +44,7 @@ class DiscountedRewards:
         return returns
 
 
-class GeneralizedAdvantages:
+class GeneralizedAdvantages(object):
     def __init__(self, discount_factor=0.99, lambda_factor=0.95, normalize=True):
         self.discount_factor = discount_factor
         self.lambda_factor = lambda_factor

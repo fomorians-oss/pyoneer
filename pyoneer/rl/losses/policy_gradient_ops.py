@@ -74,7 +74,7 @@ def policy_entropy(entropy):
     return losses
 
 
-class PolicyGradient:
+class PolicyGradient(tf.keras.losses.Loss):
     """
     Computes the Vanilla policy gradient loss.
 
@@ -103,7 +103,7 @@ class PolicyGradient:
         return {"reduction": self.reduction, "name": self.name}
 
 
-class ClippedPolicyGradient:
+class ClippedPolicyGradient(tf.keras.losses.Loss):
     """
     Computes the clipped surrogate objective found in
     [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) based on
@@ -119,7 +119,7 @@ class ClippedPolicyGradient:
         self,
         epsilon_clipping=0.2,
         reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE,
-        name="clipped_policy_gradient",
+        name=None,
     ):
         self.epsilon_clipping = epsilon_clipping
         self.reduction = reduction
@@ -143,7 +143,7 @@ class ClippedPolicyGradient:
         }
 
 
-class PolicyEntropy:
+class PolicyEntropy(tf.keras.losses.Loss):
     """
     Computes the policy entropy loss.
 

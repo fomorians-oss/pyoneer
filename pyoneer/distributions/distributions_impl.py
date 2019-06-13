@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-class MultiCategorical:
+class MultiCategorical(object):
     """
     Distribution composed of multiple distributions.
 
