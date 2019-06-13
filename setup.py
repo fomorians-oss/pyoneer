@@ -11,6 +11,7 @@ setup(
     version="0.0.0",
     url="https://github.com/fomorians/pyoneer",
     install_requires=REQUIRED_PACKAGES,
+    extras_require={"dev": ["pre-commit"]},
     packages=find_packages(),
     include_package_data=True,
 )
