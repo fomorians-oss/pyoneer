@@ -14,13 +14,17 @@ For the larger sub-modules, such as reinforcement learning, we recommend:
     import pyoneer.rl as pyrl
     loss_fn = pyrl.losses.PolicyGradient(...)
 
-In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
+In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 ### Examples
 
 - [TF 2.0 Proximal Policy Optimization](https://github.com/fomorians/ppo)
 
 ## API
+
+### Activations ([`pynr.activations`](pyoneer/activations))
+
+- `pynr.activations.swish`
 
 ### Debugging ([`pynr.debugging`](pyoneer/debugging))
 
@@ -70,7 +74,6 @@ In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
 
 ### Neural Networks ([`pynr.nn`](pyoneer/nn))
 
-- `pynr.nn.swish`
 - `pynr.nn.range_moments`
 - `pynr.nn.StaticMoments`
 - `pynr.nn.StreamingMoments`
@@ -80,9 +83,9 @@ In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
 
 - `pynr.schedules.CyclicSchedule`
 
-### Training ([`pynr.train`](pyoneer/train))
+### Variables ([`pynr.variables`](pyoneer/variables))
 
-- `pynr.train.update_target_variables`
+- `pynr.variables.update_target_variables`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 

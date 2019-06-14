@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from pyoneer.nn import nn_ops
+from pyoneer.activations import activations_impl
 from pyoneer.math import angle_ops
 
 
@@ -23,7 +23,7 @@ class Swish(tf.keras.layers.Layer):
         Returns:
             The activations.
         """
-        outputs = nn_ops.swish(inputs)
+        outputs = activations_impl.swish(inputs)
         return outputs
 
 

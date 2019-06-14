@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from pyoneer.training.cyclic_schedule_impl import CyclicSchedule
+from pyoneer.schedules.cyclic_schedule_impl import CyclicSchedule
 
 
 class CyclicScheduleTest(tf.test.TestCase):
