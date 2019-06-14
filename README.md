@@ -36,12 +36,9 @@ In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
 
 ### Layers ([`pynr.layers`](pyoneer/layers))
 
-- `pynr.layers.Normalizer`
+- `pynr.layers.Swish`
 - `pynr.layers.OneHotEncoder`
 - `pynr.layers.AngleEncoder`
-- `pynr.layers.DictFeaturizer`
-- `pynr.layers.ListFeaturizer`
-- `pynr.layers.VecFeaturizer`
 
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
@@ -74,14 +71,18 @@ In general, the Pyoneer API tries to adhere to TensorFlow 2.0's API.
 ### Neural Networks ([`pynr.nn`](pyoneer/nn))
 
 - `pynr.nn.swish`
-- `pynr.nn.moments_from_range`
+- `pynr.nn.range_moments`
+- `pynr.nn.StaticMoments`
 - `pynr.nn.StreamingMoments`
 - `pynr.nn.ExponentialMovingMoments`
 
-### Training ([`pynr.training`](pyoneer/training))
+### Learning Schedules ([`pynr.schedules`](pyoneer/schedules))
 
-- `pynr.training.CyclicSchedule`
-- `pynr.training.update_target_variables`
+- `pynr.schedules.CyclicSchedule`
+
+### Training ([`pynr.train`](pyoneer/train))
+
+- `pynr.train.update_target_variables`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 

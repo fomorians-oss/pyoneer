@@ -7,7 +7,7 @@ import tensorflow as tf
 from pyoneer.math import math_ops
 
 
-def moments_from_range(minval, maxval):
+def range_moments(minval, maxval):
     """
     Compute element-wise mean and variance from min and max values.
 

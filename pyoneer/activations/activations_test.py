@@ -4,13 +4,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from pyoneer.nn import activation_ops
+from pyoneer.activations.activations_impl import swish
 
 
-class ActivationOpsTest(tf.test.TestCase):
+class ActivationsTest(tf.test.TestCase):
     def test_swish(self):
         x = tf.constant([-1.0, 0.0, +1.0])
-        actual = activation_ops.swish(x)
+        actual = swish(x)
         expected = tf.constant([-0.268941, 0.0, 0.731059])
         self.assertAllClose(actual, expected)
 

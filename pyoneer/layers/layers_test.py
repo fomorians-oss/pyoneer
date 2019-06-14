@@ -5,25 +5,16 @@ from __future__ import print_function
 import math
 import tensorflow as tf
 
-from collections import OrderedDict
-
-from pyoneer.layers.layers_impl import (
-    Normalizer,
-    OneHotEncoder,
-    AngleEncoder,
-    DictFeaturizer,
-    ListFeaturizer,
-    VecFeaturizer,
-)
+from pyoneer.layers.layers_impl import Swish, OneHotEncoder, AngleEncoder
 
 
 class LayersTest(tf.test.TestCase):
-    def test_normalizer_layer(self):
-        layer = Normalizer(loc=0.5, scale=2.0)
-        inputs = tf.constant([1.0], dtype=tf.float32)
+    def test_swish_layer(self):
+        layer = Swish()
+        inputs = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
         outputs = layer(inputs)
-        expected = tf.constant([0.25], dtype=tf.float32)
-        self.assertAllEqual(outputs, expected)
+        expected = tf.constant([-0.268941, 0.0, 0.731059], dtype=tf.float32)
+        self.assertAllClose(outputs, expected)
 
     def test_one_hot_encoder(self):
         layer = OneHotEncoder(depth=4)
@@ -45,40 +36,6 @@ class LayersTest(tf.test.TestCase):
         outputs = layer(inputs)
         expected = tf.constant([[-1, 0]], dtype=tf.float32)
         self.assertAllClose(outputs, expected)
-
-    def test_dict_featurizer(self):
-        layer = DictFeaturizer(
-            OrderedDict(
-                [
-                    ("categorical", OneHotEncoder(depth=4)),
-                    ("scalar", Normalizer(loc=0.5, scale=2.0)),
-                ]
-            )
-        )
-        features = {
-            "categorical": tf.constant([3], dtype=tf.int32),
-            "scalar": tf.constant([1.0], dtype=tf.float32),
-        }
-        outputs = layer(features)
-        expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
-        self.assertAllEqual(outputs, expected)
-
-    def test_list_featurizer(self):
-        layer = ListFeaturizer([OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)])
-        features = [
-            tf.constant([3], dtype=tf.int32),
-            tf.constant([1.0], dtype=tf.float32),
-        ]
-        outputs = layer(features)
-        expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
-        self.assertAllEqual(outputs, expected)
-
-    def test_vec_featurizer(self):
-        layer = VecFeaturizer([OneHotEncoder(depth=4), Normalizer(loc=0.5, scale=2.0)])
-        features = tf.constant([3.0, 1.0], dtype=tf.float32)
-        outputs = layer(features)
-        expected = tf.constant([[0.0, 0.0, 0.0, 1.0, 0.25]], dtype=tf.float32)
-        self.assertAllEqual(outputs, expected)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import tensorflow as tf
 
 def swish(x):
     """
-    Compute the Swish, self-gating, activation function: `x * sigmoid(x)`.
+    Compute Swish, self-gating, activation function: `x * sigmoid(x)`.
 
     Args:
         x: Tensor
