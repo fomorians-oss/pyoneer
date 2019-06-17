@@ -66,7 +66,7 @@ class OneHotEncoder(tf.keras.layers.Layer):
         inputs = tf.convert_to_tensor(inputs, dtype=self.dtype)
         inputs = tf.cast(inputs, tf.int64)
         outputs = tf.one_hot(inputs, self.depth)
-        outputs = tf.check_numerics(outputs, 'outputs')
+        outputs = tf.check_numerics(outputs, "outputs")
         return outputs
 
 
@@ -129,7 +129,7 @@ class DictFeaturizer(tf.keras.layers.Layer):
             for outputs in outputs_list
         ]
         outputs = tf.concat(outputs_list, axis=-1)
-        outputs = tf.check_numerics(outputs, 'outputs')
+        outputs = tf.check_numerics(outputs, "outputs")
         return outputs
 
 
@@ -158,8 +158,9 @@ class ListFeaturizer(tf.keras.layers.Layer):
         Returns:
             The concatenated outputs of each feature layer.
         """
-        assert len(self.feature_layers) == len(features), \
-            'must provide equal length features and feature layers'
+        assert len(self.feature_layers) == len(
+            features
+        ), "must provide equal length features and feature layers"
 
         outputs_list = []
         for feature_layer, feature in zip(self.feature_layers, features):
@@ -171,7 +172,7 @@ class ListFeaturizer(tf.keras.layers.Layer):
             for outputs in outputs_list
         ]
         outputs = tf.concat(outputs_list, axis=-1)
-        outputs = tf.check_numerics(outputs, 'outputs')
+        outputs = tf.check_numerics(outputs, "outputs")
         return outputs
 
 
@@ -200,12 +201,13 @@ class VecFeaturizer(tf.keras.layers.Layer):
         Returns:
             The concatenated outputs of each feature layer.
         """
-        assert len(self.feature_layers) == features.shape[-1].value, \
-            'must provide equal length features and feature layers'
+        assert (
+            len(self.feature_layers) == features.shape[-1].value
+        ), "must provide equal length features and feature layers"
 
         outputs_list = []
         for i, feature_layer in enumerate(self.feature_layers):
-            outputs = feature_layer(features[..., i:i + 1])
+            outputs = feature_layer(features[..., i : i + 1])
             outputs_list.append(outputs)
         max_ndims = max([outputs.shape.ndims for outputs in outputs_list])
         outputs_list = [
@@ -213,5 +215,5 @@ class VecFeaturizer(tf.keras.layers.Layer):
             for outputs in outputs_list
         ]
         outputs = tf.concat(outputs_list, axis=-1)
-        outputs = tf.check_numerics(outputs, 'outputs')
+        outputs = tf.check_numerics(outputs, "outputs")
         return outputs

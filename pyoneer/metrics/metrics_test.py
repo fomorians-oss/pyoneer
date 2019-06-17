@@ -19,7 +19,8 @@ class MetricsTest(test.TestCase):
             weights = tf.constant([[1.0], [0.0], [1.0]])
             self.assertAllClose(
                 metrics.mape(predictions, labels, weights=weights),
-                tf.constant([0.75, 0.0]))
+                tf.constant([0.75, 0.0]),
+            )
 
     def test_smape_fn(self):
         with context.eager_mode():
@@ -28,7 +29,8 @@ class MetricsTest(test.TestCase):
             weights = tf.constant([[1.0], [0.0], [1.0]])
             self.assertAllClose(
                 metrics.smape(predictions, labels, weights=weights),
-                tf.constant([1.0, 0.0]))
+                tf.constant([1.0, 0.0]),
+            )
 
     def test_mape_class(self):
         with context.eager_mode():
@@ -51,5 +53,5 @@ class MetricsTest(test.TestCase):
             self.assertAllClose(smape.result(), 0.5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

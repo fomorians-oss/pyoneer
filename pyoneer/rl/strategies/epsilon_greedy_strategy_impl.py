@@ -40,8 +40,7 @@ class EpsilonGreedyStrategy:
     def __call__(self, *args, **kwargs):
         policy = self.policy(*args, **kwargs)
         epsilon = self.epsilon() if callable(self.epsilon) else self.epsilon
-        mask_dist = tfp.distributions.Bernoulli(
-            probs=1 - epsilon, dtype=tf.bool)
+        mask_dist = tfp.distributions.Bernoulli(probs=1 - epsilon, dtype=tf.bool)
         sample_mask = mask_dist.sample(policy.batch_shape)
         sample = policy.sample()
         mode = policy.mode()

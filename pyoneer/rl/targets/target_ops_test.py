@@ -15,7 +15,8 @@ class TargetOpsTest(test.TestCase):
         with context.eager_mode():
             rewards = tf.constant([[0.0, 0.0, 1.0]])
             outputs = target_ops.discounted_rewards(
-                rewards, discount_factor=0.99, weights=1.0)
+                rewards, discount_factor=0.99, weights=1.0
+            )
             expected = tf.constant([[0.9801, 0.99, 1.0]])
             self.assertAllClose(outputs, expected)
 
@@ -29,10 +30,11 @@ class TargetOpsTest(test.TestCase):
                 discount_factor=0.99,
                 lambda_factor=0.95,
                 weights=1.0,
-                normalize=True)
+                normalize=True,
+            )
             expected = tf.constant([[0.564769, 0.840459, -1.405228]])
             self.assertAllClose(outputs, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

@@ -20,5 +20,5 @@ class IndexingOpsTest(test.TestCase):
             self.assertAllEqual(output, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test.main()

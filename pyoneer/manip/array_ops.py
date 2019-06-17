@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def pad_or_truncate(tensor, sizes, mode='CONSTANT', constant_values=0.0):
+def pad_or_truncate(tensor, sizes, mode="CONSTANT", constant_values=0.0):
     """
     Pad or truncate a tensor. This is useful for ensuring sequences have the
     same minimum shape when the sequence length is not known in advance.
@@ -38,16 +38,16 @@ def pad_or_truncate(tensor, sizes, mode='CONSTANT', constant_values=0.0):
     """
     tensor = tf.convert_to_tensor(tensor)
 
-    paddings = [[0, max(sizes[axis] - tensor.shape[axis].value, 0)]
-                for axis in range(tensor.shape.ndims)]
+    paddings = [
+        [0, max(sizes[axis] - tensor.shape[axis].value, 0)]
+        for axis in range(tensor.shape.ndims)
+    ]
 
     slices = [slice(0, sizes[axis]) for axis in range(tensor.shape.ndims)]
 
     tensor = tf.pad(
-        tensor=tensor,
-        paddings=paddings,
-        mode=mode,
-        constant_values=constant_values)
+        tensor=tensor, paddings=paddings, mode=mode, constant_values=constant_values
+    )
     tensor = tensor[slices]
 
     return tensor
@@ -113,13 +113,12 @@ def shift(inputs, shift, axis, padding_values=0.0):
     if shift >= 0:
         padding_slices[axis] = slice(-shift, None)
         padded = tf.concat(
-            [padding_values * tf.ones_like(inputs[padding_slices]), sliced],
-            axis=axis)
+            [padding_values * tf.ones_like(inputs[padding_slices]), sliced], axis=axis
+        )
     else:
         padding_slices[axis] = slice(0, -shift)
         padded = tf.concat(
-            [sliced,
-             tf.ones_like(inputs[padding_slices]) * padding_values],
-            axis=axis)
+            [sliced, tf.ones_like(inputs[padding_slices]) * padding_values], axis=axis
+        )
 
     return padded
