@@ -125,7 +125,7 @@ There are a few options for installation:
 
 1. (Recommended) Install with `pipenv`:
 
-        pipenv install pyoneer
+        pipenv install fomoro-pyoneer
 
 2. Install locally for development with `pipenv`:
 
@@ -134,19 +134,13 @@ There are a few options for installation:
         pipenv install
         pipenv shell
 
-3. Install locally for development with `pip`:
-
-        git clone https://github.com/fomorians/pyoneer.git
-        cd pyoneer
-        pip install -e .
-
 ## Testing
 
 There are a few options for testing:
 
 1. Run all tests:
 
-        python -m unittest discover -p '*_test.py'
+        python -m unittest discover -bfp '*_test.py'
 
 2. Run specific tests:
 
@@ -154,4 +148,4 @@ There are a few options for testing:
 
 ## Contributing
 
-File an issue following the `ISSUE_TEMPLATE`, then submit a pull request from a branch describing the feature. This will eventually get merged into `master`.
+File an issue following the `ISSUE_TEMPLATE`. If the issue discussion warrants implementation, then submit a pull request from a branch describing the feature. This will eventually get merged into `master` after a few rounds of code review.
