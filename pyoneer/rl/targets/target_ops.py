@@ -8,9 +8,9 @@ from pyoneer.math import math_ops
 from pyoneer.manip import array_ops, indexing_ops
 
 
-class DiscountedRewards(object):
+class DiscountedReturns(object):
     """
-    Compute discounted rewards.
+    Compute discounted returns.
 
     Args:
         rewards: Rewards tensor.
@@ -18,7 +18,7 @@ class DiscountedRewards(object):
         sample_weight: Optional sample_weight tensor.
 
     Returns:
-        Tensor of discounted rewards.
+        Tensor of discounted returns.
     """
 
     def __init__(self, discount_factor=0.99):
