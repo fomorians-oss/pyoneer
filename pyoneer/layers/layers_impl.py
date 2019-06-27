@@ -62,7 +62,8 @@ class OneHotEncoder(tf.keras.layers.Layer):
 
 class AngleEncoder(tf.keras.layers.Layer):
     """
-    Angle encoding layer. Encodes an angle as the cosine and sine of radians.
+    Angle encoding layer. Encodes an angle as the cosine and sine of radians
+    or degrees which will be converted to radians.
 
     Args:
         degrees (default: False):
