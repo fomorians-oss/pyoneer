@@ -1,6 +1,6 @@
-/pyoneer.egg-info/
 /build/
 /dist/
+/*.egg-info/
 *.pyc
 *.swp
 .DS_Store
