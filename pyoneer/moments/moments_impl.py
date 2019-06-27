@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import abc
+import six
 import tensorflow as tf
 
 from pyoneer.math import math_ops
@@ -23,10 +25,29 @@ def range_moments(minval, maxval):
     return mean, variance
 
 
-class Moments(tf.keras.Model):
+@six.add_metaclass(abc.ABCMeta)
+class Moments(tf.keras.layers.Layer):
     """
     Base class for moment containers.
     """
+
+    @property
+    @abc.abstractmethod
+    def mean(self):
+        raise NotImplementedError("Must be implemented in subclasses.")
+
+    @property
+    @abc.abstractmethod
+    def variance(self):
+        raise NotImplementedError("Must be implemented in subclasses.")
+
+    @property
+    def std(self):
+        return tf.sqrt(self.variance)
+
+    @abc.abstractmethod
+    def update_state(self, *args, **kwargs):
+        raise NotImplementedError("Must be implemented in subclasses.")
 
     def normalize(self, inputs, sample_weight=1.0):
         return math_ops.normalize(
@@ -50,12 +71,19 @@ class StaticMoments(Moments):
 
     def __init__(self, mean, variance, **kwargs):
         super(StaticMoments, self).__init__(**kwargs)
-        self.mean = tf.Variable(mean, trainable=False)
-        self.variance = tf.Variable(variance, trainable=False)
+        self._mean = tf.Variable(mean, trainable=False)
+        self._variance = tf.Variable(variance, trainable=False)
 
     @property
-    def std(self):
-        return tf.sqrt(self.variance)
+    def mean(self):
+        return self._mean
+
+    @property
+    def variance(self):
+        return self._variance
+
+    def update_state(self, *args, **kwargs):
+        raise NotImplementedError("StaticMoments cannot be updated.")
 
 
 class StreamingMoments(Moments):
@@ -69,68 +97,80 @@ class StreamingMoments(Moments):
 
     def __init__(self, shape, dtype=tf.float32, **kwargs):
         super(StreamingMoments, self).__init__(**kwargs)
-        self.count = tf.Variable(tf.zeros(shape=shape, dtype=tf.int64), trainable=False)
-        self.mean = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
-        self.var_sum = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
+        self._count = self.add_weight(
+            name="count",
+            initializer="zeros",
+            shape=shape,
+            dtype=tf.int64,
+            trainable=False,
+        )
+        self._mean = self.add_weight(
+            name="mean", initializer="zeros", shape=shape, dtype=dtype, trainable=False
+        )
+        self._var_sum = self.add_weight(
+            name="var_sum",
+            initializer="zeros",
+            shape=shape,
+            dtype=dtype,
+            trainable=False,
+        )
 
     @property
-    def std(self):
-        return tf.where(
-            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.variance)
-        )
+    def count(self):
+        return self._count
+
+    @property
+    def mean(self):
+        return self._mean
 
     @property
     def variance(self):
         return tf.where(
-            self.count > 1,
-            self.var_sum / tf.cast(self.count - 1, self.var_sum.dtype),
-            tf.zeros_like(self.var_sum),
+            self._count > 1,
+            self._var_sum / tf.cast(self._count - 1, self._var_sum.dtype),
+            tf.zeros_like(self._var_sum),
         )
 
-    def call(self, inputs, sample_weight=1.0, training=None):
+    def update_state(self, inputs, sample_weight=None):
         """
         Update moments using a new batch of inputs.
 
         Args:
             inputs: Input tensor.
-            sample_weight: Optional sample_weight.
-            training: Boolean indicating whether or not to update the moments.
-
-        Returns:
-            Tuple of (mean, variance).
+            sample_weight: Optional sample weight.
         """
-        if training:
-            inputs = tf.convert_to_tensor(inputs)
+        inputs = tf.convert_to_tensor(inputs)
 
-            ndims = inputs.shape.ndims - self.mean.shape.ndims
-            axes = list(range(ndims))
+        if sample_weight is None:
+            sample_weight = 1.0
 
-            weight_sum = tf.reduce_sum(sample_weight, axis=axes)
-            count_delta = tf.cast(weight_sum, tf.int64)
-            new_count = self.count + count_delta
+        ndims = inputs.shape.ndims - self._mean.shape.ndims
+        axes = list(range(ndims))
 
-            mean_delta = tf.where(
-                count_delta > 1,
-                (
-                    tf.reduce_sum((inputs - self.mean) * sample_weight, axis=axes)
-                    / tf.cast(new_count, tf.float32)
-                ),
-                math_ops.safe_divide(
-                    tf.reduce_sum(inputs * sample_weight, axis=axes), weight_sum
-                ),
-            )
-            new_mean = self.mean + mean_delta
+        weight_sum = tf.reduce_sum(sample_weight, axis=axes)
+        count_delta = tf.cast(weight_sum, tf.int64)
+        new_count = self._count + count_delta
 
-            var_delta = tf.reduce_sum(
-                (inputs - self.mean) * (inputs - new_mean) * sample_weight, axis=axes
-            )
-            new_var_sum = self.var_sum + var_delta
+        mean_delta = tf.where(
+            count_delta > 1,
+            (
+                tf.reduce_sum((inputs - self._mean) * sample_weight, axis=axes)
+                / tf.cast(new_count, tf.float32)
+            ),
+            math_ops.safe_divide(
+                tf.reduce_sum(inputs * sample_weight, axis=axes), weight_sum
+            ),
+        )
+        new_mean = self._mean + mean_delta
 
-            self.count.assign(new_count)
-            self.mean.assign(new_mean)
-            self.var_sum.assign(new_var_sum)
+        var_delta = tf.reduce_sum(
+            (inputs - self._mean) * (inputs - new_mean) * sample_weight, axis=axes
+        )
+        new_var_sum = self._var_sum + var_delta
 
-        return self.mean, self.variance
+        self._count.assign(new_count)
+        self._mean.assign(new_mean)
+        self._var_sum.assign(new_var_sum)
 
 
 class ExponentialMovingMoments(Moments):
@@ -143,62 +183,78 @@ class ExponentialMovingMoments(Moments):
     ```
 
     Args:
-        shape: Shape of the moments. Used to infer the reduction axes.
         rate: Update rate in the range [0, 1] of the exponential moving
             average. Smaller values update faster.
+        shape: Shape of the moments. Used to infer the reduction axes.
         dtype: Optional dtype.
     """
 
-    def __init__(self, shape, rate, dtype=tf.float32, **kwargs):
+    def __init__(self, rate, shape, dtype=tf.float32, **kwargs):
         super(ExponentialMovingMoments, self).__init__(**kwargs)
+        self._count = self.add_weight(
+            name="count",
+            initializer="zeros",
+            shape=shape,
+            dtype=tf.int64,
+            trainable=False,
+        )
+        self._mean = self.add_weight(
+            name="mean", initializer="zeros", shape=shape, dtype=dtype, trainable=False
+        )
+        self._variance = self.add_weight(
+            name="variance",
+            initializer="zeros",
+            shape=shape,
+            dtype=dtype,
+            trainable=False,
+        )
         self.rate = rate
-        self.count = tf.Variable(tf.zeros(shape=shape, dtype=tf.int64), trainable=False)
-        self.mean = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
-        self.variance = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
 
     @property
-    def std(self):
-        return tf.where(
-            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.variance)
-        )
+    def count(self):
+        return self._count
 
-    def call(self, inputs, sample_weight=1.0, training=None):
+    @property
+    def mean(self):
+        return self._mean
+
+    @property
+    def variance(self):
+        return self._variance
+
+    def update_state(self, inputs, sample_weight=None):
         """
         Update moments using a new batch of inputs.
 
         Args:
             inputs: Input tensor.
-            sample_weight: Optional sample_weight.
-            training: Boolean indicating whether or not to update the moments.
-
-        Returns:
-            Tuple of (mean, variance).
+            sample_weight: Optional sample weight.
         """
-        if training:
-            inputs = tf.convert_to_tensor(inputs)
+        inputs = tf.convert_to_tensor(inputs)
 
-            ndims = inputs.shape.ndims - self.mean.shape.ndims
-            axes = list(range(ndims))
+        if sample_weight is None:
+            sample_weight = 1.0
 
-            weight_sum = tf.reduce_sum(sample_weight, axis=axes)
-            count = tf.cast(weight_sum, tf.int64)
-            new_count = self.count + count
+        ndims = inputs.shape.ndims - self._mean.shape.ndims
+        axes = list(range(ndims))
 
-            mean, variance = tf.nn.weighted_moments(
-                inputs, axes=axes, frequency_weights=sample_weight
-            )
+        weight_sum = tf.reduce_sum(sample_weight, axis=axes)
+        count = tf.cast(weight_sum, tf.int64)
+        new_count = self._count + count
 
-            moving_mean = self.mean * self.rate + mean * (1 - self.rate)
-            moving_variance = self.variance * self.rate + variance * (1 - self.rate)
+        mean, variance = tf.nn.weighted_moments(
+            inputs, axes=axes, frequency_weights=sample_weight
+        )
 
-            new_mean = tf.where(self.count > 0, moving_mean, mean)
-            new_variance = tf.where(self.count > 0, moving_variance, variance)
+        moving_mean = self._mean * self.rate + mean * (1 - self.rate)
+        moving_variance = self._variance * self.rate + variance * (1 - self.rate)
 
-            new_mean = tf.where(count > 0, new_mean, self.mean)
-            new_variance = tf.where(count > 0, new_variance, self.variance)
+        new_mean = tf.where(self._count > 0, moving_mean, mean)
+        new_variance = tf.where(self._count > 0, moving_variance, variance)
 
-            self.mean.assign(new_mean)
-            self.variance.assign(new_variance)
-            self.count.assign(new_count)
+        new_mean = tf.where(count > 0, new_mean, self._mean)
+        new_variance = tf.where(count > 0, new_variance, self._variance)
 
-        return self.mean, self.variance
+        self._count.assign(new_count)
+        self._mean.assign(new_mean)
+        self._variance.assign(new_variance)

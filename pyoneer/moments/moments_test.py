@@ -37,7 +37,7 @@ class MomentsTest(tf.test.TestCase):
         inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
         sample_weight = tf.constant([[[1.0, 0.0, 1.0]]])
 
-        moments(inputs, sample_weight=sample_weight, training=True)
+        moments.update_state(inputs, sample_weight=sample_weight)
 
         expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
         expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
@@ -51,7 +51,7 @@ class MomentsTest(tf.test.TestCase):
         inputs = tf.constant([[[0.0, +1.0, -1.0]]])
         sample_weight = tf.constant([[[0.0, 1.0, 1.0]]])
 
-        moments(inputs, sample_weight=sample_weight, training=True)
+        moments.update_state(inputs, sample_weight=sample_weight)
 
         expected_mean = tf.constant([-1.0, +1.0, 0.0], dtype=tf.float32)
         expected_var = tf.constant([0.0, 0.0, 2.0], dtype=tf.float32)
@@ -65,7 +65,7 @@ class MomentsTest(tf.test.TestCase):
         inputs = tf.constant([[[+1.0, -1.0, 0.0]]])
         sample_weight = tf.constant([[[1.0, 1.0, 0.0]]])
 
-        moments(inputs, sample_weight=sample_weight, training=True)
+        moments.update_state(inputs, sample_weight=sample_weight)
 
         expected_mean = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
         expected_var = tf.constant([2.0, 2.0, 2.0], dtype=tf.float32)
@@ -82,7 +82,7 @@ class MomentsTest(tf.test.TestCase):
         inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
         sample_weight = tf.constant([[[1.0, 0.0, 1.0]]])
 
-        moments(inputs, sample_weight=sample_weight, training=True)
+        moments.update_state(inputs, sample_weight=sample_weight)
 
         expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
         expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
@@ -96,7 +96,7 @@ class MomentsTest(tf.test.TestCase):
         inputs = tf.constant([[[0.0, +1.0, -1.0]]])
         sample_weight = tf.constant([[[0.0, 1.0, 1.0]]])
 
-        moments(inputs, sample_weight=sample_weight, training=True)
+        moments.update_state(inputs, sample_weight=sample_weight)
 
         expected_mean = tf.constant([-1.0, 1.0, 0.8], dtype=tf.float32)
         expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
@@ -110,7 +110,7 @@ class MomentsTest(tf.test.TestCase):
         inputs = tf.constant([[[+1.0, -1.0, 0.0]]])
         sample_weight = tf.constant([[[1.0, 1.0, 0.0]]])
 
-        moments(inputs, sample_weight=sample_weight, training=True)
+        moments.update_state(inputs, sample_weight=sample_weight)
 
         expected_mean = tf.constant([-0.8, 0.8, 0.8], dtype=tf.float32)
         expected_var = tf.constant([0.0, 0.0, 0.0], dtype=tf.float32)
