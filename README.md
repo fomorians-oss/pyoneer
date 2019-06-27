@@ -79,13 +79,9 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.moments.StreamingMoments`
 - `pynr.moments.ExponentialMovingMoments`
 
-### Learning Schedules ([`pynr.schedules`](pyoneer/schedules))
+### Learning Rate Schedules ([`pynr.schedules`](pyoneer/schedules))
 
 - `pynr.schedules.CyclicSchedule`
-
-### Variables ([`pynr.variables`](pyoneer/variables))
-
-- `pynr.variables.update_target_variables`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 

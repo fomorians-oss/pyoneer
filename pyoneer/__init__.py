@@ -13,7 +13,6 @@ from pyoneer import metrics
 from pyoneer import moments
 from pyoneer import rl
 from pyoneer import schedules
-from pyoneer import variables
 
 __all__ = [
     "activations",
@@ -27,5 +26,4 @@ __all__ = [
     "moments",
     "rl",
     "schedules",
-    "variables",
 ]
