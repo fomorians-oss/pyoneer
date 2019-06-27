@@ -5,8 +5,7 @@ name = "pypi"
 
 [packages]
 gym = "*"
-tensorflow = "==2.0.0-beta0"
-tfp-nightly = "*"
+tensorflow = "==2.0.0-beta1"
 
 [requires]
 python_version = "3.6.5"
