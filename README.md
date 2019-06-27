@@ -72,12 +72,12 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.metrics.MAPE`
 - `pynr.metrics.SMAPE`
 
-### Neural Networks ([`pynr.nn`](pyoneer/nn))
+### Moments ([`pynr.moments`](pyoneer/moments))
 
-- `pynr.nn.range_moments`
-- `pynr.nn.StaticMoments`
-- `pynr.nn.StreamingMoments`
-- `pynr.nn.ExponentialMovingMoments`
+- `pynr.moments.range_moments`
+- `pynr.moments.StaticMoments`
+- `pynr.moments.StreamingMoments`
+- `pynr.moments.ExponentialMovingMoments`
 
 ### Learning Schedules ([`pynr.schedules`](pyoneer/schedules))
 

@@ -10,7 +10,7 @@ from pyoneer import layers
 from pyoneer import manip
 from pyoneer import math
 from pyoneer import metrics
-from pyoneer import nn
+from pyoneer import moments
 from pyoneer import rl
 from pyoneer import schedules
 from pyoneer import variables
@@ -24,7 +24,7 @@ __all__ = [
     "manip",
     "math",
     "metrics",
-    "nn",
+    "moments",
     "rl",
     "schedules",
     "variables",

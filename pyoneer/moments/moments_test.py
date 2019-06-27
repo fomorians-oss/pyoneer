@@ -4,12 +4,12 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from pyoneer.nn import nn_impl
+from pyoneer.moments import moments_impl
 
 
 class MomentsTest(tf.test.TestCase):
     def test_range_moments(self):
-        mean, variance = nn_impl.range_moments(
+        mean, variance = moments_impl.range_moments(
             minval=tf.constant([-2.0]), maxval=tf.constant([2.0])
         )
         expected_mean = tf.constant([0.0], dtype=tf.float32)
@@ -20,7 +20,7 @@ class MomentsTest(tf.test.TestCase):
     def test_static_moments(self):
         mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
         variance = tf.constant([1.0, 2.0, 1.0], dtype=tf.float32)
-        moments = nn_impl.StaticMoments(mean, variance)
+        moments = moments_impl.StaticMoments(mean, variance)
 
         expected_mean = tf.constant([-1.0, 0.0, +1.0], dtype=tf.float32)
         expected_var = tf.constant([1.0, 2.0, 1.0], dtype=tf.float32)
@@ -31,7 +31,7 @@ class MomentsTest(tf.test.TestCase):
         self.assertAllClose(expected_std, moments.std.numpy())
 
     def test_streaming_moments(self):
-        moments = nn_impl.StreamingMoments(shape=[3])
+        moments = moments_impl.StreamingMoments(shape=[3])
 
         # sample 1
         inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
@@ -76,7 +76,7 @@ class MomentsTest(tf.test.TestCase):
         self.assertAllClose(expected_std, moments.std.numpy())
 
     def test_exponential_moving_moments(self):
-        moments = nn_impl.ExponentialMovingMoments(shape=[3], rate=0.9)
+        moments = moments_impl.ExponentialMovingMoments(shape=[3], rate=0.9)
 
         # sample 1
         inputs = tf.constant([[[-1.0, 0.0, +1.0]]])
