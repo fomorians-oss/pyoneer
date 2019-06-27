@@ -20,7 +20,7 @@ class SoftplusInverse(tf.keras.initializers.Initializer):
 
     def __call__(self, shape, dtype=tf.float32):
         return tf.constant(
-            tfp.distributions.softplus_inverse(self.scale), dtype=dtype, shape=shape
+            tfp.math.softplus_inverse(self.scale), dtype=dtype, shape=shape
         )
 
     def get_config(self):
