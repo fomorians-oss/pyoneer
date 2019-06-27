@@ -98,7 +98,7 @@ Utilities for reinforcement learning.
 
 #### Targets ([`pynr.rl.targets`](pyoneer/rl/targets))
 
-- `pynr.rl.targets.DiscountedRewards`
+- `pynr.rl.targets.DiscountedReturns`
 - `pynr.rl.targets.GeneralizedAdvantages`
 
 #### Strategies ([`pynr.rl.strategies`](pyoneer/rl/strategies))
