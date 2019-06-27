@@ -1,20 +1,21 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 import multiprocessing
 
-from pyoneer.rl.envs.process_env_impl import ProcessEnv
+from pyoneer.rl.wrappers.process_impl import Process
 
 
-class BatchEnv(object):
+class BatchProcess(object):
     """
-    Adapted from Batch PPO:
-    https://github.com/google-research/batch-ppo/blob/master/agents/tools/batch_env.py
-
     Wraps a `gym.Env` to host a batch of environments in external processes.
 
     Example:
 
     ```
-    env = BatchEnv(
+    env = BatchProcess(
         constructor=lambda: gym.make('Pendulum-v0'),
         batch_size=32,
         blocking=False)
@@ -31,7 +32,7 @@ class BatchEnv(object):
         if batch_size is None:
             batch_size = multiprocessing.cpu_count()
 
-        self.envs = [ProcessEnv(constructor) for env in range(batch_size)]
+        self.envs = [Process(constructor) for _ in range(batch_size)]
         self.blocking = blocking
 
         observation_space = self.observation_space
@@ -52,14 +53,19 @@ class BatchEnv(object):
         return getattr(self.envs[0], name)
 
     def seed(self, seed=None):
-        for i, env in enumerate(self.envs):
-            env.seed(seed + i, blocking=True)
+        if self.blocking:
+            for i, env in enumerate(self.envs):
+                env.seed(seed + i)
+        else:
+            promises = [env.seed(seed + i) for i, env in enumerate(self.envs)]
+            for promise in promises:
+                promise()
 
     def reset(self):
         if self.blocking:
             states = [env.reset() for env in self.envs]
         else:
-            promises = [env.reset(blocking=False) for env in self.envs]
+            promises = [env.reset() for env in self.envs]
             states = [promise() for promise in promises]
 
         state = np.stack(states, axis=0)
@@ -67,15 +73,9 @@ class BatchEnv(object):
 
     def step(self, actions):
         if self.blocking:
-            transitions = [
-                env.step(action, blocking=True)
-                for env, action in zip(self.envs, actions)
-            ]
+            transitions = [env.step(action) for env, action in zip(self.envs, actions)]
         else:
-            promises = [
-                env.step(action, blocking=False)
-                for env, action in zip(self.envs, actions)
-            ]
+            promises = [env.step(action) for env, action in zip(self.envs, actions)]
             transitions = [promise() for promise in promises]
 
         next_states, rewards, dones, infos = zip(*transitions)

@@ -6,7 +6,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class EpsilonGreedyStrategy:
+class EpsilonGreedy(object):
     """
     Epsilon-greedy strategy. Samples from a policy distribution with
     `1 - epsilon` probability.
@@ -45,3 +45,35 @@ class EpsilonGreedyStrategy:
         sample = policy.sample()
         mode = policy.mode()
         return tf.where(sample_mask, mode, sample)
+
+
+class Mode(object):
+    """
+    Returns the mode of the policy distribution.
+
+    Args:
+        policy: callable that returns a `tfp.distributions.Distribution`.
+    """
+
+    def __init__(self, policy):
+        self.policy = policy
+
+    def __call__(self, *args, **kwargs):
+        dist = self.policy(*args, **kwargs)
+        return dist.mode()
+
+
+class Sample(object):
+    """
+    Returns random samples from the policy distribution.
+
+    Args:
+        policy: callable that returns a `tfp.distributions.Distribution`.
+    """
+
+    def __init__(self, policy):
+        self.policy = policy
+
+    def __call__(self, *args, **kwargs):
+        dist = self.policy(*args, **kwargs)
+        return dist.sample()

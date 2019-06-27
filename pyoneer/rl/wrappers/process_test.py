@@ -3,16 +3,16 @@ from __future__ import division
 from __future__ import print_function
 
 import gym
+import tensorflow as tf
 
-from tensorflow.python.platform import test
-
-from pyoneer.rl.envs.process_env_impl import ProcessEnv
+from pyoneer.rl.wrappers.process_impl import Process
 
 
-class ProcessEnvTest(test.TestCase):
-    def test_process_env(self):
-        env = ProcessEnv(lambda: gym.make("Pendulum-v0"))
-        env.seed(42)
+class ProcessTest(tf.test.TestCase):
+    def test_process(self):
+        env = Process(lambda: gym.make("Pendulum-v0"), blocking=True)
+        env.seed(0)
+
         state = env.reset()
         action = env.action_space.sample()
         next_state, reward, done, info = env.step(action)
@@ -23,4 +23,4 @@ class ProcessEnvTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

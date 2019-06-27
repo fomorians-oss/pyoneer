@@ -12,7 +12,7 @@ def safe_divide(x, y, rtol=1e-5, atol=1e-8):
     Safely divide x by y while avoiding dividing by zero.
     """
     y = tf.where(logical_ops.isclose(y, 0.0, rtol=rtol, atol=atol), tf.ones_like(y), y)
-    return tf.check_numerics(x / y, "safe_divide")
+    return tf.debugging.check_numerics(x / y, "safe_divide")
 
 
 def rescale(x, oldmin, oldmax, newmin, newmax):
@@ -26,11 +26,11 @@ def rescale(x, oldmin, oldmax, newmin, newmax):
     newmax = tf.convert_to_tensor(newmax)
     x = (x - oldmin) / (oldmax - oldmin)
     x = (x * (newmax - newmin)) + newmin
-    x = tf.check_numerics(x, "rescale")
+    x = tf.debugging.check_numerics(x, "rescale")
     return x
 
 
-def normalize(x, loc, scale, weights=1.0):
+def normalize(x, loc, scale, sample_weight=1.0):
     """
     Normalizes an input.
 
@@ -38,7 +38,7 @@ def normalize(x, loc, scale, weights=1.0):
         x: a possibly un-normalized Tensor.
         loc: expected loc.
         scale: expected scale.
-        weights: optional weights.
+        sample_weight: optional sample_weight.
 
     Returns:
         A normalized Tensor.
@@ -46,13 +46,13 @@ def normalize(x, loc, scale, weights=1.0):
     x = tf.convert_to_tensor(x)
     loc = tf.convert_to_tensor(loc)
     scale = tf.convert_to_tensor(scale)
-    weights = tf.convert_to_tensor(weights)
-    outputs = safe_divide((x - loc), scale) * weights
-    outputs = tf.check_numerics(outputs, "normalize")
+    sample_weight = tf.convert_to_tensor(sample_weight)
+    outputs = safe_divide((x - loc), scale) * sample_weight
+    outputs = tf.debugging.check_numerics(outputs, "normalize")
     return outputs
 
 
-def denormalize(x, loc, scale, weights=1.0):
+def denormalize(x, loc, scale, sample_weight=1.0):
     """
     De-normalizes an input.
 
@@ -60,7 +60,7 @@ def denormalize(x, loc, scale, weights=1.0):
         x: A tensor to denormalize.
         loc: A loc tensor.
         scale: A scale tensor.
-        weights: Optional weights tensor.
+        sample_weight: Optional sample_weight tensor.
 
     Returns:
         A de-normalized Tensor.
@@ -68,7 +68,7 @@ def denormalize(x, loc, scale, weights=1.0):
     x = tf.convert_to_tensor(x)
     loc = tf.convert_to_tensor(loc)
     scale = tf.convert_to_tensor(scale)
-    weights = tf.convert_to_tensor(weights)
-    outputs = ((x * scale) + loc) * weights
-    outputs = tf.check_numerics(outputs, "denormalize")
+    sample_weight = tf.convert_to_tensor(sample_weight)
+    outputs = ((x * scale) + loc) * sample_weight
+    outputs = tf.debugging.check_numerics(outputs, "denormalize")
     return outputs

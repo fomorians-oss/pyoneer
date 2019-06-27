@@ -5,6 +5,19 @@ from __future__ import print_function
 import tensorflow as tf
 
 
+def flatten(tensor):
+    """
+    Flatten a tensor by reshaping into a vector.
+
+    Args:
+        tensor: Tensor to flatten.
+
+    Returns:
+        Flattened tensor.
+    """
+    return tf.reshape(tensor, [-1])
+
+
 def pad_or_truncate(tensor, sizes, mode="CONSTANT", constant_values=0.0):
     """
     Pad or truncate a tensor. This is useful for ensuring sequences have the
@@ -39,7 +52,7 @@ def pad_or_truncate(tensor, sizes, mode="CONSTANT", constant_values=0.0):
     tensor = tf.convert_to_tensor(tensor)
 
     paddings = [
-        [0, max(sizes[axis] - tensor.shape[axis].value, 0)]
+        [0, max(sizes[axis] - tensor.shape[axis], 0)]
         for axis in range(tensor.shape.ndims)
     ]
 

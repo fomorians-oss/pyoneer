@@ -4,19 +4,20 @@ from __future__ import print_function
 
 import gym
 import numpy as np
+import tensorflow as tf
 
-from tensorflow.python.platform import test
-
-from pyoneer.rl.envs.batch_env_impl import BatchEnv
+from pyoneer.rl.wrappers.batch_process_impl import BatchProcess
 
 
-class BatchEnvTest(test.TestCase):
-    def test_batch_env(self):
-        batch_size = 2
-        env = BatchEnv(
+class BatchProcessTest(tf.test.TestCase):
+    def test_batch_process(self):
+        batch_size = 8
+
+        env = BatchProcess(
             constructor=lambda: gym.make("Pendulum-v0"), batch_size=batch_size
         )
-        env.seed(42)
+        env.seed(0)
+
         state = env.reset()
         action = np.stack(
             [env.action_space.sample() for _ in range(batch_size)], axis=0
@@ -32,4 +33,4 @@ class BatchEnvTest(test.TestCase):
 
 
 if __name__ == "__main__":
-    test.main()
+    tf.test.main()

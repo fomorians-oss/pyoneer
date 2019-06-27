@@ -3,12 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow.contrib.eager as tfe
 
 from pyoneer.math import math_ops
 
 
-def moments_from_range(minval, maxval):
+def range_moments(minval, maxval):
     """
     Compute element-wise mean and variance from min and max values.
 
@@ -24,7 +23,42 @@ def moments_from_range(minval, maxval):
     return mean, variance
 
 
-class StreamingMoments(tf.keras.Model):
+class Moments(tf.keras.Model):
+    """
+    Base class for moment containers.
+    """
+
+    def normalize(self, inputs, sample_weight=1.0):
+        return math_ops.normalize(
+            inputs, loc=self.mean, scale=self.std, sample_weight=sample_weight
+        )
+
+    def denormalize(self, inputs, sample_weight=1.0):
+        return math_ops.denormalize(
+            inputs, loc=self.mean, scale=self.std, sample_weight=sample_weight
+        )
+
+
+class StaticMoments(Moments):
+    """
+    Static moments.
+
+    Args:
+        mean: Mean of moments.
+        variance: Variance of moments.
+    """
+
+    def __init__(self, mean, variance, **kwargs):
+        super(StaticMoments, self).__init__(**kwargs)
+        self.mean = tf.Variable(mean, trainable=False)
+        self.variance = tf.Variable(variance, trainable=False)
+
+    @property
+    def std(self):
+        return tf.sqrt(self.variance)
+
+
+class StreamingMoments(Moments):
     """
     Compute accurate moments on a batch basis.
 
@@ -35,11 +69,15 @@ class StreamingMoments(tf.keras.Model):
 
     def __init__(self, shape, dtype=tf.float32, **kwargs):
         super(StreamingMoments, self).__init__(**kwargs)
-        self.count = tfe.Variable(
-            tf.zeros(shape=shape, dtype=tf.int64), trainable=False
+        self.count = tf.Variable(tf.zeros(shape=shape, dtype=tf.int64), trainable=False)
+        self.mean = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
+        self.var_sum = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
+
+    @property
+    def std(self):
+        return tf.where(
+            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.variance)
         )
-        self.mean = tfe.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
-        self.var_sum = tfe.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
 
     @property
     def variance(self):
@@ -49,19 +87,13 @@ class StreamingMoments(tf.keras.Model):
             tf.zeros_like(self.var_sum),
         )
 
-    @property
-    def std(self):
-        return tf.where(
-            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.var_sum)
-        )
-
-    def call(self, inputs, weights=1.0, training=None):
+    def call(self, inputs, sample_weight=1.0, training=None):
         """
         Update moments using a new batch of inputs.
 
         Args:
             inputs: Input tensor.
-            weights: Optional weights.
+            sample_weight: Optional sample_weight.
             training: Boolean indicating whether or not to update the moments.
 
         Returns:
@@ -73,24 +105,24 @@ class StreamingMoments(tf.keras.Model):
             ndims = inputs.shape.ndims - self.mean.shape.ndims
             axes = list(range(ndims))
 
-            weight_sum = tf.reduce_sum(weights, axis=axes)
-            count_delta = tf.to_int64(weight_sum)
+            weight_sum = tf.reduce_sum(sample_weight, axis=axes)
+            count_delta = tf.cast(weight_sum, tf.int64)
             new_count = self.count + count_delta
 
             mean_delta = tf.where(
                 count_delta > 1,
                 (
-                    tf.reduce_sum((inputs - self.mean) * weights, axis=axes)
-                    / tf.to_float(new_count)
+                    tf.reduce_sum((inputs - self.mean) * sample_weight, axis=axes)
+                    / tf.cast(new_count, tf.float32)
                 ),
                 math_ops.safe_divide(
-                    tf.reduce_sum(inputs * weights, axis=axes), weight_sum
+                    tf.reduce_sum(inputs * sample_weight, axis=axes), weight_sum
                 ),
             )
             new_mean = self.mean + mean_delta
 
             var_delta = tf.reduce_sum(
-                (inputs - self.mean) * (inputs - new_mean) * weights, axis=axes
+                (inputs - self.mean) * (inputs - new_mean) * sample_weight, axis=axes
             )
             new_var_sum = self.var_sum + var_delta
 
@@ -101,7 +133,7 @@ class StreamingMoments(tf.keras.Model):
         return self.mean, self.variance
 
 
-class ExponentialMovingMoments(tf.keras.Model):
+class ExponentialMovingMoments(Moments):
     """
     Compute moments as an exponential moving average using the update rule:
 
@@ -120,27 +152,23 @@ class ExponentialMovingMoments(tf.keras.Model):
     def __init__(self, shape, rate, dtype=tf.float32, **kwargs):
         super(ExponentialMovingMoments, self).__init__(**kwargs)
         self.rate = rate
-        self.count = tfe.Variable(
-            tf.zeros(shape=shape, dtype=tf.int64), trainable=False
-        )
-        self.mean = tfe.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
-        self.variance = tfe.Variable(
-            tf.zeros(shape=shape, dtype=dtype), trainable=False
-        )
+        self.count = tf.Variable(tf.zeros(shape=shape, dtype=tf.int64), trainable=False)
+        self.mean = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
+        self.variance = tf.Variable(tf.zeros(shape=shape, dtype=dtype), trainable=False)
 
     @property
     def std(self):
         return tf.where(
-            self.count > 0, tf.sqrt(self.variance), tf.zeros_like(self.variance)
+            self.count > 1, tf.sqrt(self.variance), tf.zeros_like(self.variance)
         )
 
-    def call(self, inputs, weights=1.0, training=None):
+    def call(self, inputs, sample_weight=1.0, training=None):
         """
         Update moments using a new batch of inputs.
 
         Args:
             inputs: Input tensor.
-            weights: Optional weights.
+            sample_weight: Optional sample_weight.
             training: Boolean indicating whether or not to update the moments.
 
         Returns:
@@ -152,28 +180,22 @@ class ExponentialMovingMoments(tf.keras.Model):
             ndims = inputs.shape.ndims - self.mean.shape.ndims
             axes = list(range(ndims))
 
-            weight_sum = tf.reduce_sum(weights, axis=axes)
-            count_delta = tf.to_int64(weight_sum)
-            new_count = self.count + count_delta
+            weight_sum = tf.reduce_sum(sample_weight, axis=axes)
+            count = tf.cast(weight_sum, tf.int64)
+            new_count = self.count + count
 
             mean, variance = tf.nn.weighted_moments(
-                inputs, axes=axes, frequency_weights=weights
+                inputs, axes=axes, frequency_weights=sample_weight
             )
 
-            # mask values
-            mean = tf.where(weight_sum > 0, mean, self.mean)
-            variance = tf.where(weight_sum > 0, variance, self.variance)
+            moving_mean = self.mean * self.rate + mean * (1 - self.rate)
+            moving_variance = self.variance * self.rate + variance * (1 - self.rate)
 
-            new_mean = tf.where(
-                tf.logical_and(new_count > 1, weight_sum > 0),
-                self.mean * self.rate + mean * (1 - self.rate),
-                mean,
-            )
-            new_variance = tf.where(
-                tf.logical_and(new_count > 1, weight_sum > 0),
-                self.variance * self.rate + variance * (1 - self.rate),
-                variance,
-            )
+            new_mean = tf.where(self.count > 0, moving_mean, mean)
+            new_variance = tf.where(self.count > 0, moving_variance, variance)
+
+            new_mean = tf.where(count > 0, new_mean, self.mean)
+            new_variance = tf.where(count > 0, new_variance, self.variance)
 
             self.mean.assign(new_mean)
             self.variance.assign(new_variance)

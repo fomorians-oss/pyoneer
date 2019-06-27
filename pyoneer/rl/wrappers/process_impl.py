@@ -1,16 +1,6 @@
-# Copyright 2017 The TensorFlow Agents Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import sys
 import atexit
@@ -18,17 +8,14 @@ import traceback
 import multiprocessing
 
 
-class ProcessEnv(object):
+class Process(object):
     """
-    Adopted from Batch PPO:
-    https://github.com/google-research/batch-ppo/blob/master/agents/tools/wrappers.py#L303
-
     Wraps a `gym.Env` to host the environment in an external process.
 
     Example:
 
     ```
-    env = ProcessEnv(lambda: gym.make('Pendulum-v0'))
+    env = Process(lambda: gym.make('Pendulum-v0'))
     ```
 
     Args:
@@ -41,11 +28,12 @@ class ProcessEnv(object):
     _EXCEPTION = 4
     _CLOSE = 5
 
-    def __init__(self, constructor):
+    def __init__(self, constructor, blocking=False):
         self._conn, conn = multiprocessing.Pipe()
         self._process = multiprocessing.Process(
             target=self._worker, args=(constructor, conn)
         )
+        self._blocking = blocking
 
         atexit.register(self.close)
 
@@ -84,23 +72,23 @@ class ProcessEnv(object):
 
         self._process.join()
 
-    def seed(self, seed, blocking=True):
+    def seed(self, seed):
         promise = self.call("seed", seed)
-        if blocking:
+        if self._blocking:
             return promise()
         else:
             return promise
 
-    def step(self, action, blocking=True):
+    def step(self, action):
         promise = self.call("step", action)
-        if blocking:
+        if self._blocking:
             return promise()
         else:
             return promise
 
-    def reset(self, blocking=True):
+    def reset(self):
         promise = self.call("reset")
-        if blocking:
+        if self._blocking:
             return promise()
         else:
             return promise
