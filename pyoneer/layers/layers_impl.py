@@ -85,3 +85,50 @@ class AngleEncoder(tf.keras.layers.Layer):
         config = {"degrees": self.degrees}
         base_config = super(AngleEncoder, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+
+class Nest(tf.keras.layers.Layer):
+    """
+    Maps an arbitrarily nested structure of layers to an equivalent
+    structure of input features using the `tf.nest` API.
+
+    Example:
+
+    ```
+    nest_layer = Nest({
+        "category": OneHotEncoder(depth=3),
+        "angle": AngleEncoder(degrees=True),
+        "nested": {
+            "category": OneHotEncoder(depth=3),
+            "angle": AngleEncoder(degrees=True),
+        }
+    })
+    features = {
+        "category": tf.constant([1]),
+        "angle": tf.constant([[-45.0]]),
+        "nested": {
+            "category": tf.constant([2]),
+            "angle": tf.constant([[+45.0]]),
+        }
+    }
+    outputs = nest_layer(features)  # shape: [1, (2 + 3) * 2]
+    ```
+
+    Args:
+        layers: An arbitrarily nested structure of layers.
+    """
+
+    def __init__(self, layers, **kwargs):
+        super(Nest, self).__init__(**kwargs)
+        self.layers = layers
+
+    def call(self, inputs):
+        tf.nest.assert_same_structure(self.layers, inputs)
+
+        def call_layer(layer, inputs):
+            return layer(inputs)
+
+        inputs_mapped = tf.nest.map_structure(call_layer, self.layers, inputs)
+        inputs_flattened = tf.nest.flatten(inputs_mapped)
+        outputs = tf.concat(inputs_flattened, axis=-1)
+        return outputs
