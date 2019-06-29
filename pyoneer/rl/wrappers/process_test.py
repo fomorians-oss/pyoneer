@@ -10,12 +10,17 @@ from pyoneer.rl.wrappers.process_impl import Process
 
 class ProcessTest(tf.test.TestCase):
     def test_process(self):
-        env = Process(lambda: gym.make("Pendulum-v0"), blocking=True)
-        env.seed(0)
+        env = Process(lambda: gym.make("Pendulum-v0"))
 
-        state = env.reset()
+        promise = env.seed(0)
+        promise()
+
+        promise = env.reset()
+        state = promise()
+
         action = env.action_space.sample()
-        next_state, reward, done, info = env.step(action)
+        promise = env.step(action)
+        next_state, reward, done, info = promise()
 
         self.assertTupleEqual(state.shape, (3,))
         self.assertTupleEqual(action.shape, (1,))

@@ -28,12 +28,11 @@ class Process(object):
     _EXCEPTION = 4
     _CLOSE = 5
 
-    def __init__(self, constructor, blocking=False):
+    def __init__(self, constructor):
         self._conn, conn = multiprocessing.Pipe()
         self._process = multiprocessing.Process(
             target=self._worker, args=(constructor, conn)
         )
-        self._blocking = blocking
 
         atexit.register(self.close)
 
@@ -73,25 +72,13 @@ class Process(object):
         self._process.join()
 
     def seed(self, seed):
-        promise = self.call("seed", seed)
-        if self._blocking:
-            return promise()
-        else:
-            return promise
+        return self.call("seed", seed)
 
     def step(self, action):
-        promise = self.call("step", action)
-        if self._blocking:
-            return promise()
-        else:
-            return promise
+        return self.call("step", action)
 
     def reset(self):
-        promise = self.call("reset")
-        if self._blocking:
-            return promise()
-        else:
-            return promise
+        return self.call("reset")
 
     def _receive(self):
         message, payload = self._conn.recv()
