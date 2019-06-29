@@ -39,12 +39,10 @@ class Batch(object):
     """
 
     def __init__(self, constructor, batch_size, blocking=True):
-        if not blocking:
-            self.envs = [
-                Process(constructor, blocking=False) for _ in range(batch_size)
-            ]
-        else:
+        if blocking:
             self.envs = [constructor() for _ in range(batch_size)]
+        else:
+            self.envs = [Process(constructor) for _ in range(batch_size)]
 
         self.done = np.zeros(len(self.envs), dtype=np.bool)
         self.blocking = blocking
@@ -68,12 +66,12 @@ class Batch(object):
 
     def seed(self, seed):
         if self.blocking:
+            for i, env in enumerate(self.envs):
+                env.seed(seed + i)
+        else:
             promises = [env.seed(seed + i) for i, env in enumerate(self.envs)]
             for promise in promises:
                 promise()
-        else:
-            for i, env in enumerate(self.envs):
-                env.seed(seed + i)
 
     def reset(self):
         self.done[:] = False
@@ -125,10 +123,9 @@ class Batch(object):
         return next_state, reward, done, info
 
     def render(self, mode="human"):
-        # if not self.blocking:
-        #     assert (
-        #         mode == "rgb_array"
-        #     ), 'only the "rgb_array" mode is supported when `blocking=False`'
+        assert (
+            self.blocking or mode == "rgb_array"
+        ), 'only the "rgb_array" mode is supported when `blocking=False`'
 
         if mode == "rgb_array":
             return np.stack([env.render(mode=mode) for env in self.envs], axis=0)

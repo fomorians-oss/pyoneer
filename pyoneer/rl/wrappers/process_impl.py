@@ -37,18 +37,18 @@ class Process(object):
         atexit.register(self.close)
 
         self._process.start()
-        self._observ_space = None
+        self._observation_space = None
         self._action_space = None
 
     @property
     def observation_space(self):
-        if not self._observ_space:
-            self._observ_space = self.__getattr__("observation_space")
-        return self._observ_space
+        if self._observation_space is None:
+            self._observation_space = self.__getattr__("observation_space")
+        return self._observation_space
 
     @property
     def action_space(self):
-        if not self._action_space:
+        if self._action_space is None:
             self._action_space = self.__getattr__("action_space")
         return self._action_space
 

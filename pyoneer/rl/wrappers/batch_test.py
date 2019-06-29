@@ -22,8 +22,6 @@ class BatchTest(tf.test.TestCase):
 
         state = env.reset()
         for _ in range(200):
-            env.render()
-
             action = np.stack(
                 [env.action_space.sample() for _ in range(batch_size)], axis=0
             )
@@ -40,7 +38,7 @@ class BatchTest(tf.test.TestCase):
         batch_size = 8
 
         env = Batch(
-            constructor=lambda batch_id: gym.make("Pendulum-v0"),
+            constructor=lambda: gym.make("Pendulum-v0"),
             batch_size=batch_size,
             blocking=False,
         )
@@ -48,8 +46,6 @@ class BatchTest(tf.test.TestCase):
 
         state = env.reset()
         for _ in range(200):
-            env.render()
-
             action = np.stack(
                 [env.action_space.sample() for _ in range(batch_size)], axis=0
             )
