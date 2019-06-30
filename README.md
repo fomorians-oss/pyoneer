@@ -18,7 +18,7 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 ### Examples
 
-- [TF 2.0 Proximal Policy Optimization](https://github.com/fomorians/ppo)
+- [Proximal Policy Optimization with Pyoneer and TF 2.0](https://github.com/fomorians/ppo)
 
 ## API
 
