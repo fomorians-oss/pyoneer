@@ -43,6 +43,7 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.layers.Swish`
 - `pynr.layers.OneHotEncoder`
 - `pynr.layers.AngleEncoder`
+- `pynr.layers.Nest`
 
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
