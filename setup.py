@@ -4,13 +4,13 @@ from __future__ import print_function
 
 from setuptools import setup, find_packages
 
-install_requires = ["gym"]
+install_requires = ["gym", "six"]
 with open("README.md", "r") as fp:
     long_description = fp.read()
 
 setup(
     name="fomoro-pyoneer",
-    version="0.2.0",
+    version="0.3.0",
     author="Fomoro AI",
     author_email="team@fomoro.com",
     description="Tensor utilities, reinforcement learning, and more!",
