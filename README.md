@@ -113,7 +113,6 @@ Utilities for reinforcement learning.
 - `pynr.rl.wrappers.ObservationCoordinates`
 - `pynr.rl.wrappers.ObservationNormalization`
 - `pynr.rl.wrappers.Batch`
-- `pynr.rl.wrappers.BatchProcess`
 - `pynr.rl.wrappers.Process`
 
 ## Installation

@@ -28,28 +28,27 @@ class Process(object):
     _EXCEPTION = 4
     _CLOSE = 5
 
-    def __init__(self, constructor, blocking=False):
+    def __init__(self, constructor):
         self._conn, conn = multiprocessing.Pipe()
         self._process = multiprocessing.Process(
             target=self._worker, args=(constructor, conn)
         )
-        self._blocking = blocking
 
         atexit.register(self.close)
 
         self._process.start()
-        self._observ_space = None
+        self._observation_space = None
         self._action_space = None
 
     @property
     def observation_space(self):
-        if not self._observ_space:
-            self._observ_space = self.__getattr__("observation_space")
-        return self._observ_space
+        if self._observation_space is None:
+            self._observation_space = self.__getattr__("observation_space")
+        return self._observation_space
 
     @property
     def action_space(self):
-        if not self._action_space:
+        if self._action_space is None:
             self._action_space = self.__getattr__("action_space")
         return self._action_space
 
@@ -73,25 +72,13 @@ class Process(object):
         self._process.join()
 
     def seed(self, seed):
-        promise = self.call("seed", seed)
-        if self._blocking:
-            return promise()
-        else:
-            return promise
+        return self.call("seed", seed)
 
     def step(self, action):
-        promise = self.call("step", action)
-        if self._blocking:
-            return promise()
-        else:
-            return promise
+        return self.call("step", action)
 
     def reset(self):
-        promise = self.call("reset")
-        if self._blocking:
-            return promise()
-        else:
-            return promise
+        return self.call("reset")
 
     def _receive(self):
         message, payload = self._conn.recv()
