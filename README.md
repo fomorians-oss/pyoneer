@@ -38,6 +38,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 - `pynr.initializers.SoftplusInverse`
 
+### Jobs ([`pynr.jobs`](pyoneer/jobs))
+
+- `pynr.jobs.Job`
+
 ### Layers ([`pynr.layers`](pyoneer/layers))
 
 - `pynr.layers.Swish`
@@ -84,6 +88,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 - `pynr.schedules.CyclicSchedule`
 
+### Variables ([`pynr.variables`](pyoneer/variables))
+
+- `pynr.variables.update_variables`
+
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 
 Utilities for reinforcement learning.
@@ -105,6 +113,7 @@ Utilities for reinforcement learning.
 #### Strategies ([`pynr.rl.strategies`](pyoneer/rl/strategies))
 
 - `pynr.rl.strategies.EpsilonGreedy`
+- `pynr.rl.strategies.Random`
 - `pynr.rl.strategies.Mode`
 - `pynr.rl.strategies.Sample`
 
