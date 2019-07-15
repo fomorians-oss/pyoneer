@@ -21,6 +21,12 @@ class TransitionBuffer(object):
                 break
         return size
 
+    def __getitem__(self, key):
+        return self.transitions[key]
+
+    def __contains__(self, key):
+        return (key in self.transitions)
+
     def __len__(self):
         return self.size
 
@@ -40,15 +46,27 @@ class TransitionBuffer(object):
             self.transitions = transitions
 
         # truncate the transitions to the maximum size
-        self.transitions = tf.nest.map_structure(
-            truncate_transitions, self.transitions
-        )
+        if self.max_size is not None:
+            self.transitions = tf.nest.map_structure(
+                truncate_transitions, self.transitions
+            )
 
-    def sample(self, batch_size):
-        sample_indices = np.random.choice(self.size, batch_size)
+    def update(self, indices, updates):
+        def update_transitions(elem_old, elem_new):
+            elem_old[indices] = elem_new
+
+        tf.nest.map_structure(update_transitions, self.transitions, updates)
+
+    def sample(self, size, p=None, return_indices=False):
+        indices = np.random.choice(
+            self.size, size=size, p=p, replace=True)
 
         def sample_transitions(elem):
-            return elem[sample_indices]
+            return elem[indices]
 
         transitions = tf.nest.map_structure(sample_transitions, self.transitions)
-        return transitions
+
+        if return_indices:
+            return transitions, indices
+        else:
+            return transitions
