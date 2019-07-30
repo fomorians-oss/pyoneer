@@ -70,3 +70,10 @@ class TransitionBuffer(object):
             return transitions, indices
         else:
             return transitions
+
+    def save(self, path):
+        np.savez_compressed(path, **self.transitions)
+
+    def restore(self, path):
+        with np.load(path) as data:
+            self.transitions = dict(data)
