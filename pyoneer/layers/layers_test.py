@@ -5,8 +5,14 @@ from __future__ import print_function
 import math
 import tensorflow as tf
 
-from pyoneer.math import angle_ops
-from pyoneer.layers.layers_impl import Swish, OneHotEncoder, AngleEncoder, Nest
+from pyoneer.math import angle_ops, math_ops
+from pyoneer.layers.layers_impl import (
+    Swish,
+    OneHotEncoder,
+    AngleEncoder,
+    Nest,
+    ConcreteDropout,
+)
 
 
 class LayersTest(tf.test.TestCase):
@@ -72,6 +78,15 @@ class LayersTest(tf.test.TestCase):
             ],
             axis=0,
         )
+        self.assertAllClose(outputs, expected)
+
+    def test_concrete_dropout(self):
+        dropout_layer = ConcreteDropout()
+        self.assertAllClose(dropout_layer.rate, 0.1)
+
+        inputs = tf.constant([[-1.0, 0.0, +1.0]], dtype=tf.float32)
+        outputs = dropout_layer(inputs)
+        expected = tf.constant([[-1.111111, 0.0, 1.111111]], dtype=tf.float32)
         self.assertAllClose(outputs, expected)
 
 

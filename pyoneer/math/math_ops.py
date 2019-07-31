@@ -72,3 +72,17 @@ def denormalize(x, loc, scale, sample_weight=1.0):
     outputs = ((x * scale) + loc) * sample_weight
     outputs = tf.debugging.check_numerics(outputs, "denormalize")
     return outputs
+
+
+def sigmoid_inverse(x):
+    """
+    Inverse of sigmoid.
+
+    Args:
+        x: A tensor.
+
+    Returns:
+        A tensor.
+    """
+    x = tf.convert_to_tensor(x)
+    return tf.math.log(x) - tf.math.log(1.0 - x)
