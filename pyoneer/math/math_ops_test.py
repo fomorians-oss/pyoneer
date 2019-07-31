@@ -39,9 +39,7 @@ class MathOpsTest(tf.test.TestCase):
 
     def test_sigmoid_inverse(self):
         x = tf.constant([0.0, 0.1, 1.0])
-        print(x)
         x_inv = math_ops.sigmoid_inverse(x)
-        print(x_inv)
         actual = tf.math.sigmoid(x_inv)
         expected = tf.constant([0.0, 0.1, 1.0])
         self.assertAllClose(actual, expected)
