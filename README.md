@@ -88,7 +88,6 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 ### Regularizers ([`pynr.regularizers`](pyoneer/regularizers))
 
-- `pynr.regularizers.ConcreteDropout`
 - `pynr.regularizers.DropoutL2`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))

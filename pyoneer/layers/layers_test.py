@@ -81,13 +81,17 @@ class LayersTest(tf.test.TestCase):
         self.assertAllClose(outputs, expected)
 
     def test_concrete_dropout(self):
-        dropout_layer = ConcreteDropout()
+        dropout_layer = ConcreteDropout(regularizer_scale=1.0)
         self.assertAllClose(dropout_layer.rate, 0.1)
 
         inputs = tf.constant([[-1.0, 0.0, +1.0]], dtype=tf.float32)
         outputs = dropout_layer(inputs)
         expected = tf.constant([[-1.111111, 0.0, 1.111111]], dtype=tf.float32)
         self.assertAllClose(outputs, expected)
+
+        self.assertAllClose(dropout_layer.losses[0], -0.325083)
+        dropout_layer.rate_logit.assign(math_ops.sigmoid_inverse(0.2))
+        self.assertAllClose(dropout_layer.losses[0], -0.500403)
 
 
 if __name__ == "__main__":
