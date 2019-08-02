@@ -193,7 +193,7 @@ class ConcreteDropout(tf.keras.layers.Layer):
     def _regularizer(self, input_shape):
         def _regularizer():
             epsilon = tf.keras.backend.cast_to_floatx(tf.keras.backend.epsilon())
-            effective_input_dim = np.prod(input_shape[: self.batch_dims])
+            effective_input_dim = np.prod(input_shape[self.batch_dims :])
             rate = self.rate + epsilon
 
             regularization = rate * tf.math.log(rate) + (1.0 - rate) * tf.math.log(
