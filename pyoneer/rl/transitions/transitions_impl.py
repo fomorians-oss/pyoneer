@@ -25,7 +25,7 @@ class TransitionBuffer(object):
         return self.transitions[key]
 
     def __contains__(self, key):
-        return (key in self.transitions)
+        return key in self.transitions
 
     def __len__(self):
         return self.size
@@ -35,7 +35,7 @@ class TransitionBuffer(object):
             return np.concatenate([elem_old, elem_new], axis=0)
 
         def truncate_transitions(elem):
-            return elem[:self.max_size]
+            return elem[: self.max_size]
 
         # append the new transitions
         if self.transitions is not None:
@@ -58,8 +58,7 @@ class TransitionBuffer(object):
         tf.nest.map_structure(update_transitions, self.transitions, updates)
 
     def sample(self, size, p=None, return_indices=False):
-        indices = np.random.choice(
-            self.size, size=size, p=p, replace=True)
+        indices = np.random.choice(self.size, size=size, p=p, replace=False)
 
         def sample_transitions(elem):
             return elem[indices]
