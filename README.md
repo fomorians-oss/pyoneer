@@ -52,7 +52,6 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
 - `pynr.manip.flatten`
-- `pynr.manip.batched_index`
 - `pynr.manip.pad_or_truncate`
 - `pynr.manip.shift`
 
