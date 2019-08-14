@@ -43,10 +43,11 @@ class TransitionBuffer(object):
             self.transitions = transitions
 
         # truncate the transitions to the maximum size
-        def truncate_transitions(elem):
-            return elem[: self.max_size]
-
         if self.max_size is not None:
+
+            def truncate_transitions(elem):
+                return elem[: self.max_size]
+
             self.transitions = tf.nest.map_structure(
                 truncate_transitions, self.transitions
             )
@@ -58,7 +59,10 @@ class TransitionBuffer(object):
         tf.nest.map_structure(update_transitions, self.transitions, updates)
 
     def sample(self, size, p=None, return_indices=False):
-        indices = np.random.choice(self.size, size=size, p=p, replace=False)
+        if size is None or size == self.size:
+            indices = np.arange(self.size)
+        else:
+            indices = np.random.choice(self.size, size=size, p=p, replace=False)
 
         def sample_transitions(elem):
             return elem[indices]
