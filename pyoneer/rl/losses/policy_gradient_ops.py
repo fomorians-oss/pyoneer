@@ -85,7 +85,6 @@ def soft_policy_gradient(log_probs, targets, alpha=1.0):
     Returns:
         Tensor of losses.
     """
-    targets = tf.stop_gradient(targets)
     losses = alpha * log_probs - targets
     losses = tf.debugging.check_numerics(losses, "losses")
     return losses
