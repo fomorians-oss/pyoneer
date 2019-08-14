@@ -90,12 +90,12 @@ def soft_policy_gradient(log_probs, targets, alpha=1.0):
     return losses
 
 
-def soft_policy_entropy(log_alpha, log_probs, target_entropy):
+def soft_policy_entropy(alpha, log_probs, target_entropy):
     """
     Computes the soft policy entropy loss to dynamically adjust the temperature.
 
     Args:
-        log_alpha: Log alpha parameter.
+        alpha: Alpha parameter.
         log_probs: Log probabilities of taking actions under a policy.
         target_entropy: Target entropy for the policy.
 
@@ -103,7 +103,7 @@ def soft_policy_entropy(log_alpha, log_probs, target_entropy):
         Tensor of losses.
     """
     log_probs = tf.stop_gradient(log_probs)
-    losses = -log_alpha * (log_probs + target_entropy)
+    losses = -alpha * (log_probs + target_entropy)
     losses = tf.debugging.check_numerics(losses, "losses")
     return losses
 
@@ -287,19 +287,19 @@ class SoftPolicyEntropy(tf.keras.losses.Loss):
         self.reduction = reduction
         self.name = name
 
-    def __call__(self, log_alpha, log_probs, sample_weight=None):
+    def __call__(self, alpha, log_probs, sample_weight=None):
         """
         Computes the soft policy entropy loss to dynamically adjust the temperature.
 
         Args:
-            log_alpha: Log alpha parameter.
+            alpha: Alpha parameter.
             log_probs: Log probabilities of taking actions under a policy.
             target_entropy: Target entropy for the policy.
 
         Returns:
             Scalar loss tensor.
         """
-        losses = soft_policy_entropy(log_alpha, log_probs, self.target_entropy)
+        losses = soft_policy_entropy(alpha, log_probs, self.target_entropy)
         return losses_utils.compute_weighted_loss(
             losses, sample_weight, reduction=self.reduction
         )
