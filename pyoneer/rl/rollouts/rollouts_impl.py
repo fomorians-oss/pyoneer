@@ -13,12 +13,10 @@ class Rollout:
         self.max_episode_steps = max_episode_steps
 
     def __call__(self, policy, episodes, render=False):
-        assert episodes % len(self.env) == 0
-
         observation_space = self.env.observation_space
         action_space = self.env.action_space
 
-        batch_size = len(self.env)
+        batch_size = min(len(self.env), episodes)
         batches = episodes // batch_size
 
         observations = np.zeros(
@@ -58,14 +56,18 @@ class Rollout:
 
                 observation_next, reward, done, info = self.env.step(action)
 
-                observations[batch_start:batch_end, step] = observation
-                actions[batch_start:batch_end, step] = action
-                observations_next[batch_start:batch_end, step] = observation_next
-                rewards[batch_start:batch_end, step] = reward
-                weights[batch_start:batch_end, step] = np.where(episode_done, 0.0, 1.0)
-                dones[batch_start:batch_end, step] = done
+                observations[batch_start:batch_end, step] = observation[:batch_size]
+                actions[batch_start:batch_end, step] = action[:batch_size]
+                observations_next[batch_start:batch_end, step] = observation_next[
+                    :batch_size
+                ]
+                rewards[batch_start:batch_end, step] = reward[:batch_size]
+                weights[batch_start:batch_end, step] = np.where(
+                    episode_done[:batch_size], 0.0, 1.0
+                )
+                dones[batch_start:batch_end, step] = done[:batch_size]
 
-                episode_done = episode_done | done
+                episode_done = episode_done | done[:batch_size]
 
                 # end the rollout if all episodes are done
                 if np.all(episode_done):
