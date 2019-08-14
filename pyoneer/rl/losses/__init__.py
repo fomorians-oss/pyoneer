@@ -6,6 +6,14 @@ from pyoneer.rl.losses.policy_gradient_ops import (
     PolicyGradient,
     ClippedPolicyGradient,
     PolicyEntropy,
+    SoftPolicyGradient,
+    SoftPolicyEntropy,
 )
 
-__all__ = ["PolicyGradient", "ClippedPolicyGradient", "PolicyEntropy"]
+__all__ = [
+    "PolicyGradient",
+    "ClippedPolicyGradient",
+    "PolicyEntropy",
+    "SoftPolicyGradient",
+    "SoftPolicyEntropy",
+]
