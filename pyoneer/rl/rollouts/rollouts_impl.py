@@ -13,6 +13,8 @@ class Rollout:
         self.max_episode_steps = max_episode_steps
 
     def __call__(self, policy, episodes, render=False):
+        assert episodes <= len(self.env)
+
         observation_space = self.env.observation_space
         action_space = self.env.action_space
 
