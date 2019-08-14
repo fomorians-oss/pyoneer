@@ -64,7 +64,6 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.math.RADIANS_TO_DEGREES`
 - `pynr.math.DEGREES_TO_RADIANS`
 - `pynr.math.isclose`
-- `pynr.math.safe_divide`
 - `pynr.math.rescale`
 - `pynr.math.normalize`
 - `pynr.math.denormalize`

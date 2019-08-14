@@ -158,7 +158,7 @@ class StreamingMoments(Moments):
                 tf.reduce_sum((inputs - self._mean) * sample_weight, axis=axes)
                 / tf.cast(new_count, tf.float32)
             ),
-            math_ops.safe_divide(
+            tf.math.divide_no_nan(
                 tf.reduce_sum(inputs * sample_weight, axis=axes), weight_sum
             ),
         )

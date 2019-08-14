@@ -11,7 +11,7 @@ from pyoneer.math.angle_ops import (
     DEGREES_TO_RADIANS,
 )
 from pyoneer.math.logical_ops import isclose
-from pyoneer.math.math_ops import safe_divide, rescale, normalize, denormalize
+from pyoneer.math.math_ops import rescale, normalize, denormalize
 
 __all__ = [
     "to_radians",
@@ -21,7 +21,6 @@ __all__ = [
     "RADIANS_TO_DEGREES",
     "DEGREES_TO_RADIANS",
     "isclose",
-    "safe_divide",
     "rescale",
     "normalize",
     "denormalize",

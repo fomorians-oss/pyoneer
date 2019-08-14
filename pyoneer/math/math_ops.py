@@ -7,14 +7,6 @@ import tensorflow as tf
 from pyoneer.math import logical_ops
 
 
-def safe_divide(x, y, rtol=1e-5, atol=1e-8):
-    """
-    Safely divide x by y while avoiding dividing by zero.
-    """
-    y = tf.where(logical_ops.isclose(y, 0.0, rtol=rtol, atol=atol), tf.ones_like(y), y)
-    return tf.debugging.check_numerics(x / y, "safe_divide")
-
-
 def rescale(x, oldmin, oldmax, newmin, newmax):
     """
     Rescale from [oldmin..oldmax] to [newmin..newmax].
@@ -47,7 +39,7 @@ def normalize(x, loc, scale, sample_weight=1.0):
     loc = tf.convert_to_tensor(loc)
     scale = tf.convert_to_tensor(scale)
     sample_weight = tf.convert_to_tensor(sample_weight)
-    outputs = safe_divide((x - loc), scale) * sample_weight
+    outputs = tf.math.divide_no_nan((x - loc), scale) * sample_weight
     outputs = tf.debugging.check_numerics(outputs, "normalize")
     return outputs
 
