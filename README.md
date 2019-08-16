@@ -49,6 +49,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.layers.AngleEncoder`
 - `pynr.layers.Nest`
 
+### Losses ([`pynr.losses`](pyoneer/losses))
+
+- `pynr.losses.compute_weighted_losses`
+
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
 - `pynr.manip.flatten`
@@ -97,11 +101,15 @@ Utilities for reinforcement learning.
 #### Losses ([`pynr.rl.losses`](pyoneer/rl/losses))
 
 - `pynr.rl.losses.policy_gradient`
-- `pynr.rl.losses.policy_entropy`
+- `pynr.rl.losses.soft_policy_gradient`
 - `pynr.rl.losses.clipped_policy_gradient`
+- `pynr.rl.losses.policy_entropy`
+- `pynr.rl.losses.soft_policy_entropy`
 - `pynr.rl.losses.PolicyGradient`
-- `pynr.rl.losses.PolicyEntropy`
+- `pynr.rl.losses.SoftPolicyGradient`
 - `pynr.rl.losses.ClippedPolicyGradient`
+- `pynr.rl.losses.PolicyEntropy`
+- `pynr.rl.losses.SoftPolicyEntropy`
 
 #### Targets ([`pynr.rl.targets`](pyoneer/rl/targets))
 
