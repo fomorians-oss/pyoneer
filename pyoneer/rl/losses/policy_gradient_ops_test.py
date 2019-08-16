@@ -29,6 +29,25 @@ class PolicyGradientTest(tf.test.TestCase):
 
         self.assertAllClose(loss, expected)
 
+    def test_soft_policy_gradient(self):
+        log_probs = tf.math.log(tf.constant([0.9, 0.8, 0.8, 0.8]))
+        action_values = tf.constant([1.0, 0.0, 1.0, 0.0])
+        alpha = tf.constant(1.0)
+        sample_weight = tf.constant([1.0, 0.0, 1.0, 0.0])
+
+        loss_fn = SoftPolicyGradient()
+        loss = loss_fn(
+            log_probs=log_probs,
+            action_values=action_values,
+            alpha=alpha,
+            sample_weight=sample_weight,
+        )
+        expected = losses_utils.compute_weighted_loss(
+            alpha * log_probs - action_values, sample_weight=sample_weight
+        )
+
+        self.assertAllClose(loss, expected)
+
     def test_clipped_policy_gradient(self):
         epsilon_clipping = 0.2
 
@@ -63,11 +82,19 @@ class PolicyGradientTest(tf.test.TestCase):
 
         self.assertAllClose(loss, expected)
 
-    def test_entropy(self):
+    def test_policy_entropy(self):
         entropy = tf.constant([0.2, 0.3, 0.4])
-        expected = -tf.constant(0.3)
+        expected = tf.constant(-0.3)
         loss_fn = PolicyEntropy()
         losses = loss_fn(entropy)
+        self.assertAllClose(losses, expected)
+
+    def test_soft_policy_entropy(self):
+        log_probs = tf.constant([0.2, 0.3, 0.4])
+        log_alpha = tf.constant(0.0)
+        expected = tf.constant(-0.3)
+        loss_fn = SoftPolicyEntropy(target_entropy=-1.0)
+        losses = loss_fn(log_probs, log_alpha)
         self.assertAllClose(losses, expected)
 
 

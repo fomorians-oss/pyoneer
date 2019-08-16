@@ -8,6 +8,7 @@ from pyoneer import distributions
 from pyoneer import initializers
 from pyoneer import jobs
 from pyoneer import layers
+from pyoneer import losses
 from pyoneer import manip
 from pyoneer import math
 from pyoneer import metrics
@@ -23,6 +24,7 @@ __all__ = [
     "initializers",
     "jobs",
     "layers",
+    "losses",
     "manip",
     "math",
     "metrics",

@@ -6,7 +6,14 @@ from pyoneer.rl.wrappers.observation_impl import (
     ObservationCoordinates,
     ObservationNormalization,
 )
+from pyoneer.rl.wrappers.action_impl import ActionScale
 from pyoneer.rl.wrappers.batch_impl import Batch
 from pyoneer.rl.wrappers.process_impl import Process
 
-__all__ = ["ObservationCoordinates", "ObservationNormalization", "Batch", "Process"]
+__all__ = [
+    "ObservationCoordinates",
+    "ObservationNormalization",
+    "ActionScale",
+    "Batch",
+    "Process",
+]

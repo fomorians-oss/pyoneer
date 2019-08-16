@@ -6,10 +6,7 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from pyoneer.rl.wrappers.observation_impl import (
-    ObservationCoordinates,
-    ObservationNormalization,
-)
+from pyoneer.rl.wrappers.action_impl import ActionScale
 
 
 class TestEnv(gym.Env):
@@ -32,22 +29,13 @@ class TestEnv(gym.Env):
         return state, reward, done, info
 
 
-class ObservationTest(tf.test.TestCase):
-    def test_observation_coords(self):
+class ActionTest(tf.test.TestCase):
+    def test_action_scale(self):
         env = TestEnv()
-        env = ObservationCoordinates(env)
-        self.assertTupleEqual(env.observation_space.shape, (4, 4, 4))
-
-    def test_observation_norm(self):
-        env = TestEnv()
-        env = ObservationNormalization(env)
-        self.assertTupleEqual(env.observation_space.shape, (4, 4, 1))
-        self.assertAllClose(
-            env.observation_space.low, -np.ones_like(env.observation_space.high)
-        )
-        self.assertAllClose(
-            env.observation_space.high, np.ones_like(env.observation_space.high)
-        )
+        env = ActionScale(env)
+        self.assertTupleEqual(env.action_space.shape, (4, 4, 4))
+        self.assertAllClose(env.action_space.low, -np.ones_like(env.action_space.high))
+        self.assertAllClose(env.action_space.high, np.ones_like(env.action_space.high))
 
 
 if __name__ == "__main__":
