@@ -5,17 +5,38 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def flatten(tensor):
+def flatten(tensor, start=None, stop=None):
     """
-    Flatten a tensor by reshaping into a vector.
+    Flatten a tensor by collapsing the dims from start to stop. By default this
+    will flatten the tensor into a vector.
 
     Args:
         tensor: Tensor to flatten.
+        start: Start of slice to flatten.
+        stop: End of slice to flatten.
 
     Returns:
         Flattened tensor.
     """
-    return tf.reshape(tensor, [-1])
+    if start is None and stop is None:
+        return tf.reshape(tensor, [-1])
+
+    if start is None:
+        start = 0
+
+    if stop is None:
+        stop = tensor.rank
+
+    shape = tf.concat(
+        [
+            tensor.shape[:start],
+            tf.reduce_prod(tensor.shape[start:stop]),
+            tensor.shape[stop:],
+        ],
+        axis=0,
+    )
+    tensor = tf.reshape(tensor, shape)
+    return tensor
 
 
 def pad_or_truncate(tensor, sizes, mode="CONSTANT", constant_values=0.0):
