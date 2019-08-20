@@ -17,13 +17,24 @@ class ObservationNormalization(gym.Wrapper):
         super(ObservationNormalization, self).__init__(env)
         assert isinstance(self.env.observation_space, gym.spaces.Box)
 
+        observation_high = np.where(
+            self.observation_space.high < np.finfo(np.float32).max,
+            self.observation_space.high,
+            +1.0,
+        )
+        observation_low = np.where(
+            self.observation_space.low > np.finfo(np.float32).min,
+            self.observation_space.low,
+            -1.0,
+        )
+
         if mean is None:
-            self.mean = (self.observation_space.high + self.observation_space.low) / 2
+            self.mean = (observation_high + observation_low) / 2
         else:
             self.mean = mean
 
         if std is None:
-            self.std = (self.observation_space.high - self.observation_space.low) / 2
+            self.std = (observation_high - observation_low) / 2
         else:
             self.std = std
 
