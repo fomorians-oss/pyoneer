@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 
 class Rollout:
@@ -8,32 +9,32 @@ class Rollout:
     while rollouts act as "transition accumulators".
     """
 
-    def __init__(self, env, max_episode_steps):
+    def __init__(self, env):
         self.env = env
-        self.max_episode_steps = max_episode_steps
 
-    def __call__(self, policy, episodes, render=False):
+    def __call__(self, policy, episodes, render_mode=None):
         observation_space = self.env.observation_space
         action_space = self.env.action_space
+        max_episode_steps = self.env.spec.max_episode_steps
 
         batch_size = min(len(self.env), episodes)
         batches = episodes // batch_size
 
         observations = np.zeros(
-            shape=(episodes, self.max_episode_steps) + observation_space.shape,
+            shape=(episodes, max_episode_steps) + observation_space.shape,
             dtype=observation_space.dtype,
         )
         actions = np.zeros(
-            shape=(episodes, self.max_episode_steps) + action_space.shape,
+            shape=(episodes, max_episode_steps) + action_space.shape,
             dtype=action_space.dtype,
         )
         observations_next = np.zeros(
-            shape=(episodes, self.max_episode_steps) + observation_space.shape,
+            shape=(episodes, max_episode_steps) + observation_space.shape,
             dtype=observation_space.dtype,
         )
-        rewards = np.zeros(shape=(episodes, self.max_episode_steps), dtype=np.float32)
-        weights = np.zeros(shape=(episodes, self.max_episode_steps), dtype=np.float32)
-        dones = np.ones(shape=(episodes, self.max_episode_steps), dtype=np.bool)
+        rewards = np.zeros(shape=(episodes, max_episode_steps), dtype=np.float32)
+        weights = np.zeros(shape=(episodes, max_episode_steps), dtype=np.float32)
+        dones = np.ones(shape=(episodes, max_episode_steps), dtype=np.bool)
 
         for batch in range(batches):
             batch_start = batch * batch_size
@@ -42,9 +43,9 @@ class Rollout:
             episode_done = np.zeros(shape=batch_size, dtype=np.bool)
             observation = self.env.reset()
 
-            for step in range(self.max_episode_steps):
-                if render:
-                    self.env.render()
+            for step in range(max_episode_steps):
+                if render_mode is not None:
+                    self.env.render(mode=render_mode)
 
                 reset_state = step == 0
 
