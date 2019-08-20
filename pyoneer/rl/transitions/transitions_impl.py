@@ -58,10 +58,11 @@ class TransitionBuffer(object):
 
         tf.nest.map_structure(update_transitions, self.transitions, updates)
 
-    def sample(self, size, p=None, return_indices=False):
+    def sample(self, size=None, p=None, return_indices=False):
         if size is None or size == self.size:
             indices = np.arange(self.size)
         else:
+            size = min(size, self.size)
             indices = np.random.choice(self.size, size=size, p=p, replace=False)
 
         def sample_transitions(elem):
