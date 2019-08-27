@@ -8,8 +8,10 @@ from tensorflow.python.keras.utils import losses_utils
 
 from pyoneer.rl.losses.policy_gradient_ops import (
     PolicyGradient,
+    SoftPolicyGradient,
     ClippedPolicyGradient,
     PolicyEntropy,
+    SoftPolicyEntropy,
 )
 
 
@@ -92,7 +94,7 @@ class PolicyGradientTest(tf.test.TestCase):
     def test_soft_policy_entropy(self):
         log_probs = tf.constant([0.2, 0.3, 0.4])
         log_alpha = tf.constant(0.0)
-        expected = tf.constant(-0.3)
+        expected = tf.constant(0.0)
         loss_fn = SoftPolicyEntropy(target_entropy=-1.0)
         losses = loss_fn(log_probs, log_alpha)
         self.assertAllClose(losses, expected)
