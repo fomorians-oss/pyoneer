@@ -36,3 +36,25 @@ class ActionScale(gym.Wrapper):
         action_scaled = self.scale_action(action)
         observation, reward, done, info = self.env.step(action_scaled)
         return observation, reward, done, info
+
+
+class ActionProbs(gym.Wrapper):
+    """
+    Wraps the environment to support action probabilities.
+    """
+
+    def __init__(self, env):
+        super(ActionProbs, self).__init__(env)
+        assert isinstance(self.env.action_space, gym.spaces.Discrete)
+        self.action_space = self._create_action_space()
+
+    def _create_action_space(self):
+        n = self.env.action_space.n
+        low = np.zeros(shape=(n,), dtype=np.float32)
+        high = np.ones(shape=(n,), dtype=np.float32)
+        return gym.spaces.Box(low, high, dtype=np.float32)
+
+    def step(self, action):
+        action = np.argmax(action)
+        observation, reward, done, info = self.env.step(action)
+        return observation, reward, done, info
