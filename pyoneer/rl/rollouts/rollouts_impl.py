@@ -36,6 +36,9 @@ class Rollout:
         weights = np.zeros(shape=(episodes, max_episode_steps), dtype=np.float32)
         dones = np.ones(shape=(episodes, max_episode_steps), dtype=np.bool)
 
+        if render_mode is 'rgb_array':
+            images = []
+
         for batch in range(batches):
             batch_start = batch * batch_size
             batch_end = batch_start + batch_size
@@ -44,7 +47,10 @@ class Rollout:
             observation = self.env.reset()
 
             for step in range(max_episode_steps):
-                if render_mode is not None:
+                if render_mode is 'rgb_array':
+                    image = self.env.render(mode="rgb_array")
+                    images.append(image)
+                elif render_mode is not None:
                     self.env.render(mode=render_mode)
 
                 reset_state = step == 0
@@ -84,5 +90,8 @@ class Rollout:
             "weights": weights,
             "dones": dones,
         }
+
+        if render_mode is 'rgb_array':
+            transitions['images'] = np.concatenate(images, axis=0)
 
         return transitions
