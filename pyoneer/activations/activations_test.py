@@ -11,7 +11,7 @@ class ActivationsTest(tf.test.TestCase):
     def test_swish(self):
         x = tf.constant([-1.0, 0.0, +1.0])
         actual = swish(x)
-        expected = tf.constant([-0.268941, 0.0, 0.731059])
+        expected = x * tf.nn.sigmoid(x)
         self.assertAllClose(actual, expected)
 
 

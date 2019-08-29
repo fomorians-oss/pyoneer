@@ -7,9 +7,8 @@ import tensorflow as tf
 from tensorflow.python.keras.utils import losses_utils
 
 
-def policy_gradient(log_probs, advantages):
-    """
-    Computes the Vanilla policy gradient loss.
+def policy_gradient_loss(log_probs, advantages):
+    """Computes the Vanilla policy gradient loss.
 
     Args:
         log_probs: Log probabilities of taking actions under a policy.
@@ -24,9 +23,8 @@ def policy_gradient(log_probs, advantages):
     return losses
 
 
-def soft_policy_gradient(log_probs, action_values, alpha=1.0):
-    """
-    Computes the soft policy gradient loss.
+def soft_policy_gradient_loss(log_probs, action_values, alpha=1.0):
+    """Computes the soft policy gradient loss.
 
     Args:
         log_probs: Log probabilities of taking actions under a policy.
@@ -40,11 +38,11 @@ def soft_policy_gradient(log_probs, action_values, alpha=1.0):
     return losses
 
 
-def clipped_policy_gradient(
+def clipped_policy_gradient_loss(
     log_probs, log_probs_anchor, advantages, epsilon_clipping=0.2
 ):
-    """
-    Computes the clipped surrogate objective found in
+    """Computes the clipped surrogate objective for PPO
+
     [Proximal Policy Optimization](https://arxiv.org/abs/1707.06347) based on
     clipped probability ratios.
 
@@ -75,7 +73,7 @@ def clipped_policy_gradient(
     return losses
 
 
-def policy_entropy(entropy):
+def policy_entropy_loss(entropy):
     """
     Computes the policy entropy loss.
 
@@ -90,7 +88,7 @@ def policy_entropy(entropy):
     return losses
 
 
-def soft_policy_entropy(log_probs, log_alpha, target_entropy):
+def soft_policy_entropy_loss(log_probs, log_alpha, target_entropy):
     """
     Computes the soft policy entropy loss to dynamically adjust the temperature.
 
@@ -132,7 +130,7 @@ class PolicyGradient(tf.keras.losses.Loss):
         Returns:
             Scalar loss tensor.
         """
-        losses = policy_gradient(log_probs, advantages)
+        losses = policy_gradient_loss(log_probs, advantages)
         return losses_utils.compute_weighted_loss(
             losses, sample_weight, reduction=self.reduction
         )
@@ -169,7 +167,7 @@ class SoftPolicyGradient(tf.keras.losses.Loss):
         Returns:
             Scalar loss tensor.
         """
-        losses = soft_policy_gradient(log_probs, action_values, alpha)
+        losses = soft_policy_gradient_loss(log_probs, action_values, alpha)
         return losses_utils.compute_weighted_loss(
             losses, sample_weight, reduction=self.reduction
         )
@@ -218,7 +216,7 @@ class ClippedPolicyGradient(tf.keras.losses.Loss):
         Returns:
             Scalar loss tensor.
         """
-        losses = clipped_policy_gradient(log_probs, log_probs_anchor, advantages)
+        losses = clipped_policy_gradient_loss(log_probs, log_probs_anchor, advantages)
         return losses_utils.compute_weighted_loss(
             losses, sample_weight, reduction=self.reduction
         )
@@ -258,7 +256,7 @@ class PolicyEntropy(tf.keras.losses.Loss):
         Returns:
             Scalar loss tensor.
         """
-        losses = policy_entropy(entropy)
+        losses = policy_entropy_loss(entropy)
         return losses_utils.compute_weighted_loss(
             losses, sample_weight, reduction=self.reduction
         )
@@ -300,7 +298,7 @@ class SoftPolicyEntropy(tf.keras.losses.Loss):
         Returns:
             Scalar loss tensor.
         """
-        losses = soft_policy_entropy(log_probs, log_alpha, self.target_entropy)
+        losses = soft_policy_entropy_loss(log_probs, log_alpha, self.target_entropy)
         return losses_utils.compute_weighted_loss(
             losses, sample_weight, reduction=self.reduction
         )

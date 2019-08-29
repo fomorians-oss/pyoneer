@@ -10,6 +10,8 @@ from pyoneer.rl.losses.policy_gradient_ops import (
     PolicyGradient,
     ClippedPolicyGradient,
     PolicyEntropy,
+    SoftPolicyEntropy,
+    SoftPolicyGradient,
 )
 
 
@@ -91,9 +93,10 @@ class PolicyGradientTest(tf.test.TestCase):
 
     def test_soft_policy_entropy(self):
         log_probs = tf.constant([0.2, 0.3, 0.4])
-        log_alpha = tf.constant(0.0)
-        expected = tf.constant(-0.3)
-        loss_fn = SoftPolicyEntropy(target_entropy=-1.0)
+        log_alpha = tf.constant(-1.0)
+        target_entropy = -1.
+        expected = tf.reduce_mean(-log_alpha * (log_probs + target_entropy))
+        loss_fn = SoftPolicyEntropy(target_entropy=target_entropy)
         losses = loss_fn(log_probs, log_alpha)
         self.assertAllClose(losses, expected)
 

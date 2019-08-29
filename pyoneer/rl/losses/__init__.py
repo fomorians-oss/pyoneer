@@ -3,11 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 from pyoneer.rl.losses.policy_gradient_ops import (
-    policy_gradient,
-    soft_policy_gradient,
-    clipped_policy_gradient,
-    policy_entropy,
-    soft_policy_entropy,
+    policy_gradient_loss,
+    soft_policy_gradient_loss,
+    clipped_policy_gradient_loss,
+    policy_entropy_loss,
+    soft_policy_entropy_loss,
     PolicyGradient,
     ClippedPolicyGradient,
     PolicyEntropy,
@@ -16,11 +16,11 @@ from pyoneer.rl.losses.policy_gradient_ops import (
 )
 
 __all__ = [
-    "policy_gradient",
-    "soft_policy_gradient",
-    "clipped_policy_gradient",
-    "policy_entropy",
-    "soft_policy_entropy",
+    "policy_gradient_loss",
+    "soft_policy_gradient_loss",
+    "clipped_policy_gradient_loss",
+    "policy_entropy_loss",
+    "soft_policy_entropy_loss",
     "PolicyGradient",
     "ClippedPolicyGradient",
     "PolicyEntropy",
