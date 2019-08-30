@@ -33,7 +33,7 @@ class ActionTest(tf.test.TestCase):
     def test_action_scale(self):
         env = TestEnv()
         env = ActionScale(env)
-        self.assertTupleEqual(env.action_space.shape, (4, 4, 4))
+        self.assertTupleEqual(env.action_space.shape, ())
         self.assertAllClose(env.action_space.low, -np.ones_like(env.action_space.high))
         self.assertAllClose(env.action_space.high, np.ones_like(env.action_space.high))
 

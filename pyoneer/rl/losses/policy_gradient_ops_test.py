@@ -8,10 +8,10 @@ from tensorflow.python.keras.utils import losses_utils
 
 from pyoneer.rl.losses.policy_gradient_ops import (
     PolicyGradient,
+    SoftPolicyGradient,
     ClippedPolicyGradient,
     PolicyEntropy,
     SoftPolicyEntropy,
-    SoftPolicyGradient,
 )
 
 

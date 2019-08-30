@@ -8,7 +8,7 @@ import numpy as np
 from pyoneer.math import math_ops
 
 
-class ActionScale(gym.Wrapper):
+class ActionScale(gym.ActionWrapper):
     """
     Wraps the environment to scale actions.
     """
@@ -23,7 +23,7 @@ class ActionScale(gym.Wrapper):
         high = high * np.ones_like(self.env.action_space.high)
         return gym.spaces.Box(low, high, dtype=self.env.action_space.dtype)
 
-    def scale_action(self, action):
+    def action(self, action):
         action = (action - self.action_space.low) / (
             self.action_space.high - self.action_space.low
         )
@@ -32,7 +32,22 @@ class ActionScale(gym.Wrapper):
         ) + self.env.action_space.low
         return action
 
-    def step(self, action):
-        action_scaled = self.scale_action(action)
-        observation, reward, done, info = self.env.step(action_scaled)
-        return observation, reward, done, info
+
+class ActionProbs(gym.ActionWrapper):
+    """
+    Wraps the environment to support action probabilities.
+    """
+
+    def __init__(self, env):
+        super(ActionProbs, self).__init__(env)
+        assert isinstance(self.env.action_space, gym.spaces.Discrete)
+        self.action_space = self._create_action_space()
+
+    def _create_action_space(self):
+        n = self.env.action_space.n
+        low = np.zeros(shape=(n,), dtype=np.float32)
+        high = np.ones(shape=(n,), dtype=np.float32)
+        return gym.spaces.Box(low, high, dtype=np.float32)
+
+    def action(self, action):
+        return np.argmax(action)

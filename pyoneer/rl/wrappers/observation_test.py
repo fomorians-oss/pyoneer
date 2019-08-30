@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
+from __future__ import division
 
 import gym
 import numpy as np
@@ -43,7 +43,7 @@ class ObservationTest(tf.test.TestCase):
         env = ObservationNormalization(env)
         self.assertTupleEqual(env.observation_space.shape, (4, 4, 1))
         self.assertAllClose(
-            env.observation_space.low, -np.ones_like(env.observation_space.high)
+            env.observation_space.low, np.zeros_like(env.observation_space.high)
         )
         self.assertAllClose(
             env.observation_space.high, np.ones_like(env.observation_space.high)
