@@ -97,9 +97,16 @@ class Env(object):
     def _py_seed(self, seed):
         self._env.seed(seed.numpy().item())
 
+    def _py_close(self):
+        self._env.close()
+
     @tf.function
     def seed(self, seed):
         tf.py_function(self._py_seed, (seed,), ())
+
+    @tf.function
+    def close(self):
+        tf.py_function(self._py_close, (), ())
 
     def _fit_shape(self, tensor, spec):
         if not self._is_batched:

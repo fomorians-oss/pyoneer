@@ -49,7 +49,7 @@ def n_step_unroll(n_step,
 
     def cond_fn(tas, outputs, time_step, index):
         _, env_output = outputs
-        return tf.reduce_all(~env_output.terminal)
+        return ~tf.reduce_all(env_output.terminal)
 
     def step_fn(tas, outputs, time_step, index):
         """Compute the next transition tuple.
