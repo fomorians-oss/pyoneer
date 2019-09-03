@@ -113,8 +113,9 @@ class Env(object):
         next_state = tf.py_function(self._py_reset, (),
                                     self.output_dtypes.next_state)
 
-        next_state = tf.nest.map_structure(self._fit_shape, next_state,
-                                  self.output_specs.next_state)
+        next_state = tf.nest.map_structure(
+            self._fit_shape, next_state,
+            self.output_specs.next_state)
 
         return Transition(state=self._initial_state,
                           reward=self._initial_reward,
@@ -135,15 +136,22 @@ class Env(object):
              self.output_dtypes.reward,
              self.output_dtypes.terminal))
 
-        next_state = tf.nest.map_structure(self._fit_shape, next_state,
-                                  self.output_specs.state)
-        reward = tf.nest.map_structure(self._fit_shape, reward,
-                                  self.output_specs.reward)
-        terminal = tf.nest.map_structure(self._fit_shape, terminal,
-                                  self.output_specs.terminal)
+        next_state = tf.nest.map_structure(
+            self._fit_shape, next_state,
+            self.output_specs.next_state)
+        reward = tf.nest.map_structure(
+            self._fit_shape, reward,
+            self.output_specs.reward)
+        terminal = tf.nest.map_structure(
+            self._fit_shape, terminal,
+            self.output_specs.terminal)
+        terminal = tf.logical_or(terminal, env_outputs.terminal)
+        weight = tf.cast(
+            tf.logical_not(env_outputs.terminal),
+            tf.dtypes.float32)
 
         return Transition(state=env_outputs.next_state,
                           reward=reward,
                           next_state=next_state,
                           terminal=terminal,
-                          weight=self._initial_weight)
+                          weight=weight)

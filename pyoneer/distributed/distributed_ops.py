@@ -194,6 +194,13 @@ class Condition(object):
 
         tf.py_function(wait_fn, (), ())
 
+    def notify(self, w_id):
+        """Notifies the id."""
+        def notify_fn(w_id_):
+            self._pipe.rpush(self._key + str(w_id_.numpy()), 1)
+
+        tf.py_function(notify_fn, (w_id,), ())
+
     def notify_first(self):
         """Notifies the first id."""
         def notify_first_fn():
