@@ -37,7 +37,7 @@ class Rollout:
         dones = np.ones(shape=(episodes, max_episode_steps), dtype=np.bool)
 
         if render_mode == "rgb_array":
-            images = []
+            renders = []
 
         for batch in range(batches):
             batch_start = batch * batch_size
@@ -48,7 +48,7 @@ class Rollout:
 
             for step in range(max_episode_steps):
                 if render_mode == "rgb_array":
-                    images.append(self.env.render(mode="rgb_array"))
+                    renders.append(self.env.render(mode="rgb_array"))
                 elif render_mode is not None:
                     self.env.render(mode=render_mode)
 
@@ -92,6 +92,6 @@ class Rollout:
         }
 
         if render_mode == "rgb_array":
-            transitions["images"] = np.concatenate(images, axis=0)
+            transitions["renders"] = np.concatenate(renders, axis=0)
 
         return transitions
