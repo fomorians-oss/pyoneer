@@ -96,10 +96,12 @@ class Batch(object):
         return transition
 
     def step(self, actions):
+        num_actions = len(actions)
+
         if self.blocking:
             transitions = []
             for i, env in enumerate(self.envs):
-                if self.done[i]:
+                if self.done[i] or i > num_actions - 1:
                     transition = self._dummy_transition()
                 else:
                     transition = env.step(actions[i])
@@ -107,7 +109,7 @@ class Batch(object):
         else:
             promises = []
             for i, env in enumerate(self.envs):
-                if self.done[i]:
+                if self.done[i] or i > num_actions - 1:
                     promise = self._dummy_transition
                 else:
                     promise = env.step(actions[i])

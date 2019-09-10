@@ -56,7 +56,9 @@ class Rollout:
 
                 observation = observation.astype(observation_space.dtype)
                 actions_batch = policy(
-                    observation[:, None], training=False, reset_state=reset_state
+                    observation[:batch_size, None],
+                    training=False,
+                    reset_state=reset_state,
                 )
                 action = actions_batch[:, 0].numpy()
                 action = action.astype(action_space.dtype)
