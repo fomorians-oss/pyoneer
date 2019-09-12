@@ -26,7 +26,6 @@ class TensorCodecTest(tf.test.TestCase):
         codec = distributed_ops.TensorCodec(dtypes=dtypes)
         encoded_msg = codec.encode(structure)
         decoded = codec.decode(encoded_msg)
-
         tf.nest.map_structure(self.assertAllEqual, decoded, structure)
 
         # 2-tuple.
@@ -137,7 +136,7 @@ class QueueTest(tf.test.TestCase):
 
     def testEnqueueDequeueTuple(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         q_key = 'q'
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,
@@ -175,22 +174,9 @@ class QueueTest(tf.test.TestCase):
         actual_structure = q.dequeue()
         tf.nest.map_structure(self.assertAllEqual, structure, actual_structure)
 
-        # dequeue many
-        q = distributed_ops.Queue(srvr, q_key, dtypes)
-        for many, axis in zip([1, 2, 10], [0, 1, -1]):
-            for _ in range(many):
-                q.enqueue(structure)
-            actual_structure = q.dequeue_many(many, axis=axis)
-
-            def equal_stacked(a, bs):
-                for b in tf.unstack(bs, axis=axis):
-                    self.assertAllEqual(a, b)
-
-            tf.nest.map_structure(equal_stacked, structure, actual_structure)
-
     def testEnqueueDequeueList(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         q_key = 'q'
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,
@@ -228,22 +214,9 @@ class QueueTest(tf.test.TestCase):
         actual_structure = q.dequeue()
         tf.nest.map_structure(self.assertAllEqual, structure, actual_structure)
 
-        # dequeue many
-        q = distributed_ops.Queue(srvr, q_key, dtypes)
-        for many, axis in zip([1, 2, 10], [0, 1, -1]):
-            for _ in range(many):
-                q.enqueue(structure)
-            actual_structure = q.dequeue_many(many, axis=axis)
-
-            def equal_stacked(a, bs):
-                for b in tf.unstack(bs, axis=axis):
-                    self.assertAllEqual(a, b)
-
-            tf.nest.map_structure(equal_stacked, structure, actual_structure)
-
     def testEnqueueDequeueDict(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         q_key = 'q'
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,
@@ -287,27 +260,14 @@ class QueueTest(tf.test.TestCase):
         actual_structure = q.dequeue()
         tf.nest.map_structure(self.assertAllEqual, structure, actual_structure)
 
-        # dequeue many
-        q = distributed_ops.Queue(srvr, q_key, dtypes)
-        for many, axis in zip([1, 2, 10], [0, 1, -1]):
-            for _ in range(many):
-                q.enqueue(structure)
-            actual_structure = q.dequeue_many(many, axis=axis)
-
-            def equal_stacked(a, bs):
-                for b in tf.unstack(bs, axis=axis):
-                    self.assertAllEqual(a, b)
-
-            tf.nest.map_structure(equal_stacked, structure, actual_structure)
-
 
 class ConditionTest(tf.test.TestCase):
 
     def testWaitNotifyAll(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         c_key = 'c'
-        num_consumers = 5
+        num_consumers = 2
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,
                            db=0)
@@ -318,12 +278,12 @@ class ConditionTest(tf.test.TestCase):
             cond.wait(w_id)
 
         consumers = []
-        for _ in range(num_consumers):
+        for consumer_id in range(num_consumers):
             consumer = threading.Thread(target=consumer_fn,
-                                        args=(condition, 0))
+                                        args=(condition, consumer_id))
             consumer.start()
+            time.sleep(3)
             consumers.append(consumer)
-        time.sleep(1)
 
         condition.notify_all()
         for consumer in consumers:
@@ -334,7 +294,7 @@ class RegisterTest(tf.test.TestCase):
 
     def testSetGetTuple(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         r_key = 'r'
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,
@@ -374,7 +334,7 @@ class RegisterTest(tf.test.TestCase):
 
     def testSetGetList(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         r_key = 'r'
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,
@@ -414,7 +374,7 @@ class RegisterTest(tf.test.TestCase):
 
     def testSetGetDict(self):
         redis_host = '127.0.0.1'
-        redis_port = 6380
+        redis_port = 6379
         r_key = 'r'
         srvr = redis.Redis(host=redis_host,
                            port=redis_port,

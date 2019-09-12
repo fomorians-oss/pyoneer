@@ -20,22 +20,29 @@ class TensorCodec(object):
         self._dtypes = dtypes
         self._length_dtype = tf.dtypes.int32
         self._count = len(tf.nest.flatten([self._dtypes]))
-        self._zero_offset = tf.cast(
-            tf.strings.length(
-                self._encode(tf.zeros([self._count], self._length_dtype))),
-            self._length_dtype)
-        self._offset = self._zero_offset
+        # self._offset = tf.cast(
+        #     tf.strings.length(
+        #         self._encode(tf.zeros([self._count], self._length_dtype))),
+        #     self._length_dtype)
+
+        length_bytes = tf.strings.bytes_split(
+            self._encode(tf.zeros([self._count], self._length_dtype)))
+        num_length_bytes = tf.shape(length_bytes)[0]
+        self._offset = tf.cast(num_length_bytes, self._length_dtype)
 
     @property
     def dtypes(self):
         return self._dtypes
 
+    @tf.function(autograph=False)
     def _encode(self, tensor):
         return tf.io.serialize_tensor(tensor)
 
+    @tf.function(autograph=False)
     def _decode(self, msg, dtype):
         return tf.io.parse_tensor(msg, dtype)
 
+    @tf.function(autograph=False)
     def encode(self, item):
         """Encode a structure into a packed message.
 
@@ -54,15 +61,20 @@ class TensorCodec(object):
         def encode_w_lengths(tensor):
             msg = self._encode(tensor)
             structure_msg.append(msg)
-            lengths.append(tf.cast(tf.strings.length(msg), self._length_dtype))
+            msg_bytes = tf.strings.bytes_split(msg)
+            num_msg_bytes = tf.shape(msg_bytes)[0]
+            lengths.append(tf.cast(num_msg_bytes, self._length_dtype))
             return msg
 
         _ = tf.nest.map_structure(encode_w_lengths, item)
         lengths_tensor = tf.stack(lengths, axis=0)
         lengths_msg = self._encode(lengths_tensor)
-        buffer = tf.strings.join([lengths_msg, tf.strings.join(structure_msg)])
+
+        buffer_list = tf.concat([lengths_msg[None], structure_msg], axis=0)
+        buffer = tf.strings.reduce_join(buffer_list)
         return buffer
 
+    @tf.function(autograph=False)
     def decode(self, item):
         """Decode a packed message that represents a structure.
 
@@ -72,25 +84,30 @@ class TensorCodec(object):
         Returns:
             The decoded structure.
         """
-        offset = self._offset
+        item_bytes = tf.strings.bytes_split(item)
+        offset = tf.identity(self._offset)
 
         # Get the lengths of the items in the encoded string.
-        lengths_msg = tf.strings.substr(item, 0, self._offset)
+        lengths_msg = tf.strings.reduce_join(item_bytes[0:offset])
         lengths = self._decode(lengths_msg, self._length_dtype)
         lengths.set_shape([self._count])
 
-        def decode_w_lengths(length, dtype):
-            item_structure = tf.strings.substr(item, self._offset, length)
-            self._offset = self._offset + length
-            return self._decode(item_structure, dtype)
-
         # Decode the item into the same encoded structure.
-        packed_lengths = tf.nest.pack_sequence_as(
-            self._dtypes, tf.unstack(lengths, axis=0))
-        structure = tf.nest.map_structure(
-            decode_w_lengths, packed_lengths, self._dtypes)
+        decoded_items = []
+        lengths = tf.nest.pack_sequence_as(
+            self._dtypes, tf.unstack(lengths, self._count, axis=0))
 
-        self._offset = offset
+        lengths = tf.nest.flatten(lengths)
+        dtypes = tf.nest.flatten(self._dtypes)
+        for length, dtype in zip(lengths, dtypes):
+            length.set_shape([])
+            item_structure = tf.strings.reduce_join(item_bytes[offset:offset+length])
+            offset = offset + length
+            decoded_item = self._decode(item_structure, dtype)
+            decoded_items.append(decoded_item)
+
+        structure = tf.nest.pack_sequence_as(
+            self._dtypes, decoded_items)
         return structure
 
 
@@ -111,6 +128,10 @@ class Queue(TensorCodec):
         self._pipe = pipe
         self._key = key
 
+    def _enqueue_fn(self, buffer):
+        self._pipe.rpush(self._key, buffer.numpy())
+
+    @tf.function(autograph=False)
     def enqueue(self, structure):
         """Enqueue a nested structure.
 
@@ -118,54 +139,27 @@ class Queue(TensorCodec):
             structure: The nested structure.
         """
         buffer = self.encode(structure)
+        with tf.control_dependencies([
+                tf.py_function(self._enqueue_fn, (buffer,), ())]):
+            return
 
-        def enqueue_fn(buffer):
-            self._pipe.rpush(self._key, buffer.numpy())
+    def _dequeue_fn(self):
+        item = self._pipe.blpop(self._key)
+        if item:
+            item = item[1]
+        return item
 
-        tf.py_function(enqueue_fn, (buffer,), ())
-
+    @tf.function(autograph=False)
     def dequeue(self):
         """Dequeue a nested structure.
 
         Returns:
             The nested structure.
         """
-        def dequeue_fn():
-            item = self._pipe.blpop(self._key)
-            if item:
-                item = item[1]
-            return tf.nest.flatten([self.decode(item)])
-
-        flat_tensors = tf.py_function(dequeue_fn, (),
-                                      tf.nest.flatten([self.dtypes]))
-        tensors = tf.nest.pack_sequence_as(self.dtypes, flat_tensors)
-        return tensors
-
-    def dequeue_many(self, many, axis=0):
-        """Dequeue many nested structures and stack them.
-
-        Args:
-            many: The number of nested structures to dequeue.
-            axis: The axis to stack along.
-
-        Returns:
-            The nested, stacked structure.
-        """
-        def dequeue_fn():
-            decoded_items = []
-            for _ in range(many):
-                item = self._pipe.blpop(self._key)
-                if item:
-                    item = item[1]
-                decoded = tf.nest.flatten([self.decode(item)])
-                decoded_items.append(decoded)
-            return tf.nest.map_structure(lambda *x: tf.stack(x, axis=axis),
-                                         *decoded_items)
-
-        flat_tensors = tf.py_function(dequeue_fn, (),
-                                      tf.nest.flatten([self.dtypes]))
-        tensors = tf.nest.pack_sequence_as(self.dtypes, flat_tensors)
-        return tensors
+        item = tf.py_function(self._dequeue_fn, (), tf.dtypes.string)
+        item = tf.ensure_shape(item, [])
+        decoded_item = self.decode(item)
+        return decoded_item
 
 
 class Condition(object):
@@ -182,49 +176,49 @@ class Condition(object):
         self._pipe = pipe
         self._key = key
 
+    def _wait_fn(self, w_id):
+        w_id_str = str(w_id.numpy().item())
+        self._pipe.rpush(self._key, w_id_str)
+        self._pipe.blpop(self._key + w_id_str)
+
+    @tf.function(autograph=False)
     def wait(self, w_id):
         """Block until a producer notifies this id.
 
         Args:
             w_id: The id to send to the producer.
         """
-        def wait_fn():
-            self._pipe.rpush(self._key, str(w_id))
-            _ = self._pipe.blpop(self._key + str(w_id))
+        with tf.control_dependencies([
+                tf.py_function(self._wait_fn, (w_id,), ())]):
+            return
 
-        tf.py_function(wait_fn, (), ())
+    def _notify_fn(self, w_id_):
+        self._pipe.rpush(self._key + str(w_id_.numpy().item()), 1)
 
+    @tf.function(autograph=False)
     def notify(self, w_id):
         """Notifies the id."""
-        def notify_fn(w_id_):
-            self._pipe.rpush(self._key + str(w_id_.numpy()), 1)
+        with tf.control_dependencies([
+                tf.py_function(self._notify_fn, (w_id,), ())]):
+            return
 
-        tf.py_function(notify_fn, (w_id,), ())
-
-    def notify_first(self):
-        """Notifies the first id."""
-        def notify_first_fn():
-            ids = []
+    def _notify_all_fn(self):
+        w_ids = []
+        while True:
             w_id = self._pipe.lpop(self._key)
-            if w_id:
-                self._pipe.rpush(self._key + str(w_id.decode()), 1)
+            if not w_id:
+                break
+            w_ids.append(w_id)
 
-        tf.py_function(notify_first_fn, (), ())
+        for w_id in w_ids:
+            self._pipe.rpush(self._key + str(w_id.decode()), 1)
 
+    @tf.function(autograph=False)
     def notify_all(self):
         """Notifies all active ids."""
-        def notify_all_fn():
-            w_ids = []
-            while True:
-                w_id = self._pipe.lpop(self._key)
-                if not w_id:
-                    break
-                w_ids.append(w_id)
-
-            for w_id in w_ids:
-                self._pipe.rpush(self._key + str(w_id.decode()), 1)
-
-        tf.py_function(notify_all_fn, (), ())
+        with tf.control_dependencies([
+                tf.py_function(self._notify_all_fn, (), ())]):
+            return
 
 
 class Register(TensorCodec):
@@ -244,6 +238,10 @@ class Register(TensorCodec):
         self._pipe = pipe
         self._key = key
 
+    def _set_fn(self, buffer):
+        self._pipe.set(self._key, buffer.numpy())
+
+    @tf.function(autograph=False)
     def set(self, structure):
         """Set the nested structure.
 
@@ -251,26 +249,25 @@ class Register(TensorCodec):
             structure: The nested structure.
         """
         buffer = self.encode(structure)
+        with tf.control_dependencies([
+                tf.py_function(self._set_fn, (buffer,), ())]):
+            return
 
-        def set_fn(buffer):
-            self._pipe.set(self._key, buffer.numpy())
+    def _get_fn(self):
+        item = self._pipe.get(self._key)
+        return item
 
-        tf.py_function(set_fn, (buffer,), ())
-
+    @tf.function(autograph=False)
     def get(self):
         """Get the nested structure.
 
         Returns:
             The nested structure.
         """
-        def get_fn():
-            item = self._pipe.get(self._key)
-            return tf.nest.flatten([self.decode(item)])
-
-        flat_tensors = tf.py_function(get_fn, (),
-                                      tf.nest.flatten([self.dtypes]))
-        tensors = tf.nest.pack_sequence_as(self.dtypes, flat_tensors)
-        return tensors
+        item = tf.py_function(self._get_fn, (), tf.dtypes.string)
+        item = tf.ensure_shape(item, [])
+        decoded_item = self.decode(item)
+        return decoded_item
 
 
 class MultiEvent(object):
@@ -291,35 +288,47 @@ class MultiEvent(object):
         self._num_index = num_index
         self._key = key
 
+    def _set_fn(self):
+        self._pipe.set(self._key + str(self._index), 1)
+
+    @tf.function(autograph=False)
     def set(self):
         """Set the event."""
-        def set_fn():
-            self._pipe.set(self._key + str(self._index), 1)
+        with tf.control_dependencies([
+                tf.py_function(self._set_fn, (), ())]):
+            return
 
-        tf.py_function(set_fn, (), ())
+    def _unset_fn(self):
+        self._pipe.set(self._key + str(self._index), 0)
 
+    @tf.function(autograph=False)
     def unset(self):
         """Unset the event."""
-        def unset_fn():
-            self._pipe.set(self._key + str(self._index), 0)
+        with tf.control_dependencies([
+                tf.py_function(self._unset_fn, (), ())]):
+            return
 
-        tf.py_function(unset_fn, (), ())
+    def _set_all_fn(self):
+        for index in range(self._num_index):
+            self._pipe.set(self._key + str(index), 1)
 
+    @tf.function(autograph=False)
     def set_all(self):
         """Set all events."""
-        def set_fn():
-            for index in range(self._num_index):
-                self._pipe.set(self._key + str(index), 1)
+        with tf.control_dependencies([
+                tf.py_function(self._set_all_fn, (), ())]):
+            return
 
-        tf.py_function(set_fn, (), ())
+    def _get_fn(self):
+        return bool(self._pipe.get(self._key + str(self._index)).decode())
 
+    @tf.function(autograph=False)
     def get(self):
         """Get the nested structure.
 
         Returns:
             The nested structure.
         """
-        def get_fn():
-            return bool(self._pipe.get(self._key + str(self._index)).decode())
-
-        return tf.py_function(get_fn, (), tf.dtypes.bool)
+        with tf.control_dependencies([
+                tf.py_function(self._get_fn, (), tf.dtypes.bool)]):
+            return

@@ -12,6 +12,7 @@ class Unroll(collections.namedtuple(
     pass
 
 
+@tf.function(autograph=False)
 def n_step_unroll(n_step,
                   initializer,
                   agent_step_fn,
@@ -114,7 +115,7 @@ class Rollout(object):
         self._n_step = n_step
         self._time_major = time_major
 
-    @tf.function
+    @tf.function(autograph=False)
     def __call__(self, initializer=None, initial_time_step=0):
         """Rollout and return trajectories.
 

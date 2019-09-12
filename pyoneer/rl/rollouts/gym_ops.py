@@ -12,7 +12,20 @@ from pyoneer.debugging import debugging_ops
 from pyoneer.rl.wrappers import batch_impl
 
 
-def space_to_spec(space):
+class _Counter(object):
+
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+        return self
+
+    def get(self):
+        return self.value
+
+
+def space_to_spec(space, counter, name):
     """Determines a tf.TensorSpec from the `gym.Space`.
 
     Args:
@@ -27,9 +40,12 @@ def space_to_spec(space):
     if space.__class__ in [spaces.Discrete, spaces.MultiDiscrete,
                            spaces.MultiBinary, spaces.Box]:
         return tf.TensorSpec(tf.TensorShape(space.shape),
-                             tf.dtypes.as_dtype(space.dtype))
+                             tf.dtypes.as_dtype(space.dtype),
+                             name='{}_{}'.format(name, counter.get()))
     elif isinstance(space, spaces.Tuple) or isinstance(space, spaces.Dict):
-        return tf.nest.map_structure(space_to_spec, space.spaces)
+        def to_spec_fn(space):
+            return space_to_spec(space, name, counter.increment())
+        return tf.nest.map_structure(to_spec_fn, space.spaces)
     raise TypeError('`space` not supported: {}'.format(type(space)))
 
 
@@ -52,14 +68,15 @@ class Env(object):
             self._output_shape_list = [1]
 
         # Specs.
-        self.state_spec = space_to_spec(env.observation_space)
-        self.action_spec = space_to_spec(env.action_space)
+        self.state_spec = space_to_spec(env.observation_space, _Counter(), name='State')
+        self.next_state_spec = space_to_spec(env.observation_space, _Counter(), name='NextState')
+        self.action_spec = space_to_spec(env.action_space, _Counter(), name='Action')
         if hasattr(env, 'reward_space'):
-            self.reward_spec = space_to_spec(env.reward_space)
+            self.reward_spec = space_to_spec(env.reward_space, _Counter(), name='Reward')
         else:
-            self.reward_spec = tf.TensorSpec([], tf.dtypes.float32)
-        self.terminal_spec = tf.TensorSpec([], tf.dtypes.bool)
-        self.weight_spec = tf.TensorSpec([], tf.dtypes.float32)
+            self.reward_spec = tf.TensorSpec([], tf.dtypes.float32, name='Reward')
+        self.terminal_spec = tf.TensorSpec([], tf.dtypes.bool, name='Terminal')
+        self.weight_spec = tf.TensorSpec([], tf.dtypes.float32, name='Weight')
 
         # TODO(wenkesj): Pass optional initial
         #   (reward, state, terminal, and weight).
@@ -75,7 +92,7 @@ class Env(object):
         # Meta information.
         self.output_specs = Transition(state=self.state_spec,
                                        reward=self.reward_spec,
-                                       next_state=self.state_spec,
+                                       next_state=self.next_state_spec,
                                        terminal=self.terminal_spec,
                                        weight=self.weight_spec)
         self.output_dtypes = tf.nest.map_structure(
@@ -100,13 +117,17 @@ class Env(object):
     def _py_close(self):
         self._env.close()
 
-    @tf.function
+    @tf.function(autograph=False)
     def seed(self, seed):
-        tf.py_function(self._py_seed, (seed,), ())
+        with tf.control_dependencies([
+                tf.py_function(self._py_seed, (seed,), ())]):
+            return
 
-    @tf.function
+    @tf.function(autograph=False)
     def close(self):
-        tf.py_function(self._py_close, (), ())
+        with tf.control_dependencies([
+                tf.py_function(self._py_close, (), ())]):
+            return
 
     def _fit_shape(self, tensor, spec):
         if not self._is_batched:
@@ -115,7 +136,7 @@ class Env(object):
             self._output_shape_list + spec.shape.as_list())
         return tensor
 
-    @tf.function
+    @tf.function(autograph=False)
     def reset(self):
         next_state = tf.py_function(self._py_reset, (),
                                     self.output_dtypes.next_state)
@@ -130,7 +151,7 @@ class Env(object):
                           terminal=self._initial_terminal,
                           weight=self._initial_weight)
 
-    @tf.function
+    @tf.function(autograph=False)
     def step(self, agent_outputs, env_outputs, time_step):
         # Force the shape of the actions to match the environment.
         action = agent_outputs.action

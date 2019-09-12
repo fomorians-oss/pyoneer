@@ -7,3 +7,4 @@
 .python-version
 Pipfile.lock
 .ipynb_checkpoints
+__pycache__
