@@ -20,11 +20,6 @@ class TensorCodec(object):
         self._dtypes = dtypes
         self._length_dtype = tf.dtypes.int32
         self._count = len(tf.nest.flatten([self._dtypes]))
-        # self._offset = tf.cast(
-        #     tf.strings.length(
-        #         self._encode(tf.zeros([self._count], self._length_dtype))),
-        #     self._length_dtype)
-
         length_bytes = tf.strings.bytes_split(
             self._encode(tf.zeros([self._count], self._length_dtype)))
         num_length_bytes = tf.shape(length_bytes)[0]
