@@ -267,40 +267,38 @@ class Register(TensorCodec):
 
 class MultiEvent(object):
 
-    def __init__(self, pipe, index, num_index, key):
+    def __init__(self, pipe, num_index, key):
         """Creates a new MultiEvent.
 
         This creates a distributed register datastructure.
 
         Args:
             pipe: The redis server.
-            index: The corresponding index.
             num_index: The number of indices.
             key: The redis key for the register.
         """
         self._pipe = pipe
-        self._index = index
         self._num_index = num_index
         self._key = key
 
-    def _set_fn(self):
-        self._pipe.set(self._key + str(self._index), 1)
+    def _set_fn(self, w_id):
+        self._pipe.set(self._key + str(w_id.numpy().item()), 1)
 
     @tf.function(autograph=False)
-    def set(self):
+    def set(self, w_id):
         """Set the event."""
         with tf.control_dependencies([
-                tf.py_function(self._set_fn, (), ())]):
+                tf.py_function(self._set_fn, (w_id,), ())]):
             return
 
-    def _unset_fn(self):
-        self._pipe.set(self._key + str(self._index), 0)
+    def _unset_fn(self, w_id):
+        self._pipe.set(self._key + str(w_id.numpy().item()), 0)
 
     @tf.function(autograph=False)
-    def unset(self):
+    def unset(self, w_id):
         """Unset the event."""
         with tf.control_dependencies([
-                tf.py_function(self._unset_fn, (), ())]):
+                tf.py_function(self._unset_fn, (w_id,), ())]):
             return
 
     def _set_all_fn(self):
@@ -314,16 +312,16 @@ class MultiEvent(object):
                 tf.py_function(self._set_all_fn, (), ())]):
             return
 
-    def _get_fn(self):
-        return bool(self._pipe.get(self._key + str(self._index)).decode())
+    def _get_fn(self, w_id):
+        return tf.cast(
+            int(self._pipe.get(self._key + str(w_id.numpy().item())).decode()),
+            tf.dtypes.bool)
 
     @tf.function(autograph=False)
-    def get(self):
+    def get(self, w_id):
         """Get the nested structure.
 
         Returns:
             The nested structure.
         """
-        with tf.control_dependencies([
-                tf.py_function(self._get_fn, (), tf.dtypes.bool)]):
-            return
+        return tf.py_function(self._get_fn, (w_id,), tf.dtypes.bool)
