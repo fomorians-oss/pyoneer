@@ -35,7 +35,7 @@ class Job(object):
             summary_writer = self._summary_writers[name]
             summary_writer.flush()
 
-    def summary_context(self, name=None):
+    def summary_context(self, name=None, max_queue=None, flush_millis=None):
         """
         Gets or creates a summary writer context.
 
@@ -50,7 +50,7 @@ class Job(object):
         else:
             summary_writer_path = os.path.join(self.directory, name)
             summary_writer = tf.summary.create_file_writer(
-                summary_writer_path, max_queue=10000, flush_millis=5 * 60 * 1000
+                summary_writer_path, max_queue=max_queue, flush_millis=flush_millis
             )
             self._summary_writers[name] = summary_writer
         return summary_writer.as_default()
