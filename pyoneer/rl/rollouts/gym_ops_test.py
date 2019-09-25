@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
+import time
 import collections
 import gym
 import tensorflow as tf
@@ -20,7 +22,12 @@ class EnvTest(tf.test.TestCase):
         zero = tf.zeros([1], tf.dtypes.int64)
         one = tf.ones([1], tf.dtypes.int64)
 
-        gym_env = gym.make('CartPole-v0')
+        def make_env():
+            env = gym.make('CartPole-v0')
+            env.observation_space.dtype = 'float64'
+            return env
+
+        gym_env = make_env()
         module_env = gym_ops.Env(gym_env, name='CartPole')
 
         module_env.seed(42)
@@ -51,7 +58,12 @@ class EnvTest(tf.test.TestCase):
         zero = tf.zeros([batch_size], tf.dtypes.int64)
         one = tf.ones([batch_size], tf.dtypes.int64)
 
-        gym_env = batch_impl.Batch(lambda: gym.make('CartPole-v0'), batch_size)
+        def make_env():
+            env = gym.make('CartPole-v0')
+            env.observation_space.dtype = 'float64'
+            return env
+
+        gym_env = batch_impl.Batch(make_env, batch_size)
         module_env = gym_ops.Env(gym_env, name='CartPole')
 
         module_env.seed(42)
@@ -77,127 +89,97 @@ class EnvTest(tf.test.TestCase):
             self.assertAllEqual, (dummy_env_step_output1,),
             (env_step_output1,))
 
-    def testNstepUnrollEnv(self):
-        zero = tf.zeros([1], tf.dtypes.int64)
-        gym_env = gym.make('CartPole-v0')
-        module_env = gym_ops.Env(gym_env, name='CartPole')
-
-        def agent_step_fn(env_outputs, agent_outputs, current_step):
-            return AgentOutput(zero)
-
-        initial_time_step = 0
-        time_axis = 0
-        for random_seed, n_step in zip([42, 47, 1, 100], [2, 4, 8, 12]):
-            # Simulate unroll.
-            module_env.seed(random_seed)
-            expected_env_outputs_initializer = module_env.reset()
-            env_outputs = expected_env_outputs_initializer
-            expected_env_outputs_finalizer = expected_env_outputs_initializer
-            expected_env_outputs = []
-
-            for step in range(1, n_step + 1):
-                if not expected_env_outputs_finalizer.terminal:
-                    expected_env_outputs_finalizer = module_env.step(
-                        AgentOutput(zero), expected_env_outputs_finalizer,
-                        step)
-                    expected_env_outputs.append(expected_env_outputs_finalizer)
-                else:
-                    # Terminal state.
-                    # Simulate padding.
-                    env_outputs_padding = debugging_ops.mock_spec(
-                        tf.TensorShape([1]), module_env.output_specs)
-                    for _ in range(step, n_step + 1):
-                        expected_env_outputs.append(env_outputs_padding)
-                    step -= 1
-                    break
-
-            expected_env_outputs = tf.nest.map_structure(
-                lambda *args: tf.stack(args, axis=time_axis),
-                *expected_env_outputs)
-
-            # Unroll.
-            module_env.seed(random_seed)
-            env_outputs_initializer = module_env.reset()
-            initializer = (AgentOutput(zero), env_outputs_initializer)
-            ((_, env_outputs), (_, env_outputs_finalizer),
-             final_time_step) = unroll_ops.n_step_unroll(
-                n_step, initializer, agent_step_fn, module_env.step,
-                initial_time_step=initial_time_step)
-
-            tf.nest.map_structure(self.assertAllEqual, env_outputs_initializer,
-                                  expected_env_outputs_initializer)
-            tf.nest.map_structure(self.assertAllEqual, env_outputs,
-                                  expected_env_outputs)
-            tf.nest.map_structure(self.assertAllEqual, env_outputs_finalizer,
-                                  expected_env_outputs_finalizer)
-            self.assertAllEqual(initial_time_step + step, final_time_step)
-
-    def testNstepUnrollEnvBatch(self):
+    def testRolloutEnv(self):
         batch_size = 1
-        zero = tf.zeros([batch_size], tf.dtypes.int64)
-        gym_env = batch_impl.Batch(lambda: gym.make('CartPole-v0'), batch_size)
-        module_env = gym_ops.Env(gym_env, name='CartPole')
+        zero = tf.zeros([batch_size, 1], tf.dtypes.float32)
 
-        def agent_step_fn(env_outputs, agent_outputs, current_step):
-            return AgentOutput(zero)
+        def make_env():
+            env = gym.make('Pendulum-v0')
+            env.observation_space.dtype = 'float64'
+            return env
+
+        gym_env = make_env()
+        module_env = gym_ops.Env(gym_env, name='Pendulum')
+
+        class Agent(object):
+
+            @tf.function
+            def reset(self, initial_env_outputs):
+                return AgentOutput(zero)
+
+            @tf.function
+            def step(self, env_outputs, agent_outputs, current_step):
+                return AgentOutput(zero)
 
         initial_time_step = 0
-        time_axis = 0
-        for random_seed, n_step in zip([42, 47, 1, 100], [2, 4, 8, 12]):
-            # Simulate unroll.
-            module_env.seed(random_seed)
-            expected_env_outputs_initializer = module_env.reset()
-            env_outputs = expected_env_outputs_initializer
-            expected_env_outputs_finalizer = expected_env_outputs_initializer
-            expected_env_outputs = []
+        for time_major in [True, False]:
+            for random_seed, n_step in zip([42, 47, 1, 100], [2, 4, 8, 12]):
+                # Simulate unroll.
+                module_env.seed(random_seed)
+                expected_env_outputs_initializer = module_env.reset()
+                env_outputs = expected_env_outputs_initializer
+                expected_env_outputs_finalizer = expected_env_outputs_initializer
+                expected_env_outputs = []
 
-            for step in range(1, n_step + 1):
-                if not expected_env_outputs_finalizer.terminal:
-                    expected_env_outputs_finalizer = module_env.step(
-                        AgentOutput(zero), expected_env_outputs_finalizer,
-                        step)
-                    expected_env_outputs.append(expected_env_outputs_finalizer)
-                else:
-                    # Terminal state.
-                    # Simulate padding.
-                    env_outputs_padding = debugging_ops.mock_spec(
-                        tf.TensorShape([batch_size]), module_env.output_specs)
-                    for _ in range(step, n_step + 1):
-                        expected_env_outputs.append(env_outputs_padding)
-                    step -= 1
-                    break
+                for step in range(1, n_step + 1):
+                    if not expected_env_outputs_finalizer.terminal:
+                        expected_env_outputs_finalizer = module_env.step(
+                            AgentOutput(zero), expected_env_outputs_finalizer,
+                            step)
+                        expected_env_outputs.append(expected_env_outputs_finalizer)
+                    else:
+                        # Terminal state.
+                        # Simulate padding.
+                        env_outputs_padding = debugging_ops.mock_spec(
+                            tf.TensorShape([batch_size]), module_env.output_specs)
+                        for _ in range(step, n_step + 1):
+                            expected_env_outputs.append(env_outputs_padding)
+                        step -= 1
+                        break
 
-            expected_env_outputs = tf.nest.map_structure(
-                lambda *args: tf.stack(args, axis=time_axis),
-                *expected_env_outputs)
+                expected_env_outputs = tf.nest.map_structure(
+                    lambda *args: tf.stack(args, axis=int(not time_major)),
+                    *expected_env_outputs)
 
-            # Unroll.
-            module_env.seed(random_seed)
-            env_outputs_initializer = module_env.reset()
-            initializer = (AgentOutput(zero), env_outputs_initializer)
-            ((_, env_outputs), (_, env_outputs_finalizer),
-             final_time_step) = unroll_ops.n_step_unroll(
-                n_step, initializer, agent_step_fn, module_env.step,
-                initial_time_step=initial_time_step)
+                # Unroll.
+                module_env.seed(random_seed)
+                rollout = unroll_ops.Rollout(module_env, Agent(), n_step, time_major=time_major)
 
-            tf.nest.map_structure(self.assertAllEqual, env_outputs_initializer,
-                                  expected_env_outputs_initializer)
-            tf.nest.map_structure(self.assertAllEqual, env_outputs,
-                                  expected_env_outputs)
-            tf.nest.map_structure(self.assertAllEqual, env_outputs_finalizer,
-                                  expected_env_outputs_finalizer)
-            self.assertAllEqual(initial_time_step + step, final_time_step)
+                ((_, env_outputs), (_, env_outputs_finalizer), final_time_step) = rollout()
+
+                total_time = 0.
+                for _ in range(100):
+                    module_env.seed(random_seed)
+                    start = time.time()
+                    ((_, env_outputs), (_, env_outputs_finalizer), final_time_step) = rollout()
+                    total_time += (time.time() - start)
+                total_time /= (100 * n_step)
+                print(total_time)
+
+                tf.nest.map_structure(self.assertAllEqual, env_outputs,
+                                    expected_env_outputs)
+                tf.nest.map_structure(self.assertAllEqual, env_outputs_finalizer,
+                                    expected_env_outputs_finalizer)
+
+                self.assertAllEqual(initial_time_step + step, final_time_step)
 
     def testRolloutEnvBatch(self):
         batch_size = 1
-        zero = tf.zeros([batch_size], tf.dtypes.int64)
-        gym_env = batch_impl.Batch(lambda: gym.make('CartPole-v0'), batch_size)
-        module_env = gym_ops.Env(gym_env, name='CartPole')
+        zero = tf.zeros([batch_size, 1], tf.dtypes.float32)
+
+        def make_env():
+            env = gym.make('Pendulum-v0')
+            env.observation_space.dtype = 'float64'
+            return env
+
+        gym_env = batch_impl.Batch(make_env, batch_size)
+        module_env = gym_ops.Env(gym_env, name='Pendulum')
 
         class Agent(object):
 
             def reset(self, initial_env_outputs):
                 return AgentOutput(zero)
+
             def step(self, env_outputs, agent_outputs, current_step):
                 return AgentOutput(zero)
 
@@ -236,13 +218,21 @@ class EnvTest(tf.test.TestCase):
                 rollout = unroll_ops.Rollout(module_env, Agent(), n_step, time_major=time_major)
                 ((_, env_outputs), (_, env_outputs_finalizer), final_time_step) = rollout()
 
+                total_time = 0.
+                for _ in range(100):
+                    module_env.seed(random_seed)
+                    start = time.time()
+                    ((_, env_outputs), (_, env_outputs_finalizer), final_time_step) = rollout()
+                    total_time += (time.time() - start)
+                total_time /= (100 * n_step)
+                print(total_time)
+
                 tf.nest.map_structure(self.assertAllEqual, env_outputs,
-                                    expected_env_outputs)
+                                      expected_env_outputs)
                 tf.nest.map_structure(self.assertAllEqual, env_outputs_finalizer,
-                                    expected_env_outputs_finalizer)
+                                      expected_env_outputs_finalizer)
 
                 self.assertAllEqual(initial_time_step + step, final_time_step)
-
 
 
 if __name__ == "__main__":

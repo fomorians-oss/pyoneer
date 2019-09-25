@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import collections
 
 from gym import spaces
@@ -74,7 +75,7 @@ class Env(object):
         if hasattr(env, 'reward_space'):
             self.reward_spec = space_to_spec(env.reward_space, _Counter(), name='Reward')
         else:
-            self.reward_spec = tf.TensorSpec([], tf.dtypes.float32, name='Reward')
+            self.reward_spec = tf.TensorSpec([], tf.dtypes.float64, name='Reward')
         self.terminal_spec = tf.TensorSpec([], tf.dtypes.bool, name='Terminal')
         self.weight_spec = tf.TensorSpec([], tf.dtypes.float32, name='Weight')
 
@@ -87,7 +88,8 @@ class Env(object):
             tf.TensorShape(self._output_shape_list),
             (self.reward_spec, self.state_spec, self.terminal_spec,
              self.weight_spec),
-            initializers=(tf.zeros, tf.zeros, tf.zeros, tf.ones))
+            initializers=(
+                tf.zeros, tf.zeros, tf.zeros, tf.ones))
 
         # Meta information.
         self.output_specs = Transition(state=self.state_spec,
@@ -108,7 +110,7 @@ class Env(object):
         return next_state
 
     def _py_step(self, action):
-        next_state, reward, terminal, _ = self._env.step(action.numpy())
+        next_state, reward, terminal, _ = self._env.step(action)
         return next_state, reward, terminal
 
     def _py_seed(self, seed):
@@ -117,61 +119,56 @@ class Env(object):
     def _py_close(self):
         self._env.close()
 
-    @tf.function(autograph=False)
     def seed(self, seed):
-        with tf.control_dependencies([
-                tf.py_function(self._py_seed, (seed,), ())]):
-            return
+        tf.py_function(self._py_seed, (seed,), ())
 
-    @tf.function(autograph=False)
     def close(self):
-        with tf.control_dependencies([
-                tf.py_function(self._py_close, (), ())]):
-            return
+        tf.py_function(self._py_close, (), ())
 
-    def _fit_shape(self, tensor, spec):
-        if not self._is_batched:
-            tensor = tf.expand_dims(tensor, axis=0)
-        tensor.set_shape(
-            self._output_shape_list + spec.shape.as_list())
-        return tensor
+    def _fit_shape(self, spec):
+        shape = spec.shape.as_list()
+        def shape_fn(tensor):
+            if not self._is_batched:
+                tensor = tf.expand_dims(tensor, axis=0)
+            tensor.set_shape(
+                self._output_shape_list + shape)
+            return tensor
+        return shape_fn
 
-    @tf.function(autograph=False)
     def reset(self):
-        next_state = tf.py_function(self._py_reset, (),
-                                    self.output_dtypes.next_state)
-
+        next_state = tf.numpy_function(
+            self._py_reset, (),
+            self.output_dtypes.next_state)
         next_state = tf.nest.map_structure(
-            self._fit_shape, next_state,
+            lambda s, spec: self._fit_shape(spec)(s),
+            next_state,
             self.output_specs.next_state)
-
         return Transition(state=self._initial_state,
                           reward=self._initial_reward,
                           next_state=next_state,
                           terminal=self._initial_terminal,
                           weight=self._initial_weight)
 
-    @tf.function(autograph=False)
     def step(self, agent_outputs, env_outputs, time_step):
         # Force the shape of the actions to match the environment.
         action = agent_outputs.action
         if not self._is_batched:
             action = action[0]
 
-        next_state, reward, terminal = tf.py_function(
+        next_state, reward, terminal = tf.numpy_function(
             self._py_step, (action,),
             (self.output_dtypes.next_state,
              self.output_dtypes.reward,
              self.output_dtypes.terminal))
 
         next_state = tf.nest.map_structure(
-            self._fit_shape, next_state,
+            lambda s, spec: self._fit_shape(spec)(s), next_state,
             self.output_specs.next_state)
         reward = tf.nest.map_structure(
-            self._fit_shape, reward,
+            lambda s, spec: self._fit_shape(spec)(s), reward,
             self.output_specs.reward)
         terminal = tf.nest.map_structure(
-            self._fit_shape, terminal,
+            lambda s, spec: self._fit_shape(spec)(s), terminal,
             self.output_specs.terminal)
         terminal = tf.logical_or(terminal, env_outputs.terminal)
         weight = tf.cast(

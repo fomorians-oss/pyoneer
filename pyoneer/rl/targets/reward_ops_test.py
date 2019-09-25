@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import time
 import tensorflow as tf
 
 from pyoneer.rl.targets import reward_ops
@@ -102,9 +103,21 @@ class RewardOpsTest(tf.test.TestCase):
              td[:, 2] * clip_is[:, 2]],
             axis=1)
         expected_v_trace_values = expected_returns + values
+
         v_trace_values = reward_ops.v_trace_returns(
             rewards, values, tf.math.log(probs), tf.math.log(probs_old),
             discounts=discount)
+
+        total_time = 0.
+        for _ in range(100):
+            start = time.time()
+            v_trace_values = reward_ops.v_trace_returns(
+                rewards, values, tf.math.log(probs), tf.math.log(probs_old),
+                discounts=discount)
+            total_time += (time.time() - start)
+        total_time /= 100
+        print(total_time)
+
         self.assertAllClose(v_trace_values, expected_v_trace_values)
 
         # Time major.
@@ -132,8 +145,18 @@ class RewardOpsTest(tf.test.TestCase):
              (td[:, 1] + (discount * lambdas) * td[:, 2]),
              td[:, 2]],
             axis=1)
+
         generalized_td = reward_ops.generalized_advantage_estimate(
             rewards, values, lambdas=lambdas, discounts=discount)
+        total_time = 0.
+        for _ in range(100):
+            start = time.time()
+            generalized_td = reward_ops.generalized_advantage_estimate(
+                rewards, values, lambdas=lambdas, discounts=discount)
+            total_time += (time.time() - start)
+        total_time /= 100
+        print(total_time)
+
         self.assertAllClose(generalized_td, expected_generalized_td)
 
         # Time major.

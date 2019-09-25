@@ -51,7 +51,9 @@ def mock_spec(batch_shapes, specs, initializers=tf.zeros):
         Possibly nested structure of tensors.
     """
     def mock_spec_fn(spec, batch_shape=batch_shapes, initializer=initializers):
-        shape = batch_shape.as_list() + spec.shape.as_list()
+        shape = tf.concat([
+            tf.convert_to_tensor(batch_shape, dtype=tf.dtypes.int32),
+            tf.convert_to_tensor(spec.shape, dtype=tf.dtypes.int32)], axis=0)
         return initializer(shape, spec.dtype)
 
     sequences = [specs]

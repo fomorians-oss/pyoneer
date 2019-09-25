@@ -149,6 +149,7 @@ class QueueTest(tf.test.TestCase):
         q = distributed_ops.Queue(srvr, q_key, dtypes)
         q.enqueue(structure)
         actual_structure = q.dequeue()
+
         tf.nest.map_structure(self.assertAllEqual, structure, actual_structure)
 
         # 2-tuple.

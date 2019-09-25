@@ -8,3 +8,4 @@
 Pipfile.lock
 .ipynb_checkpoints
 __pycache__
+*.rdb

@@ -5,6 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 
+@tf.function
 def n_step_discounted_bootstrap_values(values,
                                        n_step,
                                        seq_lens,
@@ -92,11 +93,13 @@ def n_step_discounted_bootstrap_values(values,
     return bootstrap_values
 
 
+@tf.function
 def _concat_right(x):
     """Shift x by 1 in the 'time' dimension."""
     return tf.concat([x[1:], tf.zeros_like(x[:1])], axis=0)
 
 
+@tf.function
 def _nstep_returns(args):
     """Compute n-step returns."""
     rewards, n_step, discounts, bootstrap_values = args
@@ -114,6 +117,7 @@ def _nstep_returns(args):
     return returns
 
 
+@tf.function
 def n_step_discounted_returns(rewards,
                               n_step,
                               bootstrap_values=None,
@@ -205,6 +209,7 @@ def n_step_discounted_returns(rewards,
         return returns
 
 
+@tf.function
 def discounted_returns(rewards,
                        bootstrap_value=None,
                        discounts=0.99,
@@ -296,6 +301,7 @@ def discounted_returns(rewards,
         return returns
 
 
+@tf.function
 def temporal_difference(returns, values, back_prop=False, name=None):
     """Computes the temporal difference.
 
@@ -327,6 +333,7 @@ def temporal_difference(returns, values, back_prop=False, name=None):
         return advantages
 
 
+@tf.function
 def v_trace_returns(rewards,
                     values,
                     log_probs,
@@ -436,6 +443,7 @@ def v_trace_returns(rewards,
         return returns
 
 
+@tf.function
 def generalized_advantage_estimate(rewards,
                                    values,
                                    last_value=None,
