@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 gym = "*"
-tensorflow = "==2.0.0-beta1"
+tensorflow = "==2.0.0"
 tensorflow-probability = "*"
 six = "*"
 
