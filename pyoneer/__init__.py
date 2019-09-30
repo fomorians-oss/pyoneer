@@ -4,7 +4,6 @@ from __future__ import print_function
 
 from pyoneer import activations
 from pyoneer import debugging
-from pyoneer import distributions
 from pyoneer import distributed
 from pyoneer import initializers
 from pyoneer import jobs
@@ -21,7 +20,6 @@ from pyoneer import variables
 __all__ = [
     "activations",
     "debugging",
-    "distributions",
     "distributed",
     "initializers",
     "jobs",

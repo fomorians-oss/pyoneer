@@ -25,12 +25,12 @@ def flatten(tensor, start=None, stop=None):
         start = 0
 
     if stop is None:
-        stop = tensor.rank
+        stop = tensor.shape.rank
 
     shape = tf.concat(
         [
             tensor.shape[:start],
-            tf.reduce_prod(tensor.shape[start:stop]),
+            tf.reduce_prod(tensor.shape[start:stop], keepdims=True),
             tensor.shape[stop:],
         ],
         axis=0,

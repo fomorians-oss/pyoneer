@@ -13,6 +13,7 @@ class Job(object):
     Args:
         directory: A directory to save summaries and checkpoints to.
         max_to_keep: The maximum number of checkpoints to keep.
+        keep_checkpoint_every_n_hours: Keep checkpoint every N hours.
         **kwargs: Checkpointable objects to save with the checkpoint.
     """
 
@@ -49,7 +50,7 @@ class Job(object):
         else:
             summary_writer_path = os.path.join(self.directory, name)
             summary_writer = tf.summary.create_file_writer(
-                summary_writer_path, max_queue=100, flush_millis=5 * 60 * 1000
+                summary_writer_path, max_queue=10000, flush_millis=5 * 60 * 1000
             )
             self._summary_writers[name] = summary_writer
         return summary_writer.as_default()

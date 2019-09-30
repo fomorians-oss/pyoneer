@@ -47,7 +47,30 @@ class ActionProbs(gym.ActionWrapper):
         n = self.env.action_space.n
         low = np.zeros(shape=(n,), dtype=np.float32)
         high = np.ones(shape=(n,), dtype=np.float32)
-        return gym.spaces.Box(low, high, dtype=np.float32)
+        space = gym.spaces.Box(low, high, dtype=np.float32)
+        return space
+
+    def action(self, action):
+        return np.argmax(action)
+
+
+class MultiActionProbs(gym.ActionWrapper):
+    """
+    TODO: generalize this with gym.spaces.Tuple
+    Wraps the environment to support action probabilities.
+    """
+
+    def __init__(self, env):
+        super(MultiActionProbs, self).__init__(env)
+        assert isinstance(self.env.action_space, gym.spaces.MultiDiscrete)
+        self.action_space = self._create_action_space()
+
+    def _create_action_space(self):
+        shape = [self.env.action_space.shape[0], self.env.action_space.nvec[0]]
+        low = np.zeros(shape=shape, dtype=np.float32)
+        high = np.ones(shape=shape, dtype=np.float32)
+        space = gym.spaces.Box(low, high, dtype=np.float32)
+        return space
 
     def action(self, action):
         return np.argmax(action)
