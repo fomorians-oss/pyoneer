@@ -464,6 +464,28 @@ class ConditionTest(tf.test.TestCase):
             consumer.join()
 
 
+class EventTest(tf.test.TestCase):
+
+    def testSetGet(self):
+        redis_host = '127.0.0.1'
+        redis_port = 6379
+        e_key = 'e'
+        srvr = redis.Redis(host=redis_host,
+                           port=redis_port,
+                           db=0)
+
+        event = distributed_ops.Event(srvr, 2, e_key)
+
+        event.set(0)
+        event.unset(1)
+        self.assertAllEqual(event.get(0), True)
+        self.assertAllEqual(event.get(1), False)
+
+        event.set_all()
+        self.assertAllEqual(event.get(0), True)
+        self.assertAllEqual(event.get(1), True)
+
+
 class ValueTest(tf.test.TestCase):
 
     def testSetGetTuple(self):

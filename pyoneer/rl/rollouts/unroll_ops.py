@@ -8,8 +8,16 @@ import tensorflow as tf
 
 
 class Unroll(collections.namedtuple(
-        'Unroll', ['outputs', 'initializer', 'initial_time_step'])):
-    pass
+        'Unroll', ['outputs', 'finalizer', 'final_time_step'])):
+    """Creates a new Unroll.
+
+    Args:
+        outputs: The outputs of an unroll, shape
+            [Batch x Time x ...] or (time_major) [Time x Batch x ...].
+        finalizer: The final outputs of an unroll with shape [Batch x ...].
+        final_time_step: The final time step of the unroll.
+    """
+    __slots__ = ()
 
 
 class Rollout(object):
@@ -32,14 +40,39 @@ class Rollout(object):
 
     @tf.function
     def __call__(self, initializer=None, initial_time_step=0):
-        """Rollout and return trajectories.
+        """Rollout env-agent interaction for n-steps starting from the conditions.
+
+        At each step of the n-step rollout, the environment passes it's output to
+            the agent and the agent passes it's output to the environment:
+
+            ```none
+            agent_output, env_output = initializer
+            agent_output = agent.step(env_output, agent_output, time_step)
+            env_output = env.step(agent_output, env_output, time_step)
+            finalizer = agent_output, env_output
+            time_step += 1
+            ```
+
+        If the `initializer` argument is `None`, than the `initializer` will be
+            set as follows:
+
+            ```none
+            env_output = env.reset()
+            agent_output = agent.reset(env_output)
+            initializer = agent_output, env_output
+            ```
+
+        An n-step unroll will terminate early if all `env_output.terminal` are set to
+            true for any value of `time_step`.
 
         Args:
             initializer: (Optional) The initial inputs to the rollout.
+                If `None` then the initializer will be replaced with
+                `env_output = env.reset()` and `agent.reset(env_output)`.
             initial_time_step: (Optional) The initial time step.
 
         Returns:
-            (outputs, initializer, initial_time_step)
+            (outputs, finalizer, final_time_step)
         """
         initial_time_step = tf.convert_to_tensor(
             initial_time_step, tf.dtypes.int32)
@@ -104,8 +137,8 @@ class Rollout(object):
 
         unroll = Unroll(
             outputs=(agent_output, env_output),
-            initializer=finalizer,
-            initial_time_step=final_time_step)
+            finalizer=finalizer,
+            final_time_step=final_time_step)
 
         if self._time_major:
             return unroll

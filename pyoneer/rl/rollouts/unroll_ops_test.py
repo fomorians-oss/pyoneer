@@ -27,7 +27,10 @@ class UnrollOpsTest(tf.test.TestCase):
                            next_state=tf.TensorSpec([11, 3], tf.dtypes.int64),
                            terminal=tf.TensorSpec([], tf.dtypes.bool)))
 
-        initializer = debugging_ops.mock_spec(tf.TensorShape([1]), specs)
+        initializer = debugging_ops.mock_spec(
+            tf.TensorShape([1]),
+            specs,
+            tf.zeros)
         initial_agent_outputs, initial_env_outputs = initializer
 
         class Env(object):

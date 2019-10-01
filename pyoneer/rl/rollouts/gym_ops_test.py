@@ -28,7 +28,7 @@ class EnvTest(tf.test.TestCase):
             return env
 
         gym_env = make_env()
-        module_env = gym_ops.Env(gym_env, name='CartPole')
+        module_env = gym_ops.Env(gym_env)
 
         module_env.seed(42)
         dummy_env_reset_output = module_env.reset()
@@ -64,7 +64,7 @@ class EnvTest(tf.test.TestCase):
             return env
 
         gym_env = batch_impl.Batch(make_env, batch_size)
-        module_env = gym_ops.Env(gym_env, name='CartPole')
+        module_env = gym_ops.Env(gym_env)
 
         module_env.seed(42)
         dummy_env_reset_output = module_env.reset()
@@ -99,7 +99,7 @@ class EnvTest(tf.test.TestCase):
             return env
 
         gym_env = make_env()
-        module_env = gym_ops.Env(gym_env, name='Pendulum')
+        module_env = gym_ops.Env(gym_env)
 
         class Agent(object):
 
@@ -131,7 +131,9 @@ class EnvTest(tf.test.TestCase):
                         # Terminal state.
                         # Simulate padding.
                         env_outputs_padding = debugging_ops.mock_spec(
-                            tf.TensorShape([batch_size]), module_env.output_specs)
+                            tf.TensorShape([batch_size]),
+                            module_env.output_specs,
+                            tf.zeros)
                         for _ in range(step, n_step + 1):
                             expected_env_outputs.append(env_outputs_padding)
                         step -= 1
@@ -173,7 +175,7 @@ class EnvTest(tf.test.TestCase):
             return env
 
         gym_env = batch_impl.Batch(make_env, batch_size)
-        module_env = gym_ops.Env(gym_env, name='Pendulum')
+        module_env = gym_ops.Env(gym_env)
 
         class Agent(object):
 
@@ -203,7 +205,9 @@ class EnvTest(tf.test.TestCase):
                         # Terminal state.
                         # Simulate padding.
                         env_outputs_padding = debugging_ops.mock_spec(
-                            tf.TensorShape([batch_size]), module_env.output_specs)
+                            tf.TensorShape([batch_size]),
+                            module_env.output_specs,
+                            tf.zeros)
                         for _ in range(step, n_step + 1):
                             expected_env_outputs.append(env_outputs_padding)
                         step -= 1

@@ -38,8 +38,28 @@ class Stopwatch(object):
         self.stop()
 
 
-def mock_spec(batch_shapes, specs, initializers=tf.zeros):
+def mock_spec(batch_shapes, specs, initializers):
     """Batch the creation of tensors by spec.
+
+    For example:
+
+        ```python
+        specs = {
+            'image': tf.TensorSpec([1024, 512, 3], tf.dtypes.float32),
+            'label': tf.TensorSpec([], tf.dtypes.int32),
+        }
+        initializers = {
+            'image': tf.keras.initializers.RandomUniform(0, 255),
+            'label': tf.keras.initializers.RandomUniform(-1, 1),
+        }
+        values = pynr.debugging.mock_spec(
+            tf.TensorShape([4]),
+            specs,
+            initializers)
+
+        values['image'].shape == (4, 1024, 512, 3)
+        values['label'].shape == (4,)
+        ```
 
     Args:
         batch_shapes: Possibly nested structure of `tf.TensorShape`s.

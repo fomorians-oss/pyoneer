@@ -9,17 +9,6 @@ import tensorflow as tf
 from pyoneer.debugging import debugging_ops
 
 
-def _stack_nested(list_of_nested):
-    stacked_items = tf.nest.map_structure(
-        lambda x: x[None, ...], list_of_nested[0])
-    for next_item in list_of_nested[1:]:
-        stacked_items = tf.nest.map_structure(
-            lambda x, y: tf.concat([x, y[None, ...]], axis=0),
-            stacked_items,
-            next_item)
-    return stacked_items
-
-
 class TensorCodec(object):
 
     def __init__(self, dtypes):
@@ -27,6 +16,19 @@ class TensorCodec(object):
 
         This creates a codec that encodes structures to strings
             and decodes messages back to the structures.
+
+        For example:
+
+            ```python
+            dtypes = (tf.dtypes.float32, tf.dtypes.float32)
+            structure = (tf.fill([10, 5, 10], tf.cast(-12, tf.dtypes.float32)),
+                        tf.fill([10], tf.cast(100, tf.dtypes.float32)))
+
+            codec = pynr.distributed.TensorCodec(dtypes=dtypes)
+            encoded_structure = codec.encode(structure)  # A sequence of bytes.
+
+            codec.decode(encoded_structure) == structure
+            ```
 
         Args:
             dtypes: The possibly nested structure containing tensor
@@ -115,7 +117,26 @@ class Queue(TensorCodec):
     def __init__(self, pipe, key, dtypes):
         """Creates a new Queue.
 
-        This creates a distributed queue datastructure.
+        Implementation of a distributed queue data-structure. This implements
+            a blocking queue similar to `multiprocessing.Queue`.
+
+        For example:
+
+            ```python
+            dtypes = (tf.dtypes.float32, tf.dtypes.float32)
+            structure = (tf.fill([10, 5, 10], tf.cast(-12, tf.dtypes.float32)),
+                        tf.fill([10], tf.cast(100, tf.dtypes.float32)))
+
+            # Create a queue data-structure.
+            pipe = redis.Redis(host=host, port=port)
+            queue = pynr.distributed.Queue(pipe, 'MyQueue', dtypes=dtypes)
+
+            # Enqueue a structure.
+            queue.enqueue(structure)
+
+            # Block until the structure is enqueued.
+            queue.dequeue(encoded_structure) == structure
+            ```
 
         Args:
             pipe: The redis server.
@@ -169,6 +190,15 @@ class Queue(TensorCodec):
 
     @tf.function
     def dequeue_many(self, many):
+        """Dequeue many nested structures.
+
+        Args:
+            many: The number of tensors to dequeue and stack together.
+
+        Returns:
+            The nested structure of tensors stacked along the first axis
+                (Each element of the nested structure is now shape [many x ...]).
+        """
         tf.debugging.assert_greater_equal(many, 1, '`many` < 1.')
         items = tf.numpy_function(self._dequeue_many_fn, (many,), tf.dtypes.string)
         items.set_shape([None])
@@ -190,13 +220,34 @@ class List(TensorCodec):
     def __init__(self, pipe, key, specs):
         """Creates a new List.
 
-        This creates a distributed list datastructure.
+        Implementation of a distributed list datastructure. The only blocking
+            operation is done when `pop()` is called. The rest of the operations
+            are not blocking, which makes this vulnerable to empty return values,
+            which are not encoded at the moment, so be careful.
+
+        For example:
+
+            ```python
+            structure = (tf.fill([10], tf.cast(100, tf.dtypes.float32)),)
+            specs = tf.nest.map_structure(
+                lambda t: tf.TensorSpec(t.shape.as_list(), t.dtype), structure)
+
+            # Create a new list.
+            pipe = redis.Redis(host=host, port=port)
+            r = pynr.distributed.List(pipe, 'MyList', specs)
+
+            # Append a structure.
+            r.append(structure)
+
+            # Pop the structure.
+            r.pop() == structure
+            ```
 
         Args:
             pipe: The redis server.
-            key: The redis key for the queue.
-            dtypes: The possibly nested structure containing tensor
-                dtypes.
+            key: The redis key for the queue. Each name is unique to
+                the corresponding shared memory.
+            specs: The possibly nested structure containing `tf.TensorSpec`s.
         """
         dtypes = tf.nest.map_structure(lambda s: s.dtype, specs)
         super(List, self).__init__(dtypes)
@@ -204,6 +255,7 @@ class List(TensorCodec):
         self._pipe = pipe
         self._key = key
 
+    # TODO(wenkesj): Implement `__setitem__` with `set_slice` and `scatter`.
     def __getitem__(self, getter):
         if isinstance(getter, slice):
             return self.slice_get(
@@ -214,6 +266,9 @@ class List(TensorCodec):
         if getter.shape.rank > 0:
             return self.gather(getter)
         return self.get(getter)
+
+    def __len__(self):
+        return self.len()
 
     @property
     def specs(self):
@@ -392,7 +447,7 @@ class List(TensorCodec):
         num_items = tf.ensure_shape(num_items, [])
 
         if tf.equal(num_items, 0):
-            return debugging_ops.mock_spec(tf.TensorShape([0]), self.specs)
+            return debugging_ops.mock_spec(tf.TensorShape([0]), self.specs, tf.zeros)
 
         items.set_shape([None])
         decoded_items = tf.nest.map_structure(
@@ -413,11 +468,39 @@ class Condition(object):
     def __init__(self, pipe, key):
         """Creates a new Condition.
 
-        This creates a distributed condition datastructure.
+        Implementation of a distributed condition datastructure.
+            Conditions are locking mechanisms controlled by another
+            source other than the consumer.
+
+        For example:
+
+            ```python
+            pipe = redis.Redis(host=host, port=port)
+            condition = pynr.distributed.Condition(pipe, 'MyCondition')
+
+            def consumer_fn(cond, w_id):
+                cond.wait(w_id)
+                print('Hello from {}!'.format(w_id))
+
+            consumers = []
+            for consumer_id in range(4):
+                consumer = threading.Thread(target=consumer_fn,
+                                            args=(condition, consumer_id))
+                consumer.start()
+                time.sleep(1)
+                consumers.append(consumer)
+
+            # Tell the consumers to stop waiting.
+            condition.notify_all()
+
+            # Cleanup.
+            for consumer in consumers:
+                consumer.join()
+            ```
 
         Args:
             pipe: The redis server.
-            key: The redis key for the queue.
+            key: The redis key for the condition.
         """
         self._pipe = pipe
         self._key = key
@@ -437,19 +520,19 @@ class Condition(object):
         Args:
             w_id: The id to send to the producer.
         """
-        with tf.control_dependencies([
-                tf.numpy_function(self._wait_fn, (w_id,), ())]):
-            return
+        tf.numpy_function(self._wait_fn, (w_id,), ())
 
     def _notify_fn(self, w_id_):
         self._pipe.rpush(self._key + str(w_id_.item()), 1)
 
     @tf.function
     def notify(self, w_id):
-        """Notifies the id."""
-        with tf.control_dependencies([
-                tf.numpy_function(self._notify_fn, (w_id,), ())]):
-            return
+        """Notifies the consumer by id.
+
+        Args:
+            w_id: The id to send to the consumer.
+        """
+        tf.numpy_function(self._notify_fn, (w_id,), ())
 
     def _notify_all_fn(self):
         pipeline = self._pipe.pipeline()
@@ -465,10 +548,8 @@ class Condition(object):
 
     @tf.function
     def notify_all(self):
-        """Notifies all active ids."""
-        with tf.control_dependencies([
-                tf.numpy_function(self._notify_all_fn, (), ())]):
-            return
+        """Notifies all consumer ids sent to the producer."""
+        tf.numpy_function(self._notify_all_fn, (), ())
 
 
 class Value(TensorCodec):
@@ -476,7 +557,24 @@ class Value(TensorCodec):
     def __init__(self, pipe, key, dtypes):
         """Creates a new Value.
 
-        This creates a distributed value datastructure.
+        Implementation of a distributed value datastructure. This allows you to
+            read/write an arbitrary object. Useful for a parameter server.
+
+        For example:
+
+            ```
+            dtypes = (tf.dtypes.float32,)
+            structure = (tf.fill([10], tf.cast(100, tf.dtypes.float32)),)
+
+            pipe = redis.Redis(host=host, port=port)
+            value = pynr.distributed.Value(pipe, 'MyValue', dtypes)
+
+            # Set the value.
+            value.set(structure)
+
+            # Get the value.
+            r.get() == structure
+            ```
 
         Args:
             pipe: The redis server.
@@ -525,7 +623,32 @@ class Event(object):
     def __init__(self, pipe, num_index, key):
         """Creates a new Event.
 
-        This creates a distributed Event datastructure.
+        Implementation of a distributed event datastructure.
+            This is similar to a `threading.Event`, but a vector of events.
+            You can `set`, `get` and `unset` this individually or set all
+            events with `set_all`. It could be used as a simple flag for
+            unblocking control flow, such as protect a parameter server to
+            be accessed only when values have been updated.
+
+        For example:
+
+            ```python
+            pipe = redis.Redis(host=host, port=port)
+            event = distributed_ops.Event(pipe, 2, 'MyEvent')
+
+            # Set one event, unset the other.
+            event.set(0)
+            event.unset(1)
+
+            event.get(0) == True
+            event.get(1) == False
+
+            # Set all the events.
+            event.set_all()
+
+            event.get(0) == True
+            event.get(1) == True
+            ```
 
         Args:
             pipe: The redis server.
@@ -541,20 +664,24 @@ class Event(object):
 
     @tf.function
     def set(self, w_id):
-        """Set the event."""
-        with tf.control_dependencies([
-                tf.numpy_function(self._set_fn, (w_id,), ())]):
-            return
+        """Set the event by id.
+
+        Args:
+            w_id: The event id.
+        """
+        tf.numpy_function(self._set_fn, (w_id,), ())
 
     def _unset_fn(self, w_id):
         self._pipe.set(self._key + str(w_id.item()), 0)
 
     @tf.function
     def unset(self, w_id):
-        """Unset the event."""
-        with tf.control_dependencies([
-                tf.numpy_function(self._unset_fn, (w_id,), ())]):
-            return
+        """Unset the event by id.
+
+        Args:
+            w_id: The event id.
+        """
+        tf.numpy_function(self._unset_fn, (w_id,), ())
 
     def _set_all_fn(self):
         pipeline = self._pipe.pipeline()
@@ -565,19 +692,17 @@ class Event(object):
 
     @tf.function
     def set_all(self):
-        """Set all events."""
-        with tf.control_dependencies([
-                tf.numpy_function(self._set_all_fn, (), ())]):
-            return
+        """Set all event ids."""
+        tf.numpy_function(self._set_all_fn, (), ())
 
     def _get_fn(self, w_id):
         return bool(int(self._pipe.get(self._key + str(w_id.item())).decode()))
 
     @tf.function
     def get(self, w_id):
-        """Get the nested structure.
+        """Get the value of the event by id.
 
         Returns:
-            The nested structure.
+            If the event is set.
         """
         return tf.numpy_function(self._get_fn, (w_id,), tf.dtypes.bool)

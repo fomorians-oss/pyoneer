@@ -16,6 +16,10 @@ from pyoneer.rl.wrappers import batch_impl
 class _Counter(object):
 
     def __init__(self):
+        """Creates a new _Counter.
+
+        This is a simple reference counter as an object.
+        """
         self.value = 0
 
     def increment(self):
@@ -26,11 +30,12 @@ class _Counter(object):
         return self.value
 
 
-def space_to_spec(space, counter, name):
+def _space_to_spec(space, counter, name):
     """Determines a tf.TensorSpec from the `gym.Space`.
 
     Args:
         space: a `gym.Space` instance (i.e. `env.action_space`)
+        counter: The counter to track the
 
     Raises:
         `TypeError` when space is not a `gym.Space` instance.
@@ -45,7 +50,7 @@ def space_to_spec(space, counter, name):
                              name='{}_{}'.format(name, counter.get()))
     elif isinstance(space, spaces.Tuple) or isinstance(space, spaces.Dict):
         def to_spec_fn(space):
-            return space_to_spec(space, name, counter.increment())
+            return _space_to_spec(space, name, counter.increment())
         return tf.nest.map_structure(to_spec_fn, space.spaces)
     raise TypeError('`space` not supported: {}'.format(type(space)))
 
@@ -53,12 +58,28 @@ def space_to_spec(space, counter, name):
 class Transition(collections.namedtuple(
         'Transition', ['state', 'reward', 'next_state', 'terminal', 'weight'])):
 
+    """Creates a new Transition.
+
+    Args:
+        state: The state for this transition.
+        reward: The reward for this transition.
+        next_state: The next state for this transition.
+        terminal: The terminal condition of this transition.
+        weight: The weight assigned to this transition.
+    """
     __slots__ = ()
 
 
 class Env(object):
 
-    def __init__(self, env, name='Env'):
+    def __init__(self, env):
+        """Creates a new Env.
+
+        This is a thin wrapper around `gym.Env` to directly work with `pyrl.Rollout`.
+
+        Args:
+            env: An `gym.Env` or `pynr.wrappers.Batch` instance.
+        """
         self._env = env
 
         # Check if the environment is batched.
@@ -69,11 +90,11 @@ class Env(object):
             self._output_shape_list = [1]
 
         # Specs.
-        self.state_spec = space_to_spec(env.observation_space, _Counter(), name='State')
-        self.next_state_spec = space_to_spec(env.observation_space, _Counter(), name='NextState')
-        self.action_spec = space_to_spec(env.action_space, _Counter(), name='Action')
+        self.state_spec = _space_to_spec(env.observation_space, _Counter(), name='State')
+        self.next_state_spec = _space_to_spec(env.observation_space, _Counter(), name='NextState')
+        self.action_spec = _space_to_spec(env.action_space, _Counter(), name='Action')
         if hasattr(env, 'reward_space'):
-            self.reward_spec = space_to_spec(env.reward_space, _Counter(), name='Reward')
+            self.reward_spec = _space_to_spec(env.reward_space, _Counter(), name='Reward')
         else:
             self.reward_spec = tf.TensorSpec([], tf.dtypes.float64, name='Reward')
         self.terminal_spec = tf.TensorSpec([], tf.dtypes.bool, name='Terminal')
