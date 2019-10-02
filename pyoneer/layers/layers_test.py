@@ -38,42 +38,6 @@ class LayersTest(tf.test.TestCase):
         expected = tf.constant([[-1, 0]], dtype=tf.float32)
         self.assertAllClose(outputs, expected)
 
-    def test_nest_features(self):
-        nest_layer = Nest(
-            {
-                "category": OneHotEncoder(depth=3),
-                "angle": AngleEncoder(degrees=True),
-                "nested": {
-                    "category": OneHotEncoder(depth=3),
-                    "angle": AngleEncoder(degrees=True),
-                },
-            }
-        )
-        features = {
-            "category": tf.constant([1]),
-            "angle": tf.constant([[-45.0]]),
-            "nested": {"category": tf.constant([2]), "angle": tf.constant([[45.0]])},
-        }
-        outputs = nest_layer(features)
-        expected = tf.stack(
-            [
-                [
-                    tf.math.cos(angle_ops.to_radians(-45.0)),
-                    tf.math.sin(angle_ops.to_radians(-45.0)),
-                    0.0,
-                    1.0,
-                    0.0,
-                    tf.math.cos(angle_ops.to_radians(+45.0)),
-                    tf.math.sin(angle_ops.to_radians(+45.0)),
-                    0.0,
-                    0.0,
-                    1.0,
-                ]
-            ],
-            axis=0,
-        )
-        self.assertAllClose(outputs, expected)
-
 
 if __name__ == "__main__":
     tf.test.main()
