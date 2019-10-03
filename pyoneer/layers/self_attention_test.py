@@ -10,7 +10,8 @@ from pyoneer.layers import self_attention_impl
 class SelfAttentionTest(tf.test.TestCase):
 
     def testOutputShapes(self):
-        self_attention = self_attention_impl.SelfAttention(8, 4, 2)
+        tf.random.set_seed(32)
+        self_attention = self_attention_impl.SelfAttentionQKV(8, 4, 2)
         inputs = tf.random.uniform([10, 5, 12], -1., 1.)
         outputs = self_attention(inputs)
         self.assertAllEqual(tf.shape(outputs), [10, 5, 4 * 2])

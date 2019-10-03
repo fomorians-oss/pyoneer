@@ -7,26 +7,31 @@ import tensorflow as tf
 from pyoneer.layers import layers_impl
 
 
-class SelfAttention(tf.keras.layers.Layer):
+class SelfAttentionQKV(tf.keras.layers.Layer):
 
-    def __init__(self, key_size, value_size, num_heads, **kwargs):
-        """Creates a new SelfAttention.
+    def __init__(self, key_size, value_size, num_heads):
+        """Creates a new SelfAttentionQKV.
+
+        This computes Q, K, V as a function of the input.
 
         Args:
-            key_size: The size of the query and key dimension.
+            key_size: The size of the key dimension.
             value_size: The size of the value dimension.
             num_heads: Number of attention values.
-            **kwargs: Keyword arguments for the Q, K, V computation.
         """
         super().__init__()
         self._num_heads = num_heads
         self._key_size = key_size
         self._value_size = value_size
+
         self._qkv = layers_impl.BatchApply(
-            tf.keras.layers.Dense(
-                self._num_heads * (
-                    self._key_size + self._key_size + self._value_size),
-                **kwargs))
+            tf.keras.Sequential([
+                tf.keras.layers.Dense(
+                    self._num_heads * (
+                        self._key_size + self._key_size + self._value_size),
+                    use_bias=False),
+                tf.keras.layers.LayerNormalization()
+            ]))
 
     def call(self, inputs):
         """Applies multi-headed dot-product attention to the inputs.
