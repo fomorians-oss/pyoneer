@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
 import tensorflow as tf
 
 from pyoneer.debugging import debugging_ops
@@ -102,6 +104,7 @@ class ReplayBufferTest(tf.test.TestCase):
         n_step = 1
         size = 20
         buffer = buffer_ops.ReplayBuffer(specs, n_step, size)
+        checkpoint = tf.train.Checkpoint(buffer=buffer)
 
         expected_values = debugging_ops.mock_spec(
             tf.TensorShape([10, n_step]), specs,
@@ -115,6 +118,7 @@ class ReplayBufferTest(tf.test.TestCase):
             self.assertAllEqual,
             values,
             expected_values)
+        save_path = checkpoint.save(os.path.join(self.get_temp_dir(), "ckpt"))
 
         # Test gather.
         indices = [0, 2, 4, 8]
@@ -152,6 +156,15 @@ class ReplayBufferTest(tf.test.TestCase):
             tf.nest.map_structure(
                 lambda x: tf.concat([x, x], axis=0),
                 expected_values))
+
+        # Restore the old buffer, which has half size.
+        checkpoint.restore(save_path)
+        values = buffer[:-1]
+
+        tf.nest.map_structure(
+            self.assertAllEqual,
+            values,
+            expected_values)
 
 
 if __name__ == "__main__":
