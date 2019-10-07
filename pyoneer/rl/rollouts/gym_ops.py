@@ -96,7 +96,7 @@ class Env(object):
         if hasattr(env, 'reward_space'):
             self.reward_spec = _space_to_spec(env.reward_space, _Counter(), name='Reward')
         else:
-            self.reward_spec = tf.TensorSpec([], tf.dtypes.float64, name='Reward')
+            self.reward_spec = tf.TensorSpec([], tf.dtypes.float32, name='Reward')
         self.terminal_spec = tf.TensorSpec([], tf.dtypes.bool, name='Terminal')
         self.weight_spec = tf.TensorSpec([], tf.dtypes.float32, name='Weight')
 
@@ -131,7 +131,7 @@ class Env(object):
         return next_state
 
     def _py_step(self, action):
-        next_state, reward, terminal, _ = self._env.step(action)
+        next_state, reward, terminal, _ = self._env.step(action.numpy())
         return next_state, reward, terminal
 
     def _py_seed(self, seed):
@@ -157,7 +157,7 @@ class Env(object):
         return shape_fn
 
     def reset(self):
-        next_state = tf.numpy_function(
+        next_state = tf.py_function(
             self._py_reset, (),
             self.output_dtypes.next_state)
         next_state = tf.nest.map_structure(
@@ -176,7 +176,7 @@ class Env(object):
         if not self._is_batched:
             action = action[0]
 
-        next_state, reward, terminal = tf.numpy_function(
+        next_state, reward, terminal = tf.py_function(
             self._py_step, (action,),
             (self.output_dtypes.next_state,
              self.output_dtypes.reward,

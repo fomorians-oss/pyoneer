@@ -24,7 +24,6 @@ class EnvTest(tf.test.TestCase):
 
         def make_env():
             env = gym.make('CartPole-v0')
-            env.observation_space.dtype = 'float64'
             return env
 
         gym_env = make_env()
@@ -60,7 +59,6 @@ class EnvTest(tf.test.TestCase):
 
         def make_env():
             env = gym.make('CartPole-v0')
-            env.observation_space.dtype = 'float64'
             return env
 
         gym_env = batch_impl.Batch(make_env, batch_size)
@@ -95,7 +93,6 @@ class EnvTest(tf.test.TestCase):
 
         def make_env():
             env = gym.make('Pendulum-v0')
-            env.observation_space.dtype = 'float64'
             return env
 
         gym_env = make_env()
@@ -171,7 +168,6 @@ class EnvTest(tf.test.TestCase):
 
         def make_env():
             env = gym.make('Pendulum-v0')
-            env.observation_space.dtype = 'float64'
             return env
 
         gym_env = batch_impl.Batch(make_env, batch_size)
