@@ -30,6 +30,10 @@ class Job(object):
         )
         self._summary_writers = {}
 
+    @property
+    def exists(self):
+        return bool(self.manager.latest_checkpoint)
+
     def flush_summaries(self):
         for name in self._summary_writers.keys():
             summary_writer = self._summary_writers[name]

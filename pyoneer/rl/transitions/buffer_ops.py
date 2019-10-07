@@ -39,9 +39,12 @@ class NstepBuffer(tf.Module):
         self._specs = specs
         self._n_step = tf.convert_to_tensor(n_step, tf.dtypes.int64)
         self._size = tf.convert_to_tensor(size, tf.dtypes.int64)
-        self._trajectories = debugging_ops.mock_spec(
+
+        trajectories = debugging_ops.mock_spec(
             tf.TensorShape([self._size, self._n_step]), specs,
             initializers=_variable_initializers(tf.zeros, trainable=False))
+        self._trajectories_flat = tf.nest.flatten(trajectories)
+        self._trajectories = trajectories
         self._trajectory_slots_to_ids = tf.Variable(
             tf.fill([self._size], tf.cast(-1, tf.int64)))
         self._trajectory_slots_to_pos = tf.Variable(
