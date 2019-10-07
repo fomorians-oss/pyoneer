@@ -255,17 +255,50 @@ class List(TensorCodec):
         self._pipe = pipe
         self._key = key
 
-    # TODO(wenkesj): Implement `__setitem__` with `set_slice` and `scatter`.
+    def _convert_slice_to_indices(self, start=None, stop=None, step=None):
+        if start is None:
+            start = 0
+        start = tf.convert_to_tensor(start, dtype=tf.dtypes.int64)
+        if stop is None:
+            stop = -1
+        stop = tf.convert_to_tensor(stop, dtype=tf.dtypes.int64)
+        if step is None:
+            step = 1
+        step = tf.convert_to_tensor(step, dtype=tf.dtypes.int64)
+        tf.debugging.assert_equal(tf.equal(step, 0), False, 'Slice step cannot be zero.')
+
+        length = self.len()
+        if start != abs(start):
+            start = length + tf.cast(start + 1, tf.dtypes.int64)
+        if stop != abs(stop):
+            stop = length + tf.cast(stop + 1, tf.dtypes.int64)
+
+        return tf.range(start, stop, step)
+
     def __getitem__(self, getter):
         if isinstance(getter, slice):
-            return self.slice_get(
-                start=getter.start,
-                stop=getter.stop,
-                step=getter.step)
+            indices = self._convert_slice_to_indices(
+                getter.start, getter.stop, getter.step)
+            return self.gather(indices)
+
         getter = tf.convert_to_tensor(getter, dtype=tf.dtypes.int64)
         if getter.shape.rank > 0:
             return self.gather(getter)
+
         return self.get(getter)
+
+    def __setitem__(self, setter, values):
+        if isinstance(setter, slice):
+            indices = self._convert_slice_to_indices(
+                setter.start, setter.stop, setter.step)
+            return self.scatter(indices, values)
+
+        setter = tf.convert_to_tensor(setter, dtype=tf.dtypes.int64)
+        if setter.shape.rank > 0:
+            self.scatter(setter, values)
+            return
+
+        self.set(setter, values)
 
     def __len__(self):
         return self.len()
@@ -332,8 +365,9 @@ class List(TensorCodec):
         for index in indices:
             pipeline.lindex(self._key, index.item())
         items = pipeline.execute()
-        _, items = zip(*items)
-        return np.stack(items, axis=0)
+        if items:
+            return np.stack(items, axis=0), len(items)
+        return np.asarray([b'']), 0
 
     @tf.function
     def gather(self, indices):
@@ -345,14 +379,19 @@ class List(TensorCodec):
         Returns:
             The nested structure.
         """
-        tf.debugging.assert_greater(tf.shape(indices)[0], 0)
-        items = tf.numpy_function(self._gaher_fn, (indices,), tf.dtypes.string)
+        items, num_items = tf.numpy_function(self._gather_fn, (indices,),
+                                             (tf.dtypes.string, tf.dtypes.int64))
+        num_items = tf.ensure_shape(num_items, [])
+
+        if tf.equal(num_items, 0):
+            return debugging_ops.mock_spec(tf.TensorShape([0]), self.specs, tf.zeros)
+
         items.set_shape([None])
 
         decoded_items = tf.nest.map_structure(
             lambda x: x[None, ...],
             self.decode(items[0]))
-        if tf.greater(many - 1, 0):
+        if tf.greater(num_items - 1, 0):
             for index in tf.range(num_items - 1):
                 decoded_items = tf.nest.map_structure(
                     lambda x, y: tf.concat([x, y[None]], axis=0),
@@ -360,11 +399,27 @@ class List(TensorCodec):
                     self.decode(items[index]))
         return decoded_items
 
-    def _len_fn(self, index):
+    def _scatter_fn(self, indices, values):
+        pipeline = self._pipe.pipeline()
+        pipeline.multi()
+        for index, value in zip(indices, np.unstack(values, axis=0)):
+            pipeline.lset(self._key, index.item(), value)
+        pipeline.execute()
+
+    @tf.function
+    def scatter(self, indices, values):
+        """Scatter nested structures.
+
+        Args:
+            indices: The indices to scatter values.
+            indices: Values to scatter.
+        """
+        encoded_values = tf.map_fn(self.encode, values, dtype=tf.dtypes.string)
+        tf.numpy_function(self._scatter_fn, (indices, encoded_values))
+
+    def _len_fn(self):
         item = self._pipe.llen(self._key)
-        if item:
-            item = item[1]
-        return int(item.decode())
+        return item
 
     @tf.function
     def len(self):
@@ -390,77 +445,6 @@ class List(TensorCodec):
         """
         buffer = self.encode(structure)
         tf.numpy_function(self._set_fn, (index, buffer), ())
-
-    def _slice_get_fn(self, start, stop, step):
-        start = start.item()
-        stop = stop.item()
-        step = step.item()
-
-        length = None
-        if start != abs(start):
-            length = self._pipe.llen(self._key)
-            start = length + start + 1
-        if stop != abs(stop):
-            if length is None:
-                length = self._pipe.llen(self._key)
-            stop = length + stop + 1
-
-        pipeline = self._pipe.pipeline()
-        pipeline.multi()
-        for index in range(start, stop, step):
-            value = pipeline.lindex(self._key, index)
-        items = pipeline.execute()
-
-        if items:
-            stacked_items = np.stack(items, axis=0)
-            return stacked_items, stacked_items.shape[0]
-        return np.asarray([b'']), 0
-
-    @tf.function
-    def slice_get(self, start=None, stop=None, step=None):
-        """Slice a nested structure.
-
-        Args:
-            start: The slice start.
-            stop: The slice stop.
-            step: The slice step.
-
-        Returns:
-            Nested structure of tensors. The first dimension of the tensor
-                will be 0 if there are no elements in the list.
-        """
-        if start is None:
-            start = 0
-        start = tf.convert_to_tensor(start, dtype=tf.dtypes.int64)
-        if stop is None:
-            stop = -1
-        stop = tf.convert_to_tensor(stop, dtype=tf.dtypes.int64)
-        if step is None:
-            step = 1
-        step = tf.convert_to_tensor(step, dtype=tf.dtypes.int64)
-        tf.debugging.assert_equal(tf.equal(step, 0), False, 'Slice step cannot be zero.')
-
-        items, num_items = tf.numpy_function(
-            self._slice_get_fn,
-            (start, stop, step),
-            (tf.dtypes.string, tf.dtypes.int64))
-        num_items = tf.ensure_shape(num_items, [])
-
-        if tf.equal(num_items, 0):
-            return debugging_ops.mock_spec(tf.TensorShape([0]), self.specs, tf.zeros)
-
-        items.set_shape([None])
-        decoded_items = tf.nest.map_structure(
-            lambda x: x[None, ...],
-            self.decode(items[0]))
-
-        if tf.greater(num_items - 1, 0):
-            for index in tf.range(num_items - 1):
-                decoded_items = tf.nest.map_structure(
-                    lambda x, y: tf.concat([x, y[None]], axis=0),
-                    decoded_items,
-                    self.decode(items[index]))
-        return decoded_items
 
 
 class Condition(object):
@@ -550,6 +534,73 @@ class Condition(object):
     def notify_all(self):
         """Notifies all consumer ids sent to the producer."""
         tf.numpy_function(self._notify_all_fn, (), ())
+
+
+class Lock(object):
+
+    def __init__(self, pipe, key):
+        """Creates a new Lock.
+
+        Implementation of a distributed lock datastructure. This is
+            a simple lock mechanism that uses redis-native blocking.
+
+        For example:
+
+            ```python
+            pipe = redis.Redis(host=host, port=port)
+            lock = pynr.distributed.Lock(pipe, 'MyLock')
+
+            def consumer_fn(lock, w_id):
+                with lock:
+                    print('Hello from {}!'.format(w_id))
+                    time.sleep(.5)
+
+            consumers = []
+            for consumer_id in range(4):
+                consumer = threading.Thread(target=consumer_fn,
+                                            args=(lock, consumer_id))
+                consumer.start()
+                consumers.append(consumer)
+
+            # Cleanup.
+            for consumer in consumers:
+                consumer.join()
+            ```
+
+        Args:
+            pipe: The redis server.
+            key: The redis key for the condition.
+        """
+        self._pipe = pipe
+        self._key = key
+        self._release_fn()
+
+    def _acquire_fn(self):
+        _ = self._pipe.brpop(self._key)
+
+    @tf.function
+    def acquire(self):
+        """Acquire the lock."""
+        tf.numpy_function(self._acquire_fn, (), ())
+
+    def _release_fn(self):
+        pipeline = self._pipe.pipeline()
+        pipeline.multi()
+        pipeline.rpush(self._key, 1)
+        pipeline.ltrim(self._key, 0, 1)
+        pipeline.execute()
+
+    @tf.function
+    def release(self):
+        """Release the lock."""
+        tf.numpy_function(self._release_fn, (), ())
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.release()
 
 
 class Value(TensorCodec):

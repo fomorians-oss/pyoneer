@@ -9,6 +9,10 @@ import tensorflow as tf
 from pyoneer.debugging import debugging_ops
 
 
+# TODO(wenkesj): Implement interface for supporting distributed ops.
+#   - Abstract methods for create variables, gather and scatter.
+
+
 def _variable_initializers(initializers, **kwargs):
     def wrap_initializer(initializer):
         def initializer_fn(shape, dtype):
@@ -23,14 +27,13 @@ def _variable_initializers(initializers, **kwargs):
 
 class NstepBuffer(tf.Module):
 
-    def __init__(self, specs, n_step, size, initializers=tf.zeros):
+    def __init__(self, specs, n_step, size):
         """Stores n-step trajectories into a buffer.
 
         Args:
             specs: The nested `tf.TensorSpec`s to store in the buffer.
             n_step: The number of steps per trajectory.
             size: The total number of n_step trajectories of the buffer.
-            initializers: The specs buffer initializers.
         """
         super(NstepBuffer, self).__init__(name='NstepBuffer')
         self._specs = specs
@@ -38,7 +41,7 @@ class NstepBuffer(tf.Module):
         self._size = tf.convert_to_tensor(size, tf.dtypes.int64)
         self._trajectories = debugging_ops.mock_spec(
             tf.TensorShape([self._size, self._n_step]), specs,
-            initializers=_variable_initializers(initializers, trainable=False))
+            initializers=_variable_initializers(tf.zeros, trainable=False))
         self._trajectory_slots_to_ids = tf.Variable(
             tf.fill([self._size], tf.cast(-1, tf.int64)))
         self._trajectory_slots_to_pos = tf.Variable(
@@ -137,9 +140,9 @@ class NstepBuffer(tf.Module):
 
 class ReplayBuffer(NstepBuffer):
 
-    def __init__(self, specs, n_step, max_size, initializers=tf.zeros):
+    def __init__(self, specs, n_step, max_size):
         super(ReplayBuffer, self).__init__(
-            specs, n_step, max_size, initializers)
+            specs, n_step, max_size)
         self._id = tf.Variable(0, dtype=tf.dtypes.int64, trainable=False)
         self._count = tf.Variable(0, dtype=tf.dtypes.int64, trainable=False)
 
@@ -202,9 +205,11 @@ class ReplayBuffer(NstepBuffer):
             indices = self._convert_slice_to_indices(
                 getter.start, getter.stop, getter.step)
             return self.read(indices)
+
         getter = tf.convert_to_tensor(getter, dtype=tf.dtypes.int64)
         if getter.shape.rank > 0:
             return self.read(getter)
+
         values = self.read(tf.expand_dims(getter, axis=0))
         return tf.nest.map_structure(
             lambda t: tf.squeeze(t, axis=0),

@@ -464,6 +464,35 @@ class ConditionTest(tf.test.TestCase):
             consumer.join()
 
 
+class LockTest(tf.test.TestCase):
+
+    def testAcquireRelease(self):
+        redis_host = '127.0.0.1'
+        redis_port = 6379
+        c_key = 'l'
+        num_consumers = 2
+        srvr = redis.Redis(host=redis_host,
+                           port=redis_port,
+                           db=0)
+
+        lock = distributed_ops.Lock(srvr, c_key)
+
+        def consumer_fn(lock, w_id):
+            with lock:
+                print('Hello from {}!'.format(w_id))
+                time.sleep(.5)
+
+        consumers = []
+        for consumer_id in range(num_consumers):
+            consumer = threading.Thread(target=consumer_fn,
+                                        args=(lock, consumer_id))
+            consumer.start()
+            consumers.append(consumer)
+
+        for consumer in consumers:
+            consumer.join()
+
+
 class EventTest(tf.test.TestCase):
 
     def testSetGet(self):

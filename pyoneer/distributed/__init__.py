@@ -7,6 +7,7 @@ from pyoneer.distributed.distributed_ops import (
     Queue,
     List,
     Condition,
+    Lock,
     Value,
     Event
 )
@@ -16,6 +17,7 @@ __all__ = [
     "Queue",
     "List",
     "Condition",
+    "Lock",
     "Value",
     "Event"
 ]
