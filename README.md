@@ -44,6 +44,7 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.layers.OneHotEncoder`
 - `pynr.layers.AngleEncoder`
 - `pynr.layers.Nest`
+- `pynr.layers.ConcreteDropout`
 
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
@@ -65,6 +66,7 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.math.rescale`
 - `pynr.math.normalize`
 - `pynr.math.denormalize`
+- `pynr.math.sigmoid_inverse`
 
 ### Metrics ([`pynr.metrics`](pyoneer/metrics))
 
@@ -83,6 +85,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 ### Learning Rate Schedules ([`pynr.schedules`](pyoneer/schedules))
 
 - `pynr.schedules.CyclicSchedule`
+
+### Regularizers ([`pynr.regularizers`](pyoneer/regularizers))
+
+- `pynr.regularizers.DropoutL2`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 
