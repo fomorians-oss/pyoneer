@@ -385,7 +385,7 @@ class Counter(object):
             self._pipe.set(self._key, 0)
 
     def _initialize(self):
-        tf.numpy_function(self._initialize, (), ())
+        tf.numpy_function(self._initialize_fn, (), ())
 
     def _increment_fn(self, offset):
         value = self._pipe.incrby(self._key, offset.item())
