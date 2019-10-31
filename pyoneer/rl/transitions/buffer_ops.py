@@ -37,6 +37,7 @@ class NstepBuffer(tf.Module):
         trajectories = debugging_ops.mock_spec(
             tf.TensorShape([self._max_size, self._n_step]), specs,
             initializers=_variable_initializers(tf.zeros, trainable=False))
+        # Force the nested structure variables to be tracked.
         self._trajectories_flat = tf.nest.flatten(trajectories)
         self._trajectories = trajectories
         self._trajectory_slots_to_ids = tf.Variable(
