@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 gym = "*"
-tensorflow = "==2.0.0-beta1"
-tfp-nightly = "*"
+tensorflow = "==2.0.0"
+tensorflow-probability = "*"
 six = "*"
 
 [requires]
@@ -16,3 +16,4 @@ python_version = "3.6.5"
 ipdb = "*"
 pre-commit = "*"
 twine = "*"
+redis = "*"

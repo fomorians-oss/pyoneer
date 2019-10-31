@@ -13,22 +13,22 @@ def to_radians(x):
     """
     Convert the inputs from degrees to radians.
     """
-    return x * DEGREES_TO_RADIANS
+    return tf.math.multiply(x, DEGREES_TO_RADIANS)
 
 
 def to_degrees(x):
     """
     Convert the inputs from radians to degrees.
     """
-    return x * RADIANS_TO_DEGREES
+    return tf.math.multiply(x, RADIANS_TO_DEGREES)
 
 
-def to_cartesian(phi, rho=1):
+def to_cartesian(phi, rho=1.):
     """
     Convert the inputs from polar to cartesian coordinates.
     """
-    x = rho * tf.cos(phi)
-    y = rho * tf.sin(phi)
+    x = tf.math.multiply(rho, tf.cos(phi))
+    y = tf.math.multiply(rho, tf.sin(phi))
     return x, y
 
 

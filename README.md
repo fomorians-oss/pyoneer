@@ -38,6 +38,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 - `pynr.initializers.SoftplusInverse`
 
+### Jobs ([`pynr.jobs`](pyoneer/jobs))
+
+- `pynr.jobs.Job`
+
 ### Layers ([`pynr.layers`](pyoneer/layers))
 
 - `pynr.layers.Swish`
@@ -45,10 +49,13 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.layers.AngleEncoder`
 - `pynr.layers.Nest`
 
+### Losses ([`pynr.losses`](pyoneer/losses))
+
+- `pynr.losses.compute_weighted_losses`
+
 ### Tensor Manipulation ([`pynr.manip`](pyoneer/manip))
 
 - `pynr.manip.flatten`
-- `pynr.manip.batched_index`
 - `pynr.manip.pad_or_truncate`
 - `pynr.manip.shift`
 
@@ -61,7 +68,6 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.math.RADIANS_TO_DEGREES`
 - `pynr.math.DEGREES_TO_RADIANS`
 - `pynr.math.isclose`
-- `pynr.math.safe_divide`
 - `pynr.math.rescale`
 - `pynr.math.normalize`
 - `pynr.math.denormalize`
@@ -84,6 +90,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 - `pynr.schedules.CyclicSchedule`
 
+### Variables ([`pynr.variables`](pyoneer/variables))
+
+- `pynr.variables.update_variables`
+
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 
 Utilities for reinforcement learning.
@@ -91,11 +101,15 @@ Utilities for reinforcement learning.
 #### Losses ([`pynr.rl.losses`](pyoneer/rl/losses))
 
 - `pynr.rl.losses.policy_gradient`
-- `pynr.rl.losses.policy_entropy`
+- `pynr.rl.losses.soft_policy_gradient`
 - `pynr.rl.losses.clipped_policy_gradient`
+- `pynr.rl.losses.policy_entropy`
+- `pynr.rl.losses.soft_policy_entropy`
 - `pynr.rl.losses.PolicyGradient`
-- `pynr.rl.losses.PolicyEntropy`
+- `pynr.rl.losses.SoftPolicyGradient`
 - `pynr.rl.losses.ClippedPolicyGradient`
+- `pynr.rl.losses.PolicyEntropy`
+- `pynr.rl.losses.SoftPolicyEntropy`
 
 #### Targets ([`pynr.rl.targets`](pyoneer/rl/targets))
 
@@ -105,6 +119,7 @@ Utilities for reinforcement learning.
 #### Strategies ([`pynr.rl.strategies`](pyoneer/rl/strategies))
 
 - `pynr.rl.strategies.EpsilonGreedy`
+- `pynr.rl.strategies.Random`
 - `pynr.rl.strategies.Mode`
 - `pynr.rl.strategies.Sample`
 
@@ -112,6 +127,7 @@ Utilities for reinforcement learning.
 
 - `pynr.rl.wrappers.ObservationCoordinates`
 - `pynr.rl.wrappers.ObservationNormalization`
+- `pynr.rl.wrappers.ActionScale`
 - `pynr.rl.wrappers.Batch`
 - `pynr.rl.wrappers.Process`
 

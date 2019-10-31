@@ -5,17 +5,38 @@ from __future__ import print_function
 import tensorflow as tf
 
 
-def flatten(tensor):
+def flatten(tensor, start=None, stop=None):
     """
-    Flatten a tensor by reshaping into a vector.
+    Flatten a tensor by collapsing the dims from start to stop. By default this
+    will flatten the tensor into a vector.
 
     Args:
         tensor: Tensor to flatten.
+        start: Start of slice to flatten.
+        stop: End of slice to flatten.
 
     Returns:
         Flattened tensor.
     """
-    return tf.reshape(tensor, [-1])
+    if start is None and stop is None:
+        return tf.reshape(tensor, [-1])
+
+    if start is None:
+        start = 0
+
+    if stop is None:
+        stop = tensor.shape.rank
+
+    shape = tf.concat(
+        [
+            tensor.shape[:start],
+            tf.reduce_prod(tensor.shape[start:stop], keepdims=True),
+            tensor.shape[stop:],
+        ],
+        axis=0,
+    )
+    tensor = tf.reshape(tensor, shape)
+    return tensor
 
 
 def pad_or_truncate(tensor, sizes, mode="CONSTANT", constant_values=0.0):
@@ -70,7 +91,7 @@ def shift(inputs, shift, axis, padding_values=0.0):
     """
     Shifts the elements of a tensor along an axis.
 
-    This is similar to `tf.manip.roll`, except that it optionally fills the
+    This is similar to `tf.roll`, except that it optionally fills the
     rolled Tensors with `padding_values`.
 
     Examples:
@@ -78,11 +99,6 @@ def shift(inputs, shift, axis, padding_values=0.0):
         Convert states to next states and fill last step with zeros:
 
             next_state = pynr.manip.shift(states, shift=-1, axis=1)
-
-        Convert values to next values and use bootstrap values for last step:
-
-            next_values = pynr.manip.shift(values, shift=-1, axis=1,
-                padding_values=bootstrap_values[:, None])
 
         Convert actions and rewards to previous actions and rewards for RL^2:
 
@@ -125,13 +141,14 @@ def shift(inputs, shift, axis, padding_values=0.0):
 
     if shift >= 0:
         padding_slices[axis] = slice(-shift, None)
-        padded = tf.concat(
-            [padding_values * tf.ones_like(inputs[padding_slices]), sliced], axis=axis
-        )
     else:
         padding_slices[axis] = slice(0, -shift)
-        padded = tf.concat(
-            [sliced, tf.ones_like(inputs[padding_slices]) * padding_values], axis=axis
-        )
+
+    padding_values = tf.ones_like(inputs[padding_slices]) * padding_values
+
+    if shift >= 0:
+        padded = tf.concat([padding_values, sliced], axis=axis)
+    else:
+        padded = tf.concat([sliced, padding_values], axis=axis)
 
     return padded

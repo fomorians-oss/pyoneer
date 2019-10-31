@@ -8,13 +8,6 @@ from pyoneer.math import math_ops
 
 
 class MathOpsTest(tf.test.TestCase):
-    def test_safe_divide(self):
-        x = tf.ones(shape=[7], dtype=tf.float32)
-        y = tf.constant([-1.0, -0.5, -0.2, 0.0, +0.2, +0.5, +1.0])
-        actual = math_ops.safe_divide(x, y)
-        expected = tf.constant([-1.0, -2.0, -5.0, 1.0, +5.0, +2.0, +1.0])
-        self.assertAllEqual(actual, expected)
-
     def test_rescale(self):
         x = tf.constant([0.5, 0.5, 0.5])
         actual = math_ops.rescale(x, 0.0, 1.0, -1.0, 1.0)

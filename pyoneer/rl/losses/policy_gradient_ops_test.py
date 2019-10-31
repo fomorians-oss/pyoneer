@@ -8,8 +8,10 @@ from tensorflow.python.keras.utils import losses_utils
 
 from pyoneer.rl.losses.policy_gradient_ops import (
     PolicyGradient,
+    SoftPolicyGradient,
     ClippedPolicyGradient,
     PolicyEntropy,
+    SoftPolicyEntropy,
 )
 
 
@@ -25,6 +27,25 @@ class PolicyGradientTest(tf.test.TestCase):
         )
         expected = losses_utils.compute_weighted_loss(
             -log_probs * advantages, sample_weight=sample_weight
+        )
+
+        self.assertAllClose(loss, expected)
+
+    def test_soft_policy_gradient(self):
+        log_probs = tf.math.log(tf.constant([0.9, 0.8, 0.8, 0.8]))
+        action_values = tf.constant([1.0, 0.0, 1.0, 0.0])
+        alpha = tf.constant(1.0)
+        sample_weight = tf.constant([1.0, 0.0, 1.0, 0.0])
+
+        loss_fn = SoftPolicyGradient()
+        loss = loss_fn(
+            log_probs=log_probs,
+            action_values=action_values,
+            alpha=alpha,
+            sample_weight=sample_weight,
+        )
+        expected = losses_utils.compute_weighted_loss(
+            alpha * log_probs - action_values, sample_weight=sample_weight
         )
 
         self.assertAllClose(loss, expected)
@@ -63,11 +84,20 @@ class PolicyGradientTest(tf.test.TestCase):
 
         self.assertAllClose(loss, expected)
 
-    def test_entropy(self):
+    def test_policy_entropy(self):
         entropy = tf.constant([0.2, 0.3, 0.4])
-        expected = -tf.constant(0.3)
+        expected = tf.constant(-0.3)
         loss_fn = PolicyEntropy()
         losses = loss_fn(entropy)
+        self.assertAllClose(losses, expected)
+
+    def test_soft_policy_entropy(self):
+        log_probs = tf.constant([0.2, 0.3, 0.4])
+        log_alpha = tf.constant(-1.0)
+        target_entropy = -1.
+        expected = tf.reduce_mean(-log_alpha * (log_probs + target_entropy))
+        loss_fn = SoftPolicyEntropy(target_entropy=target_entropy)
+        losses = loss_fn(log_probs, log_alpha)
         self.assertAllClose(losses, expected)
 
 

@@ -38,13 +38,28 @@ class EpsilonGreedy(object):
         self.epsilon = epsilon
 
     def __call__(self, *args, **kwargs):
-        policy = self.policy(*args, **kwargs)
-        epsilon = self.epsilon() if callable(self.epsilon) else self.epsilon
-        mask_dist = tfp.distributions.Bernoulli(probs=1 - epsilon, dtype=tf.bool)
-        sample_mask = mask_dist.sample(policy.batch_shape)
-        sample = policy.sample()
-        mode = policy.mode()
-        return tf.where(sample_mask, mode, sample)
+        policy_dist = self.policy(*args, **kwargs)
+
+        mask_dist = tfp.distributions.Bernoulli(probs=1 - self.epsilon, dtype=tf.bool)
+        mask = mask_dist.sample(policy_dist.batch_shape)
+
+        random_logits = tf.ones_like(policy_dist.logits)
+        random_dist = tfp.distributions.Categorical(logits=random_logits)
+
+        sample = random_dist.sample()
+        mode = policy_dist.mode()
+        return tf.where(mask, mode, sample)
+
+
+class Random(object):
+    def __init__(self, policy):
+        self.policy = policy
+
+    def __call__(self, *args, **kwargs):
+        policy_dist = self.policy(*args, **kwargs)
+        random_logits = tf.ones_like(policy_dist.logits)
+        random_dist = tfp.distributions.Categorical(logits=random_logits)
+        return random_dist.sample()
 
 
 class Mode(object):

@@ -1,9 +1,11 @@
 from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
+from __future__ import division
 
 import gym
 import numpy as np
+
+from pyoneer.math import math_ops
 
 
 class ObservationNormalization(gym.Wrapper):
@@ -13,14 +15,26 @@ class ObservationNormalization(gym.Wrapper):
 
     def __init__(self, env, mean=None, std=None):
         super(ObservationNormalization, self).__init__(env)
+        assert isinstance(self.env.observation_space, gym.spaces.Box)
+
+        observation_high = np.where(
+            self.observation_space.high < np.finfo(np.float32).max,
+            self.observation_space.high,
+            +1.0,
+        )
+        observation_low = np.where(
+            self.observation_space.low > np.finfo(np.float32).min,
+            self.observation_space.low,
+            -1.0,
+        )
 
         if mean is None:
-            self.mean = (self.observation_space.high + self.observation_space.low) / 2
+            self.mean = (observation_high + observation_low) / 2
         else:
             self.mean = mean
 
         if std is None:
-            self.std = (self.observation_space.high - self.observation_space.low) / 2
+            self.std = (observation_high - observation_low) / 2
         else:
             self.std = std
 
@@ -31,17 +45,18 @@ class ObservationNormalization(gym.Wrapper):
         high = self.mean + self.std
         return gym.spaces.Box(low, high, dtype=self.env.observation_space.dtype)
 
-    def normalize_observation(self, observ):
-        observ = (observ - self.mean) / self.std
-        return observ
+    def normalize_observation(self, observation):
+        return (observation - self.mean) / self.std
 
     def reset(self):
-        return self.normalize_observation(self.env.reset())
+        observation = self.env.reset()
+        observation_norm = self.normalize_observation(observation)
+        return observation_norm
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        observation = self.normalize_observation(observation)
-        return observation, reward, done, info
+        observation_norm = self.normalize_observation(observation)
+        return observation_norm, reward, done, info
 
 
 class ObservationCoordinates(gym.Wrapper):

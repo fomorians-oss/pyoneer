@@ -6,3 +6,6 @@
 .DS_Store
 .python-version
 Pipfile.lock
+.ipynb_checkpoints
+__pycache__
+*.rdb

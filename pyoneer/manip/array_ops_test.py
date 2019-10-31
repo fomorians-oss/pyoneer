@@ -16,6 +16,24 @@ class ArrayOpsTest(tf.test.TestCase):
         expected = tf.constant([0.0, 1.0, 2.0])
         self.assertAllEqual(outputs, expected)
 
+    def test_flatten_start(self):
+        inputs = tf.zeros(shape=[128, 100, 16, 16, 3])
+        outputs = array_ops.flatten(inputs, start=2)
+        expected = tf.zeros(shape=[128, 100, 16 * 16 * 3])
+        self.assertAllEqual(outputs, expected)
+
+    def test_flatten_stop(self):
+        inputs = tf.zeros(shape=[128, 100, 16, 16, 3])
+        outputs = array_ops.flatten(inputs, stop=2)
+        expected = tf.zeros(shape=[128 * 100, 16, 16, 3])
+        self.assertAllEqual(outputs, expected)
+
+    def test_flatten_start_stop(self):
+        inputs = tf.zeros(shape=[128, 100, 16, 16, 3])
+        outputs = array_ops.flatten(inputs, start=2, stop=3)
+        expected = tf.zeros(shape=[128, 100, 16 * 16, 3])
+        self.assertAllEqual(outputs, expected)
+
     def test_pad_or_truncate(self):
         inputs = [["apple", "is", "red"], ["i", "dont", "like", "apples"]]
 
