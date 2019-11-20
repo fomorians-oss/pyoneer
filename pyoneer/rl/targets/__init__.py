@@ -7,11 +7,11 @@ from pyoneer.rl.targets.reward_ops import (
     lambda_returns,
     v_trace_returns,
     generalized_advantage_estimation,
-    advantage_estimation_weights,
+    weighted_regression_scores,
     DiscountedReturns,
     LambdaReturns,
     VtraceReturns,
-    GeneralizedAdvantageEstimation
+    GeneralizedAdvantageEstimation,
 )
 
 __all__ = [
@@ -19,9 +19,9 @@ __all__ = [
     "lambda_returns",
     "v_trace_returns",
     "generalized_advantage_estimation",
-    "advantage_estimation_weights",
+    "weighted_regression_scores",
     "DiscountedReturns",
     "LambdaReturns",
     "VtraceReturns",
-    "GeneralizedAdvantageEstimation"
+    "GeneralizedAdvantageEstimation",
 ]

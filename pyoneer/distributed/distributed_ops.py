@@ -8,11 +8,15 @@ import tensorflow as tf
 
 from pyoneer.debugging import debugging_ops
 
-
 _DEFAULT_PIPE = None
 
+
 def set_default_pipe(pipe):
-    """Set the default pipe for distributed communication."""
+    """Set the default pipe for distributed communication.
+
+    pipe: The pipe associated with the current backend.
+        For now, only instances of `redis.Redis` are supported.
+    """
     global _DEFAULT_PIPE
     _DEFAULT_PIPE = pipe
 
@@ -36,12 +40,14 @@ def assign_key_name(name, default_name):
 
 
 class TensorCodec(object):
-
     def __init__(self, dtypes):
         """Creates a new TensorCodec.
 
         This creates a codec that encodes structures to strings
             and decodes messages back to the structures.
+
+        This is the central tool for handling serialization of tensors for
+            multiprocess or distributed communication.
 
         For example:
 
@@ -64,7 +70,8 @@ class TensorCodec(object):
         self._length_dtype = tf.dtypes.int32
         self._count = len(tf.nest.flatten([self._dtypes]))
         length_bytes = tf.strings.bytes_split(
-            tf.io.serialize_tensor(tf.zeros([self._count], self._length_dtype)))
+            tf.io.serialize_tensor(tf.zeros([self._count], self._length_dtype))
+        )
         num_length_bytes = tf.shape(length_bytes)[0]
         self._offset = tf.cast(num_length_bytes, self._length_dtype)
 
@@ -122,24 +129,25 @@ class TensorCodec(object):
         # Decode the item into the same encoded structure.
         decoded_items = []
         lengths = tf.nest.pack_sequence_as(
-            self._dtypes, tf.unstack(lengths, self._count, axis=0))
+            self._dtypes, tf.unstack(lengths, self._count, axis=0)
+        )
 
         lengths = tf.nest.flatten(lengths)
         dtypes = tf.nest.flatten(self._dtypes)
         for length, dtype in zip(lengths, dtypes):
             length.set_shape([])
-            item_structure = tf.strings.reduce_join(item_bytes[offset:offset+length])
+            item_structure = tf.strings.reduce_join(
+                item_bytes[offset : offset + length]
+            )
             offset = offset + length
             decoded_item = tf.io.parse_tensor(item_structure, dtype)
             decoded_items.append(decoded_item)
 
-        structure = tf.nest.pack_sequence_as(
-            self._dtypes, decoded_items)
+        structure = tf.nest.pack_sequence_as(self._dtypes, decoded_items)
         return structure
 
 
 class Deque(TensorCodec):
-
     def __init__(self, dtypes, capacity=None, name=None, pipe=None):
         """Creates a new Deque.
 
@@ -159,8 +167,11 @@ class Deque(TensorCodec):
             # Enqueue a structure.
             deque.append(structure)
 
-            # Block until the structure is enqueued.
+            # Block until the structure is enqueued (FIFO).
             deque.popleft(encoded_structure) == structure
+
+            # Or pop right (LIFO)
+            deque.pop(encoded_structure) == structure
             ```
 
         Args:
@@ -177,24 +188,28 @@ class Deque(TensorCodec):
         super(Deque, self).__init__(dtypes)
         if pipe is None:
             pipe = get_default_pipe()
-            assert pipe is not None, ('No default pipe set, must use `set_default_pipe`'
-                                      'or pass a pipe that is not `None`.')
+            assert pipe is not None, (
+                "No default pipe set, must use `set_default_pipe`"
+                "or pass a pipe that is not `None`."
+            )
         if capacity is None:
             capacity = -1
         self._capacity = tf.convert_to_tensor(capacity, tf.dtypes.int64)
         self._pipe = pipe
-        self._key = assign_key_name(name, 'Deque')
+        self._key = assign_key_name(name, "Deque")
 
     @property
     def capacity(self):
+        """Returns the capacity of the deque."""
         return self._capacity
 
     def _append_fn(self, buffer, capacity):
+        capacity = capacity.item()
         pipeline = self._pipe.pipeline()
         pipeline.multi()
         pipeline.rpush(self._key, buffer)
         if capacity != -1:
-            pipeline.ltrim(self._key, 1, capacity + 1)
+            pipeline.ltrim(self._key, -capacity, -1)
         pipeline.execute()
 
     @tf.function
@@ -216,7 +231,7 @@ class Deque(TensorCodec):
         pipeline.execute()
 
     @tf.function
-    def append_left(self, structure):
+    def appendleft(self, structure):
         """Append a nested structure to the left.
 
         Args:
@@ -261,9 +276,16 @@ class Deque(TensorCodec):
         decoded_item = self.decode(item)
         return decoded_item
 
+    def _delete_fn(self):
+        self._pipe.delete(self._key)
+
+    @tf.function
+    def __del__(self):
+        """Flush the datastructure on the pipe, resetting the values."""
+        tf.numpy_function(self._delete_fn, (), ())
+
 
 class Condition(object):
-
     def __init__(self, name=None, pipe=None):
         """Creates a new Condition.
 
@@ -304,10 +326,12 @@ class Condition(object):
         """
         if pipe is None:
             pipe = get_default_pipe()
-            assert pipe is not None, ('No default pipe set, must use `set_default_pipe`'
-                                      'or pass a pipe that is not `None`.')
+            assert pipe is not None, (
+                "No default pipe set, must use `set_default_pipe`"
+                "or pass a pipe that is not `None`."
+            )
         self._pipe = pipe
-        self._key = assign_key_name(name, 'Condition')
+        self._key = assign_key_name(name, "Condition")
 
     def _wait_fn(self, w_id):
         w_id_str = str(w_id.item())
@@ -352,9 +376,26 @@ class Condition(object):
         """Notifies all consumer ids sent to the producer."""
         tf.numpy_function(self._notify_all_fn, (), ())
 
+    def _delete_fn(self):
+        pipeline = self._pipe.pipeline()
+        pipeline.multi()
+        pipeline.lrange(self._key, 0, -1)
+        pipeline.delete(self._key)
+        [w_ids, _] = pipeline.execute()
+        pipeline = self._pipe.pipeline()
+        pipeline.multi()
+        for w_id in w_ids:
+            pipeline.delete(self._key + str(w_id.decode()))
+        pipeline.delete(self._key)
+        _ = pipeline.execute()
+
+    @tf.function
+    def __del__(self):
+        """Flush the datastructure on the pipe, resetting the values."""
+        tf.numpy_function(self._delete_fn, (), ())
+
 
 class Counter(object):
-
     def __init__(self, dtype=tf.dtypes.int64, name=None, pipe=None):
         """Creates a new Counter.
 
@@ -369,11 +410,13 @@ class Counter(object):
         """
         if pipe is None:
             pipe = get_default_pipe()
-            assert pipe is not None, ('No default pipe set, must use `set_default_pipe`'
-                                      'or pass a pipe that is not `None`.')
+            assert pipe is not None, (
+                "No default pipe set, must use `set_default_pipe`"
+                "or pass a pipe that is not `None`."
+            )
         self._dtype = dtype
         self._pipe = pipe
-        self._key = assign_key_name(name, 'Counter')
+        self._key = assign_key_name(name, "Counter")
         self._initialize()
 
     @property
@@ -401,7 +444,8 @@ class Counter(object):
         offset = tf.cast(offset, tf.dtypes.int64)
         return tf.cast(
             tf.numpy_function(self._increment_fn, (offset,), tf.dtypes.int64),
-            self._dtype)
+            self._dtype,
+        )
 
     def _get_fn(self):
         return int(self._pipe.get(self._key).decode())
@@ -414,12 +458,19 @@ class Counter(object):
             Tensor of type `dtype` corresponding to the currrent value.
         """
         return tf.cast(
-            tf.numpy_function(self._get_fn, (), tf.dtypes.int64),
-            self._dtype)
+            tf.numpy_function(self._get_fn, (), tf.dtypes.int64), self._dtype
+        )
+
+    def _delete_fn(self):
+        self._pipe.delete(self._key)
+
+    @tf.function
+    def __del__(self):
+        """Flush the datastructure on the pipe, resetting the values."""
+        tf.numpy_function(self._delete_fn, (), ())
 
 
 class Lock(object):
-
     def __init__(self, name=None, pipe=None):
         """Creates a new Lock.
 
@@ -456,10 +507,12 @@ class Lock(object):
         """
         if pipe is None:
             pipe = get_default_pipe()
-            assert pipe is not None, ('No default pipe set, must use `set_default_pipe`'
-                                      'or pass a pipe that is not `None`.')
+            assert pipe is not None, (
+                "No default pipe set, must use `set_default_pipe`"
+                "or pass a pipe that is not `None`."
+            )
         self._pipe = pipe
-        self._key = assign_key_name(name, 'Lock')
+        self._key = assign_key_name(name, "Lock")
         self._initialize_fn()
 
     def _initialize_fn(self):
@@ -487,15 +540,24 @@ class Lock(object):
         tf.numpy_function(self._release_fn, (), ())
 
     def __enter__(self):
+        """Acquire the lock and create a context."""
         self.acquire()
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, *args, **kwargs):
+        """Release the lock and exit a context."""
         self.release()
+
+    def _delete_fn(self):
+        self._pipe.delete(self._key)
+
+    @tf.function
+    def __del__(self):
+        """Flush the datastructure on the pipe, resetting the values."""
+        tf.numpy_function(self._delete_fn, (), ())
 
 
 class Value(TensorCodec):
-
     def __init__(self, dtypes, name=None, pipe=None):
         """Creates a new Value.
 
@@ -528,10 +590,12 @@ class Value(TensorCodec):
         super(Value, self).__init__(dtypes)
         if pipe is None:
             pipe = get_default_pipe()
-            assert pipe is not None, ('No default pipe set, must use `set_default_pipe`'
-                                      'or pass a pipe that is not `None`.')
+            assert pipe is not None, (
+                "No default pipe set, must use `set_default_pipe`"
+                "or pass a pipe that is not `None`."
+            )
         self._pipe = pipe
-        self._key = assign_key_name(name, 'Value')
+        self._key = assign_key_name(name, "Value")
 
     def _set_fn(self, buffer):
         self._pipe.set(self._key, buffer)
@@ -544,8 +608,7 @@ class Value(TensorCodec):
             structure: The nested structure.
         """
         buffer = self.encode(structure)
-        with tf.control_dependencies([
-                tf.numpy_function(self._set_fn, (buffer,), ())]):
+        with tf.control_dependencies([tf.numpy_function(self._set_fn, (buffer,), ())]):
             return
 
     def _get_fn(self):
@@ -564,9 +627,16 @@ class Value(TensorCodec):
         decoded_item = self.decode(item)
         return decoded_item
 
+    def _delete_fn(self):
+        self._pipe.delete(self._key)
+
+    @tf.function
+    def __del__(self):
+        """Flush the datastructure on the pipe, resetting the values."""
+        tf.numpy_function(self._delete_fn, (), ())
+
 
 class Event(object):
-
     def __init__(self, name=None, pipe=None):
         """Creates a new Event.
 
@@ -604,10 +674,12 @@ class Event(object):
         """
         if pipe is None:
             pipe = get_default_pipe()
-            assert pipe is not None, ('No default pipe set, must use `set_default_pipe`'
-                                      'or pass a pipe that is not `None`.')
+            assert pipe is not None, (
+                "No default pipe set, must use `set_default_pipe`"
+                "or pass a pipe that is not `None`."
+            )
         self._pipe = pipe
-        self._key = assign_key_name(name, 'Event')
+        self._key = assign_key_name(name, "Event")
 
     def _set_fn(self, w_id):
         self._pipe.hset(self._key, str(w_id.item()), 1)
@@ -661,3 +733,11 @@ class Event(object):
             If the event is set.
         """
         return tf.numpy_function(self._get_fn, (w_id,), tf.dtypes.bool)
+
+    def _delete_fn(self):
+        self._pipe.delete(self._key)
+
+    @tf.function
+    def __del__(self):
+        """Flush the datastructure on the pipe, resetting the values."""
+        tf.numpy_function(self._delete_fn, (), ())
