@@ -148,7 +148,7 @@ class TensorCodec(object):
 
 
 class Deque(TensorCodec):
-    def __init__(self, dtypes, capacity=None, name=None, pipe=None):
+    def __init__(self, dtypes, capacity=None, name=None, pipe=None, pop_timeout=0):
         """Creates a new Deque.
 
         Implementation of a distributed queue/stack data-structure. This implements
@@ -197,6 +197,7 @@ class Deque(TensorCodec):
         self._capacity = tf.convert_to_tensor(capacity, tf.dtypes.int64)
         self._pipe = pipe
         self._key = assign_key_name(name, "Deque")
+        self._pop_timeout = pop_timeout
 
     @property
     def capacity(self):
@@ -241,7 +242,7 @@ class Deque(TensorCodec):
         tf.numpy_function(self._append_left_fn, (buffer, self._capacity), ())
 
     def _pop_fn(self):
-        item = self._pipe.brpop(self._key)
+        item = self._pipe.brpop(self._key, timeout=self._pop_timeout)
         if item:
             item = item[1]
         return item
@@ -259,7 +260,7 @@ class Deque(TensorCodec):
         return decoded_item
 
     def _popleft_fn(self):
-        item = self._pipe.blpop(self._key)
+        item = self._pipe.blpop(self._key, timeout=self._pop_timeout)
         if item:
             item = item[1]
         return item
@@ -286,7 +287,7 @@ class Deque(TensorCodec):
 
 
 class Condition(object):
-    def __init__(self, name=None, pipe=None):
+    def __init__(self, name=None, pipe=None, wait_timeout=0):
         """Creates a new Condition.
 
         Implementation of a distributed condition datastructure.
@@ -332,11 +333,12 @@ class Condition(object):
             )
         self._pipe = pipe
         self._key = assign_key_name(name, "Condition")
+        self._wait_timeout = wait_timeout
 
     def _wait_fn(self, w_id):
         w_id_str = str(w_id.item())
         self._pipe.rpush(self._key, w_id_str)
-        self._pipe.blpop(self._key + w_id_str)
+        self._pipe.blpop(self._key + w_id_str, timeout=self._wait_timeout)
 
     @tf.function
     def wait(self, w_id):
@@ -471,7 +473,7 @@ class Counter(object):
 
 
 class Lock(object):
-    def __init__(self, name=None, pipe=None):
+    def __init__(self, name=None, pipe=None, acquire_timeout=0):
         """Creates a new Lock.
 
         Implementation of a distributed lock datastructure. This is
@@ -513,6 +515,7 @@ class Lock(object):
             )
         self._pipe = pipe
         self._key = assign_key_name(name, "Lock")
+        self._acquire_timeout = acquire_timeout
         self._initialize_fn()
 
     def _initialize_fn(self):
@@ -520,7 +523,7 @@ class Lock(object):
             self._release_fn()
 
     def _acquire_fn(self):
-        _ = self._pipe.brpop(self._key)
+        _ = self._pipe.brpop(self._key, timeout=self._acquire_timeout)
 
     @tf.function
     def acquire(self):
