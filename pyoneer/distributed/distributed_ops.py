@@ -281,9 +281,12 @@ class Deque(TensorCodec):
         self._pipe.delete(self._key)
 
     @tf.function
-    def __del__(self):
+    def delete(self):
         """Flush the datastructure on the pipe, resetting the values."""
         tf.numpy_function(self._delete_fn, (), ())
+
+    def __del__(self):
+        self.delete()
 
 
 class Condition(object):
@@ -366,12 +369,14 @@ class Condition(object):
         pipeline.multi()
         pipeline.lrange(self._key, 0, -1)
         pipeline.delete(self._key)
-        [w_ids, _] = pipeline.execute()
-        pipeline = self._pipe.pipeline()
-        pipeline.multi()
-        for w_id in w_ids:
-            pipeline.rpush(self._key + str(w_id.decode()), 1)
-        _ = pipeline.execute()
+        results = pipeline.execute()
+        [w_ids, _] = results
+        if w_ids:
+            pipeline = self._pipe.pipeline()
+            pipeline.multi()
+            for w_id in w_ids:
+                pipeline.rpush(self._key + str(w_id.decode()), 1)
+            _ = pipeline.execute()
 
     @tf.function
     def notify_all(self):
@@ -384,17 +389,20 @@ class Condition(object):
         pipeline.lrange(self._key, 0, -1)
         pipeline.delete(self._key)
         [w_ids, _] = pipeline.execute()
-        pipeline = self._pipe.pipeline()
-        pipeline.multi()
-        for w_id in w_ids:
-            pipeline.delete(self._key + str(w_id.decode()))
-        pipeline.delete(self._key)
-        _ = pipeline.execute()
+        if w_ids:
+            pipeline = self._pipe.pipeline()
+            pipeline.multi()
+            for w_id in w_ids:
+                pipeline.delete(self._key + str(w_id.decode()))
+            _ = pipeline.execute()
 
     @tf.function
-    def __del__(self):
+    def delete(self):
         """Flush the datastructure on the pipe, resetting the values."""
         tf.numpy_function(self._delete_fn, (), ())
+
+    def __del__(self):
+        self.delete()
 
 
 class Counter(object):
@@ -467,9 +475,12 @@ class Counter(object):
         self._pipe.delete(self._key)
 
     @tf.function
-    def __del__(self):
+    def delete(self):
         """Flush the datastructure on the pipe, resetting the values."""
         tf.numpy_function(self._delete_fn, (), ())
+
+    def __del__(self):
+        self.delete()
 
 
 class Lock(object):
@@ -555,9 +566,12 @@ class Lock(object):
         self._pipe.delete(self._key)
 
     @tf.function
-    def __del__(self):
+    def delete(self):
         """Flush the datastructure on the pipe, resetting the values."""
         tf.numpy_function(self._delete_fn, (), ())
+
+    def __del__(self):
+        self.delete()
 
 
 class Value(TensorCodec):
@@ -634,9 +648,12 @@ class Value(TensorCodec):
         self._pipe.delete(self._key)
 
     @tf.function
-    def __del__(self):
+    def delete(self):
         """Flush the datastructure on the pipe, resetting the values."""
         tf.numpy_function(self._delete_fn, (), ())
+
+    def __del__(self):
+        self.delete()
 
 
 class Event(object):
@@ -741,6 +758,9 @@ class Event(object):
         self._pipe.delete(self._key)
 
     @tf.function
-    def __del__(self):
+    def delete(self):
         """Flush the datastructure on the pipe, resetting the values."""
         tf.numpy_function(self._delete_fn, (), ())
+
+    def __del__(self):
+        self.delete()
