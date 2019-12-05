@@ -103,6 +103,98 @@ def discounted_returns(
         return returns
 
 
+def n_step_returns(
+    rewards,
+    n_step,
+    discounts=0.99,
+    weights=1.0,
+    time_major=False,
+    back_prop=False,
+    name=None,
+):
+    """Computes n-step returns.
+
+    Args:
+        rewards: tensor of shape [Batch x Time], [Batch x Time x ...].
+        n_step: The n-step value.
+        discounts: tensor of shape [], [...], [Batch], [Batch, ...],
+            [Batch x Time], [Batch x Time x ...].
+        weights: tensor of shape [], [...], [Batch], [Batch, ...],
+            [Batch x Time], [Batch x Time x ...].
+        time_major: flag if tensors are time_major.
+            Batch and Time are transposed in this doc.
+        back_prop: allow back_prop through the calculation.
+        name: optional op name.
+
+    Returns:
+        tensor of shape [Batch x Time] or [Time x Batch]
+    """
+    with tf.name_scope(name or "LambdaReturns"):
+        # Check rewards shape.
+        rewards = tf.convert_to_tensor(rewards)
+        rewards_rank = rewards.shape.rank
+        assert rewards_rank >= 2, "rewards must be atleast rank 2."
+        rewards_shape = tf.shape(rewards)
+
+        # Check discounts shape, broadcast to rewards shape.
+        discounts = tf.convert_to_tensor(discounts)
+        assert (
+            discounts.shape.rank <= rewards.shape.rank
+        ), "discounts rank must be <= rewards rank."
+        discounts = tf.broadcast_to(discounts, rewards_shape)
+
+        # Check weights shape, broadcast to weights shape.
+        weights = tf.convert_to_tensor(weights)
+        assert (
+            weights.shape.rank <= rewards.shape.rank
+        ), "weights rank must be <= rewards rank."
+        weights = tf.broadcast_to(weights, rewards_shape)
+
+        rank_list = list(range(2, rewards_rank))
+
+        # Window the reward and discount into n-step windows.
+        # [B(T) x T(B)] -> [B(T) x T(B) x N]
+        if time_major:
+            rewards = tf.transpose(rewards, [1, 0] + rank_list)
+            discounts = tf.transpose(discounts, [1, 0] + rank_list)
+
+        windowed_rewards = tf.signal.frame(
+            rewards, n_step, 1, pad_end=True, pad_value=0.0, axis=1
+        )
+        windowed_discounts = tf.signal.frame(
+            discounts, n_step, 1, pad_end=True, pad_value=0.0, axis=1
+        )
+
+        # Transpose the windowed reward
+        # [B x T x N] -> [N x B x T]
+        windowed_rewards_tr = tf.transpose(windowed_rewards, [2, 0, 1] + rank_list)
+        windowed_discounts_tr = tf.transpose(windowed_discounts, [2, 0, 1] + rank_list)
+
+        # Compute returns over the window axis [N], for all [B x T].
+        def reduce_fn(return_tm1, elements):
+            reward_t, discount_t = elements
+            return_t = reward_t + discount_t * return_tm1
+            return return_t
+
+        # Compute the returns as the first value of each window.
+        returns = tf.scan(
+            fn=reduce_fn,
+            elems=(windowed_rewards_tr, windowed_discounts_tr),
+            initializer=tf.zeros_like(rewards),
+            parallel_iterations=1,
+            reverse=True,
+        )[0]
+
+        if time_major:
+            returns = tf.transpose(returns, [1, 0] + rank_list)
+
+        returns = returns * weights
+        returns = tf.debugging.check_numerics(returns, "Returns")
+        if not back_prop:
+            returns = tf.stop_gradient(returns)
+        return returns
+
+
 def lambda_returns(
     rewards,
     values,
@@ -236,6 +328,7 @@ def v_trace_returns(
     discounts=0.99,
     rho_hat=1.0,
     c_hat=1.0,
+    lambdas=1.0,
     weights=1.0,
     time_major=False,
     back_prop=False,
@@ -254,6 +347,8 @@ def v_trace_returns(
         c_hat: tensor of shape [], [...], [Batch], [Batch, ...],
             [Batch x Time], [Batch x Time x ...].
         rho_hat: tensor of shape [], [...], [Batch], [Batch, ...],
+            [Batch x Time], [Batch x Time x ...].
+        lambdas: tensor of shape [], [...], [Batch], [Batch, ...],
             [Batch x Time], [Batch x Time x ...].
         weights: tensor of shape [], [...], [Batch], [Batch, ...],
             [Batch x Time], [Batch x Time x ...].
@@ -294,6 +389,13 @@ def v_trace_returns(
         ), "rho_hat rank must be <= rewards rank."
         rho_hat = tf.broadcast_to(rho_hat, rewards_shape)
 
+        # Check lambdas shape, broadcast to rewards shape.
+        lambdas = tf.convert_to_tensor(lambdas)
+        assert (
+            lambdas.shape.rank <= lambdas.shape.rank
+        ), "lambdas rank must be <= rewards rank."
+        lambdas = tf.broadcast_to(lambdas, rewards_shape)
+
         # Check weights shape, broadcast to weights shape.
         weights = tf.convert_to_tensor(weights)
         assert (
@@ -311,7 +413,7 @@ def v_trace_returns(
 
         is_ratio = tf.exp(log_probs - log_probs_old)
         rhos = tf.minimum(rho_hat, is_ratio)
-        cs = tf.minimum(c_hat, is_ratio)
+        cs = lambdas * tf.minimum(c_hat, is_ratio)
 
         bootstrap_value_t = tf.expand_dims(bootstrap_value, axis=time_axis)
 
