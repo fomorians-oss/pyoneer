@@ -737,6 +737,9 @@ class VtraceReturns(Returns):
         log_probs,
         behavioral_log_probs,
         bootstrap_value=None,
+        rho_hat=1.0,
+        c_hat=1.0,
+        lambdas=1.0,
         discounts=0.99,
         sample_weight=1.0,
     ):
@@ -749,6 +752,12 @@ class VtraceReturns(Returns):
             log_probs_old: tensor of shape [Batch x Time], [Batch x Time x ...].
             bootstrap_value: tensor of shape [], [Batch], [Batch x ...].
             discounts: tensor of shape [], [...], [Batch], [Batch, ...],
+                [Batch x Time], [Batch x Time x ...].
+            c_hat: tensor of shape [], [...], [Batch], [Batch, ...],
+                [Batch x Time], [Batch x Time x ...].
+            rho_hat: tensor of shape [], [...], [Batch], [Batch, ...],
+                [Batch x Time], [Batch x Time x ...].
+            lambdas: tensor of shape [], [...], [Batch], [Batch, ...],
                 [Batch x Time], [Batch x Time x ...].
             weights: tensor of shape [], [...], [Batch], [Batch, ...],
                 [Batch x Time], [Batch x Time x ...].
@@ -767,6 +776,9 @@ class VtraceReturns(Returns):
             behavioral_log_probs,
             bootstrap_value=bootstrap_value,
             discounts=discounts,
+            rho_hat=rho_hat,
+            c_hat=c_hat,
+            lambdas=lambdas,
             weights=sample_weight,
             time_major=self.time_major,
             back_prop=self.back_prop,

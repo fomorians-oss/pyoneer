@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -279,7 +281,17 @@ class NstepPrioritizedBuffer(NstepBuffer):
         is_weights /= max_is_weight
 
         samples = self._read_by_slots(indices)
+        structure = Sample(samples, is_weights, indices)
         sample_dataset = tf.data.Dataset.from_tensor_slices(
-            (samples, is_weights, indices)
+            tuple(tf.nest.flatten(structure))
         )
+
+        @tf.function
+        def fix_structure(*args):
+            return tf.nest.pack_sequence_as(structure, tuple(args))
+
+        sample_dataset = sample_dataset.map(fix_structure)
         return sample_dataset
+
+
+Sample = collections.namedtuple("Sample", ("samples", "is_weights", "indices"))
