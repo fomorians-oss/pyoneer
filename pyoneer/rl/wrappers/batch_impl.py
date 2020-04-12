@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 
+from collections import defaultdict
+
 from pyoneer.rl.wrappers.process_impl import Process
 
 
@@ -120,9 +122,18 @@ class Batch(object):
         next_state = np.stack(next_states, axis=0)
         reward = np.stack(rewards, axis=0)
         done = np.stack(dones, axis=0)
-        info = tuple(infos)
+
+        infos_list = defaultdict(list)
+        for info in infos:
+            for key, val in info.items():
+                infos_list[key].append(val)
+
+        info_np = {}
+        for key, val in infos_list.items():
+            info_np[key] = np.stack(val, axis=0)
+
         self.done = self.done | done
-        return next_state, reward, done, info
+        return next_state, reward, done, info_np
 
     def render(self, mode="human"):
         assert (
