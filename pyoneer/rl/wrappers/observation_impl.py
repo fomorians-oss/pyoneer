@@ -46,7 +46,12 @@ class ObservationNormalization(gym.Wrapper):
         return gym.spaces.Box(low, high, dtype=self.env.observation_space.dtype)
 
     def normalize_observation(self, observation):
-        return (observation - self.mean) / self.std
+        return np.divide(
+            observation - self.mean,
+            self.std,
+            out=np.zeros_like(observation),
+            where=self.std > 0.0,
+        )
 
     def reset(self):
         observation = self.env.reset()
