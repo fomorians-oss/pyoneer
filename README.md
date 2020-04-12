@@ -30,10 +30,6 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 
 - `pynr.debugging.Stopwatch`
 
-### Distributions ([`pynr.distributions`](pyoneer/distributions))
-
-- `pynr.distributions.MultiCategorical`
-
 ### Initializers ([`pynr.initializers`](pyoneer/initializers))
 
 - `pynr.initializers.SoftplusInverse`
@@ -48,6 +44,7 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.layers.OneHotEncoder`
 - `pynr.layers.AngleEncoder`
 - `pynr.layers.Nest`
+- `pynr.layers.ConcreteDropout`
 
 ### Losses ([`pynr.losses`](pyoneer/losses))
 
@@ -71,6 +68,7 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 - `pynr.math.rescale`
 - `pynr.math.normalize`
 - `pynr.math.denormalize`
+- `pynr.math.sigmoid_inverse`
 
 ### Metrics ([`pynr.metrics`](pyoneer/metrics))
 
@@ -93,6 +91,10 @@ In general, the Pyoneer API tries to adhere to the TensorFlow 2.0 API.
 ### Variables ([`pynr.variables`](pyoneer/variables))
 
 - `pynr.variables.update_variables`
+
+### Regularizers ([`pynr.regularizers`](pyoneer/regularizers))
+
+- `pynr.regularizers.DropoutL2`
 
 ### Reinforcement Learning ([`pynr.rl`](pyoneer/rl))
 

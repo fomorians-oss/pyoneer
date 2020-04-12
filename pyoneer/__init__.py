@@ -6,6 +6,7 @@ from pyoneer import activations
 from pyoneer import debugging
 from pyoneer import initializers
 from pyoneer import jobs
+from pyoneer import regularizers
 from pyoneer import layers
 from pyoneer import losses
 from pyoneer import manip
@@ -21,6 +22,7 @@ __all__ = [
     "debugging",
     "initializers",
     "jobs",
+    "regularizers",
     "layers",
     "losses",
     "manip",
