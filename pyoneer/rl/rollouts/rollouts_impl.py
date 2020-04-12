@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
+from collections import defaultdict
+
 
 class Rollout:
     """
@@ -12,7 +14,7 @@ class Rollout:
     def __init__(self, env):
         self.env = env
 
-    def __call__(self, policy, episodes, render_mode=None):
+    def __call__(self, policy, episodes, render_mode=None, include_info=False):
         observation_space = self.env.observation_space
         action_space = self.env.action_space
         max_episode_steps = self.env.spec.max_episode_steps
@@ -38,6 +40,9 @@ class Rollout:
 
         if render_mode == "rgb_array":
             renders = []
+
+        if include_info:
+            infos = defaultdict(list)
 
         for batch in range(batches):
             batch_start = batch * batch_size
@@ -76,6 +81,10 @@ class Rollout:
                 )
                 dones[batch_start:batch_end, step] = done[:batch_size]
 
+                if include_info:
+                    for key, val in info.items():
+                        infos[key].append(val)
+
                 episode_done = episode_done | done[:batch_size]
 
                 # end the rollout if all episodes are done
@@ -94,6 +103,12 @@ class Rollout:
         }
 
         if render_mode == "rgb_array":
-            transitions["renders"] = np.concatenate(renders, axis=0)
+            transitions["renders"] = np.stack(renders, axis=0)
+
+        if include_info:
+            transitions["infos"] = {}
+            for key, val in infos.items():
+                if len(val) > 0:
+                    transitions["infos"][key] = np.stack(val, axis=1)
 
         return transitions
