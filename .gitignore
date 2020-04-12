@@ -6,3 +6,5 @@
 .DS_Store
 .python-version
 Pipfile.lock
+.mypy_cache/
+.vscode/
