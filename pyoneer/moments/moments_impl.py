@@ -179,8 +179,8 @@ class ExponentialMovingMoments(Moments):
     Compute moments as an exponential moving average using the update rule:
 
     ```
-    mean = (1 - rate) * old_mean + rate * new_mean
-    variance = (1 - rate) * old_variance + rate * new_variance
+    mean = rate * old_mean + (1 - rate) * new_mean
+    variance = rate * old_variance + (1 - rate) * new_variance
     ```
 
     Args:
