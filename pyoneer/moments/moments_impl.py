@@ -179,8 +179,8 @@ class ExponentialMovingMoments(Moments):
     Compute moments as an exponential moving average using the update rule:
 
     ```
-    mean = rate * old_mean + (1 - rate) * new_mean
-    variance = rate * old_variance + (1 - rate) * new_variance
+    mean = (1 - rate) * old_mean + rate * new_mean
+    variance = (1 - rate) * old_variance + rate * new_variance
     ```
 
     Args:
@@ -247,8 +247,8 @@ class ExponentialMovingMoments(Moments):
             inputs, axes=axes, frequency_weights=sample_weight
         )
 
-        moving_mean = self._mean * self.rate + mean * (1 - self.rate)
-        moving_variance = self._variance * self.rate + variance * (1 - self.rate)
+        moving_mean = (1 - self.rate) * self._mean + self.rate * mean
+        moving_variance = (1 - self.rate) * self._variance + self.rate * variance
 
         new_mean = tf.where(self._count > 0, moving_mean, mean)
         new_variance = tf.where(self._count > 0, moving_variance, variance)
