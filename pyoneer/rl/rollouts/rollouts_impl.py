@@ -35,7 +35,9 @@ class Rollout:
             dtype=observation_space.dtype,
         )
         rewards = np.zeros(shape=(episodes, max_episode_steps), dtype=np.float32)
-        weights = np.zeros(shape=(episodes, max_episode_steps), dtype=np.float32)
+        trajectory_mask = np.zeros(
+            shape=(episodes, max_episode_steps), dtype=np.float32
+        )
         dones = np.ones(shape=(episodes, max_episode_steps), dtype=np.bool)
 
         if render_mode == "rgb_array":
@@ -76,7 +78,7 @@ class Rollout:
                     :batch_size
                 ]
                 rewards[batch_start:batch_end, step] = reward[:batch_size]
-                weights[batch_start:batch_end, step] = np.where(
+                trajectory_mask[batch_start:batch_end, step] = np.where(
                     episode_done[:batch_size], 0.0, 1.0
                 )
                 dones[batch_start:batch_end, step] = done[:batch_size]
@@ -98,7 +100,7 @@ class Rollout:
             "actions": actions,
             "observations_next": observations_next,
             "rewards": rewards,
-            "weights": weights,
+            "trajectory_mask": trajectory_mask,
             "dones": dones,
         }
 
