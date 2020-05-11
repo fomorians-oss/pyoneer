@@ -23,18 +23,20 @@ class ActionScale(gym.Wrapper):
         high = high * np.ones_like(self.env.action_space.high)
         return gym.spaces.Box(low, high, dtype=self.env.action_space.dtype)
 
-    def scale_action(self, action):
+    def unscale_action(self, action):
+        # rescale from low..high to 0..1
         action = (action - self.action_space.low) / (
             self.action_space.high - self.action_space.low
         )
+        # rescale from 0..1 to env.low..env.high
         action = (
             action * (self.env.action_space.high - self.env.action_space.low)
         ) + self.env.action_space.low
         return action
 
     def step(self, action):
-        action_scaled = self.scale_action(action)
-        observation, reward, done, info = self.env.step(action_scaled)
+        action_unscaled = self.unscale_action(action)
+        observation, reward, done, info = self.env.step(action_unscaled)
         return observation, reward, done, info
 
 
