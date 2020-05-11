@@ -17,6 +17,6 @@ def compute_weighted_loss(losses, sample_weight=1.0):
         Weighted loss.
     """
     losses = losses * sample_weight
-    total_loss = tf.reduce_sum(losses)
+    total_loss = tf.reduce_sum(losses * sample_weight)
     num_present = tf.reduce_sum(tf.ones_like(losses) * sample_weight)
     return tf.math.divide_no_nan(total_loss, num_present)
